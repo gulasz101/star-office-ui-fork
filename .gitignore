@@ -1,3 +1,6 @@
+# Worker-local tooling (pip.pyz, hadolint, smoke-test deps) - never committed
+.tooling/
+
 # Python environment
 __pycache__/
 *.py[cod]

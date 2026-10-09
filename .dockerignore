@@ -1,0 +1,60 @@
+# ---- VCS / CI ---------------------------------------------------------
+.git/
+.gitignore
+.github/
+
+# ---- Secrets / env: must never enter the image ------------------------
+.env
+.env.*
+*.env
+.venv/
+venv/
+env/
+
+# ---- Python caches & build artifacts ---------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# ---- Node / desktop-shell build output (not needed by the server) -----
+node_modules/
+electron-shell/node_modules/
+electron-shell/release/
+desktop-pet/src-tauri/target/
+desktop-pet/
+electron-shell/
+
+# ---- Runtime state (local only; regenerated at run time) -------------
+state.json
+agents-state.json
+join-keys.json
+runtime-config.json
+*.log
+*.out
+*.pid
+*.backup*
+*.original
+healthcheck.log
+backend.log
+assets/bg-history/
+assets/home-favorites/
+
+# ---- Worker-local tooling (never shipped) ----------------------------
+.tooling/
+
+# ---- OS / editor cruft ------------------------------------------------
+.DS_Store
+*.swp
+Thumbs.db
+
+# ---- Docs (kept small; not served by the backend) --------------------
+docs/
+
+# ---- Release bundles --------------------------------------------------
+dist/Star-Office-UI-release-*/

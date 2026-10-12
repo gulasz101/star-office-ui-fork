@@ -42,14 +42,15 @@ status() {
 
 start_docker() {
   docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  # Trust auth, port bound to loopback only, throwaway database: this is a
+  # migration test bed, never a place for credentials.
   docker run -d --name "$CONTAINER" \
-    -e POSTGRES_PASSWORD=devonly \
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
     -e POSTGRES_DB="$DB" \
-    -p "${PORT}:5432" postgres:16 >/dev/null
+    -p "127.0.0.1:${PORT}:5432" postgres:16 >/dev/null
   until docker exec "$CONTAINER" pg_isready -U postgres -q; do sleep 1; done
-  # The psycopg2 URL above is for the embedded server; over Docker the password
-  # is part of the DSN.
-  echo "postgresql+psycopg2://postgres:devonly@127.0.0.1:${PORT}/${DB}"
+  echo "PostgreSQL container ready (docker image postgres:16)"
+  url
 }
 
 start_embedded() {

@@ -14,6 +14,14 @@ venv/
 # OS/editor
 .DS_Store
 
+# Local databases (ADR-034 SQLite fallback + migration test artifacts)
+sou.db
+sou.db-journal
+sou.db-wal
+sou.db-shm
+*.sqlite
+*.sqlite3
+
 # Runtime state (local only)
 state.json
 agents-state.json

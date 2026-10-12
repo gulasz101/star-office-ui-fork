@@ -28,7 +28,10 @@ _RELATIVE_SQLITE = re.compile(
     r"^(?P<scheme>sqlite(?:\+\w+)?:///)(?P<path>[^/].*?)(?P<query>\?[^?]*)?$"
 )
 
-if config.config_file_name is not None:
+# ALEMBIC_SKIP_FILECONFIG keeps Alembic's log configuration out of the root
+# logger for programmatic callers (backend/tests/test_migrations.py); the CLI
+# still logs every Running upgrade line, which is the migration evidence.
+if config.config_file_name is not None and not os.environ.get("ALEMBIC_SKIP_FILECONFIG"):
     fileConfig(config.config_file_name)
 
 target_metadata = None

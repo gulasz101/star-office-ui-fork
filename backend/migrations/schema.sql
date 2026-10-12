@@ -1,16 +1,15 @@
 -- SOU initial schema (ADR-034) - agents, events, sessions.
 --
--- GENERATED ARTIFACT for reading and review only. The migration is the source
--- of truth: backend/migrations/versions/001_initial_schema.py
+-- GENERATED ARTIFACT for review only; the migration is the source of truth:
+-- backend/migrations/versions/001_initial_schema.py
 --
--- Reproduce both sections from backend/:
---   DATABASE_URL=postgresql+psycopg2://sou@127.0.0.1:55432/sou alembic upgrade base:head --sql
+-- Regenerate both sections from backend/ with:
+--   DATABASE_URL=postgresql+psycopg2://... alembic upgrade base:head --sql
 --   alembic upgrade base:head --sql
---
--- Alembic's own bookkeeping table (alembic_version) is omitted here.
+-- Alembic's own bookkeeping table (alembic_version) is left out.
 
 -- ===========================================================================
--- PostgreSQL (primary backend, homelab k3s / CloudNativePG)
+-- PostgreSQL (primary backend: homelab k3s, CloudNativePG)
 -- SERIAL row ids, JSONB payload, DESC-capable btree indexes
 -- ===========================================================================
 -- Running upgrade  -> 001_initial_schema
@@ -47,9 +46,9 @@ CREATE TABLE sessions (
 CREATE INDEX idx_sessions_agent_started ON sessions (agent_id, started_at DESC);
 
 -- ===========================================================================
--- SQLite (fallback backend, local dev)
--- INTEGER PRIMARY KEY AUTOINCREMENT, TEXT payload holding the JSON string,
--- CURRENT_TIMESTAMP default; the same indexes and cascade rules
+-- SQLite (fallback backend: local dev, plain `docker run`)
+-- INTEGER PRIMARY KEY AUTOINCREMENT, TEXT holding the JSON payload string,
+-- same indexes and cascade rules
 -- ===========================================================================
 -- Running upgrade  -> 001_initial_schema
 

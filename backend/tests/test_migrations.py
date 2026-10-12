@@ -28,7 +28,6 @@ import os
 import shutil
 import tempfile
 import unittest
-from datetime import datetime
 
 try:
     import sqlalchemy as sa
@@ -293,7 +292,7 @@ class _InitialSchemaContract:
     def test_single_head_is_the_initial_schema(self) -> None:
         heads = ScriptDirectory.from_config(_alembic_config(self.url)).get_heads()
         self.assertEqual(len(heads), 1, f"expected one head, got {heads}")
-        self.assertEqual(heads[0].revision, "001_initial_schema")
+        self.assertEqual(heads[0], "001_initial_schema")
         stamped = _scalar(self.engine, "SELECT version_num FROM alembic_version")
         self.assertEqual(stamped, "001_initial_schema")
 
@@ -343,7 +342,7 @@ class _InitialSchemaContract:
                     "INSERT INTO sessions (agent_id, started_at) "
                     "VALUES (:agent_id, :started)"
                 ),
-                {"agent_id": agent_id, "started": datetime(2026, 10, 12, 20, 0, 0)},
+                {"agent_id": agent_id, "started": "2026-10-12 20:00:00"},
             )
 
             stored = conn.execute(

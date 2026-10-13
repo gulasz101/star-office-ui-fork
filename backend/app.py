@@ -2,7 +2,7 @@
 """Star Office UI - Backend State Service"""
 
 from flask import Flask, jsonify, send_from_directory, make_response, request, session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import random
@@ -16,6 +16,7 @@ from pathlib import Path
 from security_utils import is_production_mode, is_strong_secret, is_strong_drawer_pass
 from memo_utils import get_yesterday_date_str, sanitize_content, extract_memo_from_file
 import db
+import event_schema
 from store_utils import (
     load_asset_positions as _store_load_asset_positions,
     save_asset_positions as _store_save_asset_positions,
@@ -479,6 +480,63 @@ def save_agents_state(agents):
         for row in rows.values():
             if row.id not in kept_ids:
                 db.delete_agent(session, row.id)
+
+
+# ---------------------------------------------------------------------------
+# Event ingest (SOU-36, ADR-035): the one door agents walk through.
+#
+# POST /events takes a versioned envelope, checks it against
+# backend/schemas/event_v1.json, and appends it to the feed through the Phase 1
+# adapter. The `agent` field is the registry key: an unknown agent is
+# registered as a guest row on its first event, so a new agent needs no
+# join ceremony to start reporting activity. /set_state is not a second write
+# path — it builds the same envelope with event_type="state_change" (AC 5).
+# ---------------------------------------------------------------------------
+
+INGEST_AGENT_TYPE = "guest"
+
+
+def find_agent_by_name(session, name: str):
+    """The registry row whose name matches, ignoring case and padding.
+
+    Migration 001 puts no unique index on ``agents.name``, so reuse is a
+    lookup contract, not a database one: the first spelling registered is the
+    canonical one and later events must find it, not create a twin.
+    """
+    wanted = (name or "").strip().lower()
+    for row in db.list_agents(session):
+        if (row.name or "").strip().lower() == wanted:
+            return row
+    return None
+
+
+def ingest_event(data, dedupe: bool = False):
+    """Validate one ADR-035 envelope and persist it; returns the event row.
+
+    ``dedupe`` skips the write when the newest event of that type for that
+    agent already carries an identical payload — the no-op-on-refresh rule the
+    SOU-19 state paths grew, now shared by every door. Raises
+    ``event_schema.EventValidationError`` for anything the agent must be told
+    about; the caller turns that into a 400.
+    """
+    envelope = event_schema.validate_event(data)
+    with db.session_scope() as session:
+        agent = find_agent_by_name(session, envelope.agent)
+        if agent is None:
+            agent = db.insert_agent(session, name=envelope.agent, agent_type=INGEST_AGENT_TYPE)
+        if dedupe:
+            latest = db.list_events(
+                session, agent_id=agent.id, event_type=envelope.event_type, limit=1
+            )
+            if latest and latest[0].payload == envelope.payload:
+                return latest[0]
+        return db.insert_event(
+            session,
+            agent.id,
+            envelope.event_type,
+            envelope.payload,
+            created_at=envelope.created_at,
+        )
 
 
 def load_asset_positions():
@@ -1441,6 +1499,33 @@ def get_yesterday_memo():
             "success": False,
             "msg": str(e)
         }), 500
+
+
+@app.route("/events", methods=["POST"])
+def events_endpoint():
+    """Ingest one agent event (POST /events, ADR-035 event schema v1).
+
+    Agent-agnostic by design: any agent posts its own envelope and the office
+    works out who it is from the ``agent`` field. ``{"ok": true}`` with 201 on
+    success, ``{"ok": false, "error": "<what to fix>"}`` with 400 when the body
+    is not a valid v1 event — the message names the offending field, because
+    the agent reading it is a machine running a hook, not a person at a form.
+    """
+    if not request.is_json:
+        return (
+            jsonify({"ok": False, "error": "event: expected Content-Type application/json"}),
+            400,
+        )
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"ok": False, "error": "event: request body is not valid JSON"}), 400
+    try:
+        ingest_event(data)
+    except event_schema.EventValidationError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:  # pragma: no cover - adapter failure, not agent error
+        return jsonify({"ok": False, "error": f"ingest failed: {exc}"}), 500
+    return jsonify({"ok": True}), 201
 
 
 @app.route("/set_state", methods=["POST"])

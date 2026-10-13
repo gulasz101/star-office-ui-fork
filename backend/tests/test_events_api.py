@@ -88,6 +88,18 @@ def fresh_database() -> str:
     return workdir
 
 
+def now_iso() -> str:
+    """A current UTC instant.
+
+    ``events.created_at`` is the *agent's* event time (ADR-035), and the
+    adapter orders the feed by it, so a fixture frozen in the past sorts
+    behind the seed event. Tests that ask "what does the office show now"
+    must post a fresh timestamp; tests that assert on the stored instant pin
+    one explicitly.
+    """
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
 def valid_event(**over) -> dict:
     """A schema-valid ADR-035 ``tool_call`` event, with optional overrides."""
     event = {
@@ -226,7 +238,12 @@ class EventsIngestTest(_AppTestCase):
             201,
         )
         with self._session() as session:
-            row = app_mod.db.list_events(session, event_type="state_change", limit=1)[0]
+            row = app_mod.db.list_events(
+                session,
+                agent_id=next(a.id for a in self.agents() if a.name == "hermes"),
+                event_type="state_change",
+                limit=1,
+            )[0]
             self.assertEqual(row.payload, payload)
             self.assertIsInstance(row.payload, dict, "the adapter parses the stored JSON back")
 
@@ -371,7 +388,7 @@ class EventsIngestTest(_AppTestCase):
         self.assertEqual(self.post_event(valid_event(agent="opencode")).status_code, 201)
         self.assertEqual(self.post_event(valid_event(agent="  OpenCode  ")).status_code, 201)
         self.assertEqual(
-            sorted(a.name for a in self.agents()), ["Star", "OpenCode"],
+            {a.name for a in self.agents()}, {"Star", "OpenCode"},
             "the first spelling registered is the canonical one",
         )
 
@@ -476,6 +493,7 @@ class SetStateBackwardCompatTest(_AppTestCase):
                 valid_event(
                     agent="Star",
                     event_type="state_change",
+                    timestamp=now_iso(),
                     payload={"state": "syncing", "detail": "via events", "progress": 0},
                 )
             ).status_code,
@@ -510,7 +528,7 @@ class SetStateBackwardCompatTest(_AppTestCase):
 
     def test_events_state_change_for_star_is_visible_in_the_roster(self) -> None:
         resp = self.post_event(
-            valid_event(agent="Star", event_type="state_change",
+            valid_event(agent="Star", event_type="state_change", timestamp=now_iso(),
                         payload={"state": "researching", "detail": "reading", "progress": 1})
         )
         self.assertEqual(resp.status_code, 201)

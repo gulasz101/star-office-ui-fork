@@ -1,3 +1,13 @@
 flask==3.0.2
 pillow==10.4.0
 gunicorn==26.2.0
+
+# Database adapter layer (SOU-18, ADR-034): Postgres primary, SQLite fallback.
+# psycopg2-binary only serves the Postgres backend; SQLite needs no extra driver.
+sqlalchemy>=2.0
+alembic>=1.12
+psycopg2-binary
+
+# Test runner for backend/tests (the suite is unittest-style, so it also
+# runs under `python3 -m unittest` without this installed).
+pytest

@@ -202,8 +202,7 @@ class _AdapterContract:
         self.assertIsInstance(engine, sa.engine.Engine)
         self.assertEqual(sa.engine.url.make_url(str(engine.url)), sa.engine.url.make_url(self.url))
         self.assertIsInstance(self.db, SASession)
-        with self.db.connect() as conn:
-            self.assertEqual(conn.execute(sa.text("SELECT 1")).scalar(), 1)
+        self.assertEqual(self.db.execute(sa.text("SELECT 1")).scalar(), 1)
 
     def _agent_names(self, session) -> list:
         rows = session.execute(sa.select(sou_db.Agent)).scalars().all()

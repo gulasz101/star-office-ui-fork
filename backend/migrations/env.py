@@ -4,9 +4,11 @@ The backend is picked the same way ``backend/db.py`` will pick it (SOU-18):
 ``DATABASE_URL`` first, the SQLite fallback from ``alembic.ini`` second. Nothing
 else may hard-code a connection string.
 
-``target_metadata`` stays ``None`` on purpose: the fork has no ORM models yet,
-so migrations are the single source of truth for the schema until SOU-18 adds
-models worth autogenerating against.
+``target_metadata`` is the adapter's model metadata once ``backend/db.py``
+is importable (SOU-18), which lets ``alembic revision --autogenerate`` and
+``alembic check`` compare future migrations against the same contract the
+code uses. Without the database extras the import fails and autogenerate
+comparison simply stays disabled — the Flask-only install path never breaks.
 """
 
 from __future__ import annotations
@@ -34,7 +36,14 @@ _RELATIVE_SQLITE = re.compile(
 if config.config_file_name is not None and not os.environ.get("ALEMBIC_SKIP_FILECONFIG"):
     fileConfig(config.config_file_name)
 
-target_metadata = None
+# backend/ is on sys.path via alembic.ini's prepend_sys_path, so the adapter's
+# metadata is reachable from both the CLI and the programmatic Alembic API.
+try:
+    from db import Base as _AdapterBase
+except ImportError:  # pragma: no cover - only hit without the DB extras
+    target_metadata = None
+else:
+    target_metadata = _AdapterBase.metadata
 
 
 def _resolve_url() -> str:

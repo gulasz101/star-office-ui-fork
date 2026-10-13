@@ -314,7 +314,10 @@ def session_scope() -> Iterator[Session]:
 
 
 # ---------------------------------------------------------------------------
-# CRUD — the six functions of the SOU-18 contract
+# CRUD — the six functions of the SOU-18 contract, plus the registry
+# helpers SOU-19 added for the app refactor (update_agent / list_agents /
+# delete_agent): the dashboard's approve/reject/leave flows must reach
+# agents outside the activity window, which list_agents_active never shows.
 # ---------------------------------------------------------------------------
 
 
@@ -369,6 +372,54 @@ def insert_session(
 def get_agent(db: Session, agent_id: int) -> Optional[Agent]:
     """The agent with this id, or ``None``."""
     return db.get(Agent, agent_id)
+
+
+def update_agent(
+    db: Session,
+    agent_id: int,
+    name: Optional[str] = None,
+    agent_type: Optional[str] = None,
+) -> Optional[Agent]:
+    """Rename or retype an agent; only the fields passed are touched.
+
+    Returns the updated row, or ``None`` when there is no such agent. A call
+    with no fields is a pure read-through of the current row.
+    """
+    agent = db.get(Agent, agent_id)
+    if agent is None:
+        return None
+    if name is not None:
+        agent.name = name
+    if agent_type is not None:
+        agent.agent_type = agent_type
+    db.flush()
+    return agent
+
+
+def list_agents(db: Session) -> Sequence[Agent]:
+    """The whole registry in id order — including agents outside the window.
+
+    The counterpart of :func:`list_agents_active`: identity flows (approve,
+    reject, leave, the dashboard roster) need every row, not just the recent
+    ones; presence reads use the window instead.
+    """
+    query = sa.select(Agent).order_by(Agent.id)
+    return db.execute(query).scalars().all()
+
+
+def delete_agent(db: Session, agent_id: int) -> bool:
+    """Remove an agent; ``ON DELETE CASCADE`` takes its events and sessions.
+
+    Returns ``True`` when a row was deleted, ``False`` when there was none —
+    leaving an unknown agent is not an error (the JSON roster behaved the
+    same way).
+    """
+    agent = db.get(Agent, agent_id)
+    if agent is None:
+        return False
+    db.delete(agent)
+    db.flush()
+    return True
 
 
 def list_events(

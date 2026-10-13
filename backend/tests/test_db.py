@@ -240,6 +240,78 @@ class _AdapterContract:
     def test_get_agent_missing_returns_none(self) -> None:
         self.assertIsNone(sou_db.get_agent(self.db, 10_999))
 
+    # -- SOU-19 registry CRUD: update_agent / list_agents / delete_agent ------
+
+    def test_update_agent_changes_identity_fields(self) -> None:
+        agent = sou_db.insert_agent(self.db, name="hermes", agent_type="hermes")
+        self.db.commit()
+
+        updated = sou_db.update_agent(self.db, agent.id, name="renamed", agent_type="opencode")
+        self.db.commit()
+        self.assertIsNotNone(updated)
+        self.assertEqual(updated.id, agent.id)
+
+        fetched = sou_db.get_agent(self.db, agent.id)
+        self.assertEqual(fetched.name, "renamed")
+        self.assertEqual(fetched.agent_type, "opencode")
+
+    def test_update_agent_partial_fields_and_noop_call(self) -> None:
+        agent = sou_db.insert_agent(self.db, name="hermes", agent_type="hermes")
+        self.db.commit()
+
+        # Only the name changes; agent_type is left alone.
+        sou_db.update_agent(self.db, agent.id, name="display renamed")
+        self.db.commit()
+        fetched = sou_db.get_agent(self.db, agent.id)
+        self.assertEqual(fetched.name, "display renamed")
+        self.assertEqual(fetched.agent_type, "hermes")
+
+        # No fields at all: the untouched row comes back, nothing is written.
+        same = sou_db.update_agent(self.db, agent.id)
+        self.db.commit()
+        self.assertIsNotNone(same)
+        self.assertEqual(same.name, "display renamed")
+        self.assertEqual(same.agent_type, "hermes")
+
+    def test_update_agent_missing_returns_none(self) -> None:
+        self.assertIsNone(sou_db.update_agent(self.db, 10_999, name="ghost"))
+
+    def test_list_agents_shows_the_whole_registry(self) -> None:
+        # Contrast with list_agents_active(): the registry read serves agents
+        # outside the activity window too, because approve/reject/leave must
+        # find offline rows. Ordered by id, every row present once.
+        first = sou_db.insert_agent(self.db, name="first", agent_type="hermes")
+        second = sou_db.insert_agent(self.db, name="second", agent_type="opencode")
+        self.db.commit()
+
+        rows = list(sou_db.list_agents(self.db))
+        self.assertEqual([r.name for r in rows], ["first", "second"])
+        self.assertEqual([r.id for r in rows], sorted(r.id for r in rows))
+        self.assertEqual([r.id for r in rows], [first.id, second.id])
+        # An agent with no events is invisible to list_agents_active(window=0)
+        # but always visible in the registry.
+        self.assertEqual(sou_db.list_agents_active(self.db, window_minutes=0), [])
+        self.assertEqual(len(sou_db.list_agents(self.db)), 2)
+
+    def test_delete_agent_removes_row_and_cascades(self) -> None:
+        agent = sou_db.insert_agent(self.db, name="hermes", agent_type="hermes")
+        sou_db.insert_event(self.db, agent.id, "state_change", {"state": "idle"})
+        sou_db.insert_session(self.db, agent.id, started_at=BASE_TIME)
+        self.db.commit()
+        agent_id = agent.id
+
+        self.assertTrue(sou_db.delete_agent(self.db, agent_id))
+        self.db.commit()
+
+        self.assertIsNone(sou_db.get_agent(self.db, agent_id))
+        self.assertEqual(sou_db.list_events(self.db, agent_id=agent_id), [])
+        left = self.db.execute(
+            sa.text("SELECT count(*) FROM sessions WHERE agent_id = :i"), {"i": agent_id}
+        ).scalar()
+        self.assertEqual(left, 0, "delete_agent must cascade to sessions as well")
+        # Deleting what is not there reports False, raising nothing.
+        self.assertFalse(sou_db.delete_agent(self.db, agent_id))
+
     # -- AC2: insert_event + payload dialect handling ----------------------------
 
     def test_event_roundtrip_survives_nested_unicode_payload(self) -> None:

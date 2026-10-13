@@ -1541,6 +1541,77 @@ def events_endpoint():
     return jsonify({"ok": True}), 201
 
 
+EVENTS_RECENT_DEFAULT_LIMIT = 50
+EVENTS_RECENT_MAX_LIMIT = 200
+
+
+@app.route("/events/recent", methods=["GET"])
+def events_recent_endpoint():
+    """Read the feed back: the newest agent events (GET /events/recent, SOU-45).
+
+    Phase 2 opened the door (POST /events); this is the matching read path —
+    a bare JSON array, newest first, of ``{id, agent, event_type, payload,
+    created_at}``. ``limit`` defaults to 50 and is capped at 200; ``agent``
+    is a case-insensitive registry name (unknown agent -> empty feed, this
+    is a read endpoint, not a lookup oracle); ``event_type`` is exact;
+    ``since`` is an inclusive ISO 8601 floor, normalised through the same
+    ``parse_timestamp`` as ingest so the two ends of the stream agree.
+    """
+    limit = EVENTS_RECENT_DEFAULT_LIMIT
+    raw_limit = request.args.get("limit")
+    if raw_limit not in (None, ""):
+        try:
+            parsed = int(raw_limit)
+        except ValueError:
+            parsed = -1
+        if parsed < 1:
+            return jsonify({
+                "ok": False,
+                "error": f"limit: must be a positive integer, got {raw_limit!r}",
+            }), 400
+        limit = min(parsed, EVENTS_RECENT_MAX_LIMIT)
+
+    since = None
+    raw_since = request.args.get("since")
+    if raw_since not in (None, ""):
+        try:
+            since = event_schema.parse_timestamp(raw_since)
+        except event_schema.EventValidationError as exc:
+            return jsonify({
+                "ok": False,
+                "error": str(exc).replace("timestamp:", "since", 1),
+            }), 400
+
+    event_type = request.args.get("event_type") or None
+    agent_name = request.args.get("agent") or None
+
+    with db.session_scope() as session:
+        agent_id = None
+        if agent_name is not None:
+            agent = find_agent_by_name(session, agent_name)
+            if agent is None:
+                return jsonify([])
+            agent_id = agent.id
+        rows = db.list_events(
+            session, agent_id=agent_id, event_type=event_type, limit=limit, since=since
+        )
+        names = {a.id: a.name for a in db.list_agents(session)}
+        feed = [
+            {
+                "id": row.id,
+                "agent": names.get(row.agent_id),
+                "event_type": row.event_type,
+                "payload": row.payload,
+                # naive UTC in storage (ADR-035); spelled back as a Z instant
+                "created_at": row.created_at.replace(tzinfo=timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z"),
+            }
+            for row in rows
+        ]
+    return jsonify(feed)
+
+
 @app.route("/set_state", methods=["POST"])
 def set_state_endpoint():
     """Set state via POST (for UI control panel)"""

@@ -303,15 +303,20 @@ class EventsRecentTest(unittest.TestCase):
 
     def test_seed_then_push_matches_the_status_read_path(self) -> None:
         """The renderer's contract (AC 3's proof): a state_change pushed via
-        POST /events is what GET /status serves, and it is also in the feed."""
+        POST /events is what GET /status serves, and it is also in the feed.
+        The event must carry a NOW timestamp: created_at is the agent's
+        event time and the feed is ordered by it (see test_events_api's
+        now_iso) - a past-pinned stamp sorts behind the seed on purpose."""
+        now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
         state = {
             "state": "writing",
             "detail": "phase3 smoke",
             "progress": 42,
             "ttl_seconds": 300,
-            "updated_at": stamp(0),
+            "updated_at": now,
         }
-        self.push(event(agent="Star", event_type="state_change", payload=state))
+        self.push({"version": 1, "agent": "Star", "event_type": "state_change",
+                   "timestamp": now, "payload": state})
         served = self.client.get("/status")
         self.assertEqual(served.status_code, 200)
         self.assertEqual(served.get_json()["detail"], "phase3 smoke")

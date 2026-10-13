@@ -17,8 +17,6 @@ from security_utils import is_production_mode, is_strong_secret, is_strong_drawe
 from memo_utils import get_yesterday_date_str, sanitize_content, extract_memo_from_file
 import db
 from store_utils import (
-    load_agents_state as _store_load_agents_state,
-    save_agents_state as _store_save_agents_state,
     load_asset_positions as _store_load_asset_positions,
     save_asset_positions as _store_save_asset_positions,
     load_asset_defaults as _store_load_asset_defaults,
@@ -43,7 +41,6 @@ FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
 FRONTEND_INDEX_FILE = os.path.join(FRONTEND_DIR, "index.html")
 FRONTEND_ELECTRON_STANDALONE_FILE = os.path.join(FRONTEND_DIR, "electron-standalone.html")
 STATE_FILE = os.path.join(ROOT_DIR, "state.json")
-AGENTS_STATE_FILE = os.path.join(ROOT_DIR, "agents-state.json")
 JOIN_KEYS_FILE = os.path.join(ROOT_DIR, "join-keys.json")
 FRONTEND_PATH = Path(FRONTEND_DIR)
 ASSET_ALLOWED_EXTS = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".avif"}
@@ -376,12 +373,91 @@ def init_database():
 init_database()
 
 
+def _agent_id_for_row(row) -> str:
+    """External agentId for a registry row: 'star' for the main agent, else str(id)."""
+    return "star" if row.agent_type == "main" else str(row.id)
+
+
 def load_agents_state():
-    return _store_load_agents_state(AGENTS_STATE_FILE, DEFAULT_AGENTS)
+    """Rebuild the roster from the database (SOU-19; replaces the JSON roster).
+
+    Each registry row is returned as the dict shape the endpoints have
+    always served: identity from the row, the rest from the row's latest
+    state_change event payload. Presence comes from the adapter's activity
+    window (ADR-035): an approved agent whose events all fall outside
+    db.ACTIVE_WINDOW_MINUTES is demoted to "offline" — the same TTL the
+    file roster enforced on lastPushAt.
+    """
+    with db.session_scope() as session:
+        active_ids = {a.id for a in db.list_agents_active(session)}
+        agents = []
+        for row in db.list_agents(session):
+            latest = db.list_events(
+                session, agent_id=row.id, event_type="state_change", limit=1
+            )
+            a = dict(latest[0].payload) if latest else {}
+            is_main = row.agent_type == "main"
+            a["agentId"] = _agent_id_for_row(row)
+            a["name"] = row.name
+            a["isMain"] = is_main
+            if not latest:
+                # A row that never pushed a state yet: render it neutrally
+                # instead of inventing history.
+                a.setdefault("state", "idle")
+                a.setdefault("detail", "")
+                a.setdefault("area", "breakroom")
+                a.setdefault("source", "local")
+                a.setdefault("joinKey", None)
+                a.setdefault("authExpiresAt", None)
+                a.setdefault("lastPushAt", None)
+                a.setdefault("authStatus", "approved" if is_main else "pending")
+            elif not is_main and a.get("authStatus") == "approved" and row.id not in active_ids:
+                a["authStatus"] = "offline"
+            agents.append(a)
+        return agents
 
 
 def save_agents_state(agents):
-    _store_save_agents_state(AGENTS_STATE_FILE, agents)
+    """Reconcile the database with the roster (SOU-19; replaces the JSON roster).
+
+    New entries become registry rows (db.insert_agent), renames go through
+    db.update_agent, and state changes append one state_change event — only
+    when the state actually changed, so a GET /agents refresh never spams
+    the feed. Rows that fall off the roster (leave/reject) are deleted with
+    their activity (db.delete_agent); the main row is never removed by
+    reconciliation.
+    """
+    with db.session_scope() as session:
+        rows = {}
+        main_row_id = None
+        for row in db.list_agents(session):
+            rows[_agent_id_for_row(row)] = row
+            if row.agent_type == "main":
+                main_row_id = row.id
+
+        kept_ids = set()
+        for entry in agents:
+            a = dict(entry or {})
+            name = a.get("name") or "unnamed"
+            row = rows.get(a.get("agentId"))
+            if row is None:
+                row = db.insert_agent(session, name=name, agent_type="guest")
+                rows[_agent_id_for_row(row)] = row
+            kept_ids.add(row.id)
+            if row.name != name:
+                db.update_agent(session, row.id, name=name)
+            payload = {k: v for k, v in a.items() if k not in ("agentId", "isMain")}
+            latest = db.list_events(
+                session, agent_id=row.id, event_type="state_change", limit=1
+            )
+            if not latest or latest[0].payload != payload:
+                db.insert_event(session, row.id, "state_change", payload)
+
+        if main_row_id is not None:
+            kept_ids.add(main_row_id)
+        for row in rows.values():
+            if row.id not in kept_ids:
+                db.delete_agent(session, row.id)
 
 
 def load_asset_positions():
@@ -867,9 +943,7 @@ def state_to_area(state):
     return STATE_TO_AREA_MAP.get(state, "breakroom")
 
 
-# Ensure files exist
-if not os.path.exists(AGENTS_STATE_FILE):
-    save_agents_state(DEFAULT_AGENTS)
+# Ensure join keys exist
 if not os.path.exists(JOIN_KEYS_FILE):
     if os.path.exists(os.path.join(ROOT_DIR, "join-keys.sample.json")):
         try:
@@ -1106,18 +1180,16 @@ def join_agent():
                 existing["authStatus"] = "approved"
                 existing["authApprovedAt"] = datetime.now().isoformat()
                 existing["authExpiresAt"] = (datetime.now() + timedelta(hours=24)).isoformat()
-                existing["lastPushAt"] = datetime.now().isoformat()  # join 视为上线，纳入并发/离线判定
+                existing["lastPushAt"] = datetime.now().isoformat()  # join counts as online: presence/TTL
                 if not existing.get("avatar"):
                     import random
                     existing["avatar"] = random.choice(["guest_role_1", "guest_role_2", "guest_role_3", "guest_role_4", "guest_role_5", "guest_role_6"])
                 agent_id = existing.get("agentId")
             else:
-                # Use ms + random suffix to avoid collisions under concurrent joins
+                # The adapter owns the id: save_agents_state() creates the
+                # registry row and load_agents_state() assigns its agentId.
                 import random
-                import string
-                agent_id = "agent_" + str(int(datetime.now().timestamp() * 1000)) + "_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
                 agents.append({
-                    "agentId": agent_id,
                     "name": name,
                     "isMain": False,
                     "state": state,
@@ -1133,6 +1205,16 @@ def join_agent():
                     "avatar": random.choice(["guest_role_1", "guest_role_2", "guest_role_3", "guest_role_4", "guest_role_5", "guest_role_6"])
                 })
 
+            save_agents_state(agents)
+
+            # Resolve the adapter-assigned id for this roster entry.
+            saved_entry = next(
+                (x for x in load_agents_state() if not x.get("isMain") and x.get("name") == name),
+                None,
+            )
+            if saved_entry and saved_entry.get("agentId"):
+                agent_id = saved_entry.get("agentId")
+
             key_item["used"] = True
             key_item["usedBy"] = name
             key_item["usedByAgentId"] = agent_id
@@ -1141,7 +1223,6 @@ def join_agent():
 
             # 拿到有效 key 直接批准，不再等待主人手动点击
             # （状态已在上面 existing/new 分支写入）
-            save_agents_state(agents)
             save_join_keys(keys_data)
 
         return jsonify({"ok": True, "agentId": agent_id, "authStatus": "approved", "nextStep": "已自动批准，立即开始推送状态"})

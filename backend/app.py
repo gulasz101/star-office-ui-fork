@@ -228,22 +228,35 @@ def get_office_name_from_identity():
     return None
 
 
-def save_state(state: dict):
-    """Append the main state as a state_change event (SOU-19, AC2).
-
-    /set_state keeps its HTTP contract; on the storage side the file write
-    is replaced by db.insert_event(event_type='state_change') on the main
-    agent row. A save of an unchanged state is a no-op, so reads that
-    trigger the auto-idle cannot spam the feed.
-    """
-    agent_id = _main_agent_row_id()
-    if agent_id is None:
-        return
+def _main_agent_name():
+    """Registry name of the main agent row, or ``None`` before it is seeded."""
     with db.session_scope() as session:
-        latest = db.list_events(session, agent_id=agent_id, event_type="state_change", limit=1)
-        if latest and latest[0].payload == state:
-            return
-        db.insert_event(session, agent_id, "state_change", dict(state))
+        main = next((a for a in db.list_agents(session) if a.agent_type == "main"), None)
+        return main.name if main else None
+
+
+def save_state(state: dict):
+    """Append the main state as a state_change event (SOU-19 AC2, SOU-36 AC5).
+
+    /set_state keeps its HTTP contract and stops owning a write path: it
+    builds the ADR-035 v1 envelope for the main agent with
+    event_type="state_change" and hands it to ingest_event(), the same door
+    POST /events uses. ``dedupe`` preserves the SOU-19 no-op rule, so reads
+    that trigger the auto-idle cannot spam the feed.
+    """
+    name = _main_agent_name()
+    if name is None:
+        return
+    ingest_event(
+        {
+            "version": 1,
+            "agent": name,
+            "event_type": "state_change",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "payload": dict(state),
+        },
+        dedupe=True,
+    )
 
 
 def ensure_electron_standalone_snapshot():

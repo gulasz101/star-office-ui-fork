@@ -15,6 +15,7 @@ import threading
 from pathlib import Path
 from security_utils import is_production_mode, is_strong_secret, is_strong_drawer_pass
 from memo_utils import get_yesterday_date_str, sanitize_content, extract_memo_from_file
+import db
 from store_utils import (
     load_agents_state as _store_load_agents_state,
     save_agents_state as _store_save_agents_state,
@@ -35,6 +36,8 @@ except Exception:
 
 # Paths (project-relative, no hardcoded absolute paths)
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+ALEMBIC_INI = os.path.join(BACKEND_DIR, "alembic.ini")
 MEMORY_DIR = os.path.join(os.path.dirname(ROOT_DIR), "memory")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
 FRONTEND_INDEX_FILE = os.path.join(FRONTEND_DIR, "index.html")
@@ -320,6 +323,57 @@ DEFAULT_AGENTS = [
         "lastPushAt": None
     }
 ]
+
+
+# ---------------------------------------------------------------------------
+# Database bootstrap (SOU-19, ADR-034): Alembic owns the schema, the adapter
+# (backend/db.py) owns every read and write. Importing the app against a
+# fresh database runs `alembic upgrade head` here, so `run.sh` / gunicorn
+# never need a manual migration step. store_utils.py's JSON helpers stay in
+# the tree as the fallback path for the duration of the transition.
+# ---------------------------------------------------------------------------
+
+def _database_is_ready(engine) -> bool:
+    """True when the migrated schema is already in place."""
+    import sqlalchemy as sa
+
+    names = set(sa.inspect(engine).get_table_names())
+    return {"agents", "events", "sessions", "alembic_version"} <= names
+
+
+def _alembic_upgrade_head(url: str) -> None:
+    """Run `alembic upgrade head` through the Python API against `url`."""
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config(ALEMBIC_INI)
+    config.set_main_option("sqlalchemy.url", url)
+    command.upgrade(config, "head")
+
+
+def init_database():
+    """Migrate the schema when missing, then seed the main agent once.
+
+    Idempotent: every worker import may call it. The main agent is the
+    registry row that owns the office "Star" state (the DEFAULT_AGENTS
+    entry); its seed state_change event is what /status serves on a fresh
+    install.
+    """
+    os.environ.setdefault("ALEMBIC_SKIP_FILECONFIG", "1")
+    engine = db.get_engine()
+    if not _database_is_ready(engine):
+        _alembic_upgrade_head(db.resolve_database_url())
+
+    with db.session_scope() as session:
+        main = next((a for a in db.list_agents(session) if a.agent_type == "main"), None)
+        if main is None:
+            main = db.insert_agent(session, name=DEFAULT_AGENTS[0]["name"], agent_type="main")
+            seed = {k: v for k, v in DEFAULT_AGENTS[0].items() if k not in ("agentId", "isMain")}
+            db.insert_event(session, main.id, "state_change", seed)
+    return engine
+
+
+init_database()
 
 
 def load_agents_state():

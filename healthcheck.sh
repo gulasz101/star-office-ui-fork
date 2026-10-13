@@ -3,7 +3,8 @@
 # Checks if backend is responding, restarts if not
 
 BACKEND_URL="http://127.0.0.1:19000/health"
-LOG_FILE="/root/.openclaw/workspace/star-office-ui/healthcheck.log"
+# Repo-relative log (SOU-46: no agent-workspace paths baked in)
+LOG_FILE="$(cd "$(dirname "$0")" && pwd)/healthcheck.log"
 
 # Log timestamp
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Health check starting..." >> "$LOG_FILE"

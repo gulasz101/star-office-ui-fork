@@ -36,6 +36,13 @@ def resize_map(input_path, output_path, target_short_edge=600):
     print(f"Short edge scale: {scale:.2f}x")
 
 if __name__ == "__main__":
-    input_path = "/root/.openclaw/media/inbound/6b352c7d-f09f-4dd7-9916-a312fb60122b.png"
-    output_path = "/root/.openclaw/workspace/star-office-ui/frontend/office_bg.png"
+    # SOU-46: the one-shot hardcoded input is gone; pass paths explicitly.
+    import os
+    import sys
+
+    repo = os.path.dirname(os.path.abspath(__file__))
+    default_in = os.path.join(repo, "assets", "room-reference.png")
+    default_out = os.path.join(repo, "frontend", "office_bg.png")
+    input_path = sys.argv[1] if len(sys.argv) > 1 else default_in
+    output_path = sys.argv[2] if len(sys.argv) > 2 else default_out
     resize_map(input_path, output_path, target_short_edge=720)

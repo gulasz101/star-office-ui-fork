@@ -14,9 +14,11 @@ Backend selection follows ADR-034 and ``migrations/env.py`` exactly:
   at this directory so the file never depends on the current directory
 
 Dialect split (ADR-034): ``events.payload`` is native ``JSONB`` on Postgres
-and ``TEXT`` holding the JSON string on SQLite. SQLAlchemy's portable
-``JSON`` type compiles to both, so the split lives in the type system, not
-in scattered ``if`` branches — writes serialise, reads parse.
+and ``TEXT`` holding the JSON string on SQLite. The adapter expresses it as
+one portable type — :class:`db.PayloadJSON`, a ``sa.JSON`` subclass pinned to
+compile exactly like migration 001 on each dialect — so the split lives in
+the type system, not in scattered ``if`` branches: writes serialise, reads
+parse, on both backends.
 
 Usage::
 
@@ -45,8 +47,9 @@ from typing import Any, Iterator, Optional, Sequence
 
 import sqlalchemy as sa
 from sqlalchemy import create_engine as _create_engine
-from sqlalchemy.engine import URL, Engine, make_url
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.event import listens_for
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -142,6 +145,32 @@ def create_db_engine(url: Optional[str] = None, **engine_kw: Any) -> Engine:
 # ORM models mirroring migration 001_initial_schema
 # ---------------------------------------------------------------------------
 
+# The two activity indexes the migration creates. Declared on the models too,
+# so ``alembic check`` and autogenerate see model == schema and never propose
+# dropping them; ``(agent_id, <time> DESC)`` serves the dashboard's two reads
+# (latest activity of one agent, chain of one session).
+IDX_EVENTS_AGENT_CREATED = "idx_events_agent_created"
+IDX_SESSIONS_AGENT_STARTED = "idx_sessions_agent_started"
+
+# One portable JSON column: serialises and parses everywhere, but compiles
+# to exactly migration 001's DDL per dialect — native JSONB on Postgres,
+# TEXT on SQLite. Plain sa.JSON would render "JSON" on SQLite (NUM affinity,
+# a hazard if its DDL were ever applied) and "JSON" on Postgres (not JSONB),
+# so the two dialect renderings are pinned here instead.
+class PayloadJSON(sa.JSON):
+    """``events.payload``: JSONB on Postgres, TEXT on SQLite, JSON behaviour
+    on both (writes dump, reads parse — the ADR-034 dialect split)."""
+
+
+@compiles(PayloadJSON, "postgresql")
+def _payload_postgres(type_, compiler, **kw):  # pragma: no cover - DDL string
+    return "JSONB"
+
+
+@compiles(PayloadJSON, "sqlite")
+def _payload_sqlite(type_, compiler, **kw):  # pragma: no cover - DDL string
+    return "TEXT"
+
 
 class Base(DeclarativeBase):
     """Declarative base for the adapter's models (schema lives in Alembic)."""
@@ -149,6 +178,9 @@ class Base(DeclarativeBase):
 
 class Agent(Base):
     __tablename__ = "agents"
+    # Mirrors migration 001's per-dialect table flags: real AUTOINCREMENT ids
+    # on SQLite, ignored by Postgres (whose SERIAL already owns a sequence).
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(sa.String(NAME_LENGTH), nullable=False)
@@ -172,6 +204,10 @@ class Agent(Base):
 
 class Event(Base):
     __tablename__ = "events"
+    __table_args__ = (
+        sa.Index(IDX_EVENTS_AGENT_CREATED, "agent_id", sa.text("created_at DESC")),
+        {"sqlite_autoincrement": True},
+    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
     agent_id: Mapped[int] = mapped_column(
@@ -180,9 +216,9 @@ class Event(Base):
         nullable=False,
     )
     event_type: Mapped[str] = mapped_column(sa.String(EVENT_TYPE_LENGTH), nullable=False)
-    # The one genuinely split type: JSONB on Postgres, TEXT on SQLite.
-    # SQLAlchemy's portable JSON compiles to both and (de)serialises either.
-    payload: Mapped[dict] = mapped_column(sa.JSON, nullable=False)
+    # The one genuinely split type: JSONB on Postgres, TEXT on SQLite, JSON
+    # (de)serialisation behaviour on both — see PayloadJSON above.
+    payload: Mapped[dict] = mapped_column(PayloadJSON(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")
     )
@@ -197,6 +233,10 @@ class AgentSession(Base):
     """A run of an agent; named to stay clear of SQLAlchemy's own ``Session``."""
 
     __tablename__ = "sessions"
+    __table_args__ = (
+        sa.Index(IDX_SESSIONS_AGENT_STARTED, "agent_id", sa.text("started_at DESC")),
+        {"sqlite_autoincrement": True},
+    )
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
     agent_id: Mapped[int] = mapped_column(

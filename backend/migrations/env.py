@@ -9,6 +9,14 @@ is importable (SOU-18), which lets ``alembic revision --autogenerate`` and
 ``alembic check`` compare future migrations against the same contract the
 code uses. Without the database extras the import fails and autogenerate
 comparison simply stays disabled — the Flask-only install path never breaks.
+
+Comparison against the migrated schema is clean on Postgres. On SQLite the
+only residual shape is a remove/add pair for the two ``created_at/started_at
+DESC`` expression indexes: SQLite reflection materialises the text element as
+a column default rather than returning it verbatim, so autogenerate cannot
+recognise it as the same index. That pair — and only that pair — is expected
+noise in ``alembic check`` output on SQLite; tests/test_db.py pins the real
+equality as compiled-DDL comparison against migration 001 on both dialects.
 """
 
 from __future__ import annotations

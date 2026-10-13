@@ -136,6 +136,7 @@ class _AdapterContract:
 
     dialect: str = ""
     json_payload_type: tuple = ()
+    payload_ddl: str = ""  # the DDL token the payload column must compile to
 
     # -- fixture: schema from the migrations, adapter fresh against it --------
 
@@ -400,6 +401,46 @@ class _AdapterContract:
         ).scalar()
         self.assertEqual(left, 0, "cascade must reach sessions too")
 
+    # -- model metadata compiles to exactly the migration's DDL -----------------
+
+    def test_model_ddl_matches_the_migration_per_dialect(self) -> None:
+        """Offline proof that the ORM mirrors migration 001 on this dialect.
+
+        ``CreateTable``/``CreateIndex`` compiled against the backend's dialect
+        is the pure-DDL twin of what ``alembic upgrade head`` executed — and,
+        unlike ``alembic check``, deterministic: autogenerate comparison is
+        known to report nominal false positives for the JSON payload class
+        (JSON vs the reflected JSONB/TEXT) and for DESC expression indexes,
+        which are precisely the dialect split this slice exists to prove.
+        """
+        from sqlalchemy.dialects import sqlite as sqlite_dialect
+        from sqlalchemy.schema import CreateIndex, CreateTable
+
+        dialect = (
+            postgresql.dialect()
+            if self.dialect == "postgresql"
+            else sqlite_dialect.dialect()
+        )
+
+        events_ddl = str(CreateTable(sou_db.Event.__table__).compile(dialect=dialect))
+        self.assertIn(f"payload {self.payload_ddl} NOT NULL", events_ddl)
+        agents_ddl = str(CreateTable(sou_db.Agent.__table__).compile(dialect=dialect))
+        sessions_ddl = str(CreateTable(sou_db.AgentSession.__table__).compile(dialect=dialect))
+        self.assertIn("agent_type VARCHAR(50) NOT NULL", agents_ddl)
+        self.assertIn("CURRENT_TIMESTAMP", events_ddl + agents_ddl)
+        if self.dialect == "sqlite":
+            self.assertIn("AUTOINCREMENT", events_ddl)
+        else:
+            self.assertIn("SERIAL NOT NULL", events_ddl)
+
+        index = next(
+            i for i in sou_db.Event.__table__.indexes
+            if i.name == sou_db.IDX_EVENTS_AGENT_CREATED
+        )
+        index_ddl = str(CreateIndex(index).compile(dialect=dialect))
+        self.assertIn("idx_events_agent_created", index_ddl)
+        self.assertIn("created_at DESC", index_ddl)
+
 
 @unittest.skipIf(sa is None, f"database extras not installed: {_IMPORT_ERROR}")
 class SqliteAdapterTest(_AdapterContract, unittest.TestCase):
@@ -407,6 +448,7 @@ class SqliteAdapterTest(_AdapterContract, unittest.TestCase):
 
     dialect = "sqlite"
     json_payload_type = TEXT_TYPE
+    payload_ddl = "TEXT"
 
     def database_url(self, workdir: str) -> str:
         return f"sqlite:///{os.path.join(workdir, 'sou.db')}"
@@ -422,6 +464,7 @@ class PostgresAdapterTest(_AdapterContract, unittest.TestCase):
 
     dialect = "postgresql"
     json_payload_type = JSONB_TYPE
+    payload_ddl = "JSONB"
 
     def database_url(self, _workdir: str) -> str:
         return os.environ["TEST_POSTGRES_URL"]

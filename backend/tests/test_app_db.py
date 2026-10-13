@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -218,7 +219,8 @@ class AgentsRosterDbTest(unittest.TestCase):
             "_store_load_agents_state",
             "_store_save_agents_state",
         ):
-            self.assertNotIn(needle, src, f"app.py must not keep {needle}")
+            if needle in src:
+                self.fail(f"app.py must not keep {needle!r}")
 
     def test_roster_roundtrip_join_push_approve_leave(self) -> None:
         agents = self._agents()
@@ -305,6 +307,75 @@ class AgentsRosterDbTest(unittest.TestCase):
         events = self._state_events(joined["agentId"])
         self.assertEqual(len(events), 3, [e.payload for e in events])
         self.assertEqual(events[0].payload["state"], "executing", "newest first")
+
+
+@unittest.skipIf(sa is None, f"runtime extras not installed: {_IMPORT_ERROR}")
+class MainStateDbTest(unittest.TestCase):
+    """AC2 (SOU-19): /set_state stays compatible and maps to state_change events.
+
+    The office's main "Star" state (old state.json) now lives on the main
+    agent row: save_state() appends db.insert_event(event_type='state_change')
+    and load_state() serves the newest payload, TTL auto-idle included.
+    """
+
+    def setUp(self) -> None:
+        self.workdir = _fresh_app_database()
+        self.client = app_mod.app.test_client()
+
+    def tearDown(self) -> None:
+        app_mod.db.shutdown()
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def _main_events(self):
+        with app_mod.db.session_scope() as session:
+            main = next(a for a in app_mod.db.list_agents(session) if a.agent_type == "main")
+            return list(
+                app_mod.db.list_events(session, agent_id=main.id, event_type="state_change")
+            )
+
+    def test_app_source_drops_the_state_json_file(self) -> None:
+        with open(os.path.join(BACKEND_DIR, "app.py"), encoding="utf-8") as f:
+            src = f.read()
+        for needle in ("STATE_FILE", "state.json"):
+            if needle in src:
+                self.fail(f"app.py must not keep {needle!r}")
+
+    def test_set_state_endpoint_still_works_and_lands_in_the_db(self) -> None:
+        resp = self.client.post(
+            "/set_state", json={"state": "writing", "detail": "正在整理文档"}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get_json(), {"status": "ok"})  # backward-compat shape
+
+        status = self.client.get("/status").get_json()
+        self.assertEqual(status["state"], "writing")
+        self.assertEqual(status["detail"], "正在整理文档")
+
+        events = self._main_events()
+        self.assertEqual(len(events), 2, "seed event + the set_state event")
+        newest = events[0].payload
+        self.assertEqual(events[0].event_type, "state_change")
+        self.assertEqual(newest["state"], "writing")
+        self.assertEqual(newest["detail"], "正在整理文档")
+        self.assertIn("updated_at", newest)
+
+    def test_invalid_state_is_still_ignored(self) -> None:
+        self.client.post("/set_state", json={"state": "bogus", "detail": "x"})
+        status = self.client.get("/status").get_json()
+        self.assertNotEqual(status["state"], "bogus")
+
+    def test_auto_idle_ttl_survives_the_move_to_the_db(self) -> None:
+        stale = datetime.now() - timedelta(seconds=400)
+        app_mod.save_state(
+            {"state": "writing", "detail": "old push", "progress": 0, "updated_at": stale.isoformat()}
+        )
+        self.assertEqual(
+            self._main_events()[0].payload["state"], "writing",
+            "save_state must land a writing event in the feed before any read",
+        )
+        status = self.client.get("/status").get_json()
+        self.assertEqual(status["state"], "idle", "working state older than the TTL must fall back to idle")
+        self.assertEqual(self._main_events()[0].payload["state"], "idle", "the auto-idle is persisted as an event")
 
 
 if __name__ == "__main__":

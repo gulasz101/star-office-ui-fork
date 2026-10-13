@@ -40,7 +40,6 @@ MEMORY_DIR = os.path.join(os.path.dirname(ROOT_DIR), "memory")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
 FRONTEND_INDEX_FILE = os.path.join(FRONTEND_DIR, "index.html")
 FRONTEND_ELECTRON_STANDALONE_FILE = os.path.join(FRONTEND_DIR, "electron-standalone.html")
-STATE_FILE = os.path.join(ROOT_DIR, "state.json")
 JOIN_KEYS_FILE = os.path.join(ROOT_DIR, "join-keys.json")
 FRONTEND_PATH = Path(FRONTEND_DIR)
 ASSET_ALLOWED_EXTS = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".avif"}
@@ -151,8 +150,25 @@ DEFAULT_STATE = {
 }
 
 
+def _main_agent_row_id():
+    """Row id of the main agent (seeded by init_database at startup), or None."""
+    with db.session_scope() as session:
+        main = next((a for a in db.list_agents(session) if a.agent_type == "main"), None)
+        return main.id if main else None
+
+
+def _main_state_payload():
+    """The main agent's latest state_change payload, or None."""
+    agent_id = _main_agent_row_id()
+    if agent_id is None:
+        return None
+    with db.session_scope() as session:
+        latest = db.list_events(session, agent_id=agent_id, event_type="state_change", limit=1)
+        return dict(latest[0].payload) if latest else None
+
+
 def load_state():
-    """Load state from file.
+    """Load the main state from the database (SOU-19; replaces the JSON file).
 
     Includes a simple auto-idle mechanism:
     - If the last update is older than ttl_seconds (default 25s)
@@ -160,16 +176,10 @@ def load_state():
 
     This avoids the UI getting stuck at the desk when no new updates arrive.
     """
-    state = None
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r", encoding="utf-8") as f:
-                state = json.load(f)
-        except Exception:
-            state = None
-
-    if not isinstance(state, dict):
-        state = dict(DEFAULT_STATE)
+    state = dict(DEFAULT_STATE)
+    payload = _main_state_payload()
+    if payload:
+        state.update(payload)
 
     # Auto-idle
     try:
@@ -218,9 +228,21 @@ def get_office_name_from_identity():
 
 
 def save_state(state: dict):
-    """Save state to file"""
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    """Append the main state as a state_change event (SOU-19, AC2).
+
+    /set_state keeps its HTTP contract; on the storage side the file write
+    is replaced by db.insert_event(event_type='state_change') on the main
+    agent row. A save of an unchanged state is a no-op, so reads that
+    trigger the auto-idle cannot spam the feed.
+    """
+    agent_id = _main_agent_row_id()
+    if agent_id is None:
+        return
+    with db.session_scope() as session:
+        latest = db.list_events(session, agent_id=agent_id, event_type="state_change", limit=1)
+        if latest and latest[0].payload == state:
+            return
+        db.insert_event(session, agent_id, "state_change", dict(state))
 
 
 def ensure_electron_standalone_snapshot():
@@ -239,9 +261,8 @@ def ensure_electron_standalone_snapshot():
         print(f"[standalone] create failed: {e}")
 
 
-# Initialize state
-if not os.path.exists(STATE_FILE):
-    save_state(DEFAULT_STATE)
+# The main state itself now lives in the database: init_database() seeds the
+# main agent and its default state on a fresh install (SOU-19).
 ensure_electron_standalone_snapshot()
 
 
@@ -2212,7 +2233,7 @@ if __name__ == "__main__":
     print("=" * 50)
     print("Star Office UI - Backend State Service")
     print("=" * 50)
-    print(f"State file: {STATE_FILE}")
+    print(f"Database: {db.get_engine().url.render_as_string(hide_password=True)}")
     print(f"Listening on: http://0.0.0.0:{backend_port}")
     if backend_port != 19000:
         print(f"(Port override: set STAR_BACKEND_PORT to change; current: {raw_port})")

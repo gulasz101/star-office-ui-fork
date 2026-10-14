@@ -4213,18 +4213,20 @@ function toggleBrokerPanel() {
                                 // Welcome only the first newcomer (avoids piling up when several join at once)
                                 const newAgent = (merged || []).find(a => a.agentId === newIds[0]);
                                 if (newAgent && newAgent.name) {
-                                    // Temporarily treat currentState as writing so showBubble runs
+                                    // Temporarily swap the bubble texts. FLAT map since SOU-79;
+                                    // restore in a finally so the welcome copy can't be left
+                                    // installed if showBubble() throws.
                                     const oldState = currentState;
                                     currentState = 'writing';
-                                    // Temporarily swap the bubble texts
                                     const welcomeTexts = [`Welcome ${newAgent.name} to the office!`, `Hi ${newAgent.name}, let’s build something.`, `${newAgent.name} just joined — welcome!`];
-                                    const langPack = BUBBLE_TEXTS.en;
-                                    const oldTexts = Array.isArray(langPack.writing) ? [...langPack.writing] : [];
-                                    langPack.writing = welcomeTexts;
-                                    showBubble();
-                                    // Restore
-                                    langPack.writing = oldTexts;
-                                    currentState = oldState;
+                                    const oldTexts = Array.isArray(BUBBLE_TEXTS.writing) ? [...BUBBLE_TEXTS.writing] : [];
+                                    BUBBLE_TEXTS.writing = welcomeTexts;
+                                    try {
+                                        showBubble();
+                                    } finally {
+                                        BUBBLE_TEXTS.writing = oldTexts;
+                                        currentState = oldState;
+                                    }
                                 }
                             }
 
@@ -4386,8 +4388,18 @@ function toggleBrokerPanel() {
                 breakroom: { x: IDLE_SOFA_ANCHOR.x, y: IDLE_SOFA_ANCHOR.y } // Same center anchor as sofa-idle-v3
             };
 
-            // Create Star’s idle animation (remove any old definition first so stale frames are never reused)
-            const starIdleFrameMax = Math.max(0, (this.textures.get('star_idle')?.frameTotal || 1) - 1);
+            // Build Star's idle animation (old definition removed first so no stale animation is reused)
+            //
+            // Phaser's `frameTotal` includes the internal `__BASE` frame, so
+            // `frameTotal - 1` yields the last index +1 and Phaser reports
+            // `Frame "48" not found`. Derive the bound from the real frame names
+            // instead, so a new art pack cannot silently reintroduce this.
+            const starIdleFrameMax = (() => {
+                const tex = this.textures.get('star_idle');
+                if (!tex) return 0;
+                const nums = tex.getFrameNames().map((n) => Number(n)).filter((n) => Number.isFinite(n));
+                return nums.length ? Math.max(...nums) : 0;
+            })();
             if (this.anims.exists('star_idle')) {
                 this.anims.remove('star_idle');
             }
@@ -5143,8 +5155,10 @@ function toggleBrokerPanel() {
         }
 
         function getBubbleTextsByState(stateKey) {
-            const langPack = BUBBLE_TEXTS.en;
-            return langPack[stateKey] || langPack.idle || [];
+            // BUBBLE_TEXTS is a FLAT map since SOU-79 removed the language
+            // switcher; reading `.en` is undefined and `.idle` then throws inside
+            // update(), killing the game loop.
+            return BUBBLE_TEXTS[stateKey] || BUBBLE_TEXTS.idle || [];
         }
 
         function showBubble() {

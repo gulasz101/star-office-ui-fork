@@ -139,8 +139,8 @@ test("redactPayload: secret-shaped values are scrubbed from strings", () => {
   const cfg = loadConfig({});
   const cases = [
     ["token sk-ABCDEFGHIJKLMNOP1234 done", /sk-[A-Za-z0-9]{8,}/],
-    ["export GITHUB_TOKEN=ghp_16C4e9Vj0Yq0M2r8Tt6ZaBcDeFgHiJkLmNoP", /ghp_[A-Za-z0-9]+/],
-    ["aws key AKIA1234567890ABCDEF in output", /AKIA[0-9A-Z]+/],
+    ["export GITHUB_TOKEN=ghp_16C4e9Vj0Yq0M2r8Tt6ZaBcDeFgHiJkLmNoP", /ghp_[A-Za-z0-9]+/], // gitleaks:allow
+    ["aws key AKIA1234567890ABCDEF in output", /AKIA[0-9A-Z]+/], // gitleaks:allow
     ["Authorization: Bearer abc.def_123-xyz~+/", /Bearer\s+[A-Za-z0-9]/],
     ['call with api_key="topsecret-value-1" now', /topsecret-value-1/],
     ["password: hunter2; continue", /hunter2/],

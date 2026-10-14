@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Star Office — nav layer prototype</title>
+<!--
+  scene.html — LIVE PROTOTYPE of the SOU navigation/room layer.
+
+  Deliberately separate from index.html / game.js: OpenChamber was editing those
+  for SOU-89 while this was written, and the nav layer must be provable without
+  fighting the live renderer for the same file.
+
+  Vanilla canvas on purpose. The production renderer is Phaser (SOU-88); this
+  prototype exists to prove the nav MATH and the movement, not to be the final
+  renderer. It reads every coordinate from nav.js — no layout data is hardcoded
+  here.
+-->
+<style>
+  :root { --ink:#e8e8ef; }
+  body { margin:0; background:#0e0f13; color:var(--ink);
+         font:14px/1.45 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:12px 16px; border-bottom:1px solid #24262e; display:flex;
+           gap:10px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:15px; margin:0 12px 0 0; font-weight:600; letter-spacing:.2px; }
+  button { background:#1d2027; color:var(--ink); border:1px solid #33374a;
+           border-radius:7px; padding:6px 12px; cursor:pointer; font:inherit; }
+  button:hover { background:#262a34; }
+  button.on { background:#2b4a34; border-color:#3f7a52; }
+  .wrap { position:relative; width:1216px; max-width:100%; margin:14px auto 8px; }
+  canvas { width:100%; height:auto; display:block; border-radius:10px;
+           box-shadow:0 10px 40px #0009; image-rendering:pixelated; }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; padding:6px 16px 24px;
+            font-size:12.5px; color:#a9adba; }
+  .sw { display:inline-block; width:10px; height:10px; border-radius:3px;
+        margin-right:6px; vertical-align:middle; }
+  #hud { position:absolute; left:10px; top:10px; background:#0b0c10cc;
+         border:1px solid #2a2d38; border-radius:8px; padding:8px 10px;
+         font-size:12px; line-height:1.5; pointer-events:none; }
+  code { background:#1a1c22; padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Star Office — navigation layer</h1>
+  <button id="bNav" class="on">navmesh</button>
+  <button id="bPaths" class="on">routes</button>
+  <button id="bSim">simulate activity</button>
+  <button id="bStep">step ▶</button>
+</header>
+
+<div class="wrap">
+  <div id="hud"></div>
+  <canvas id="c" width="1216" height="832"></canvas>
+</div>
+
+<div class="legend">
+  <span><i class="sw" style="background:#3cc86e"></i>walkable floor</span>
+  <span><i class="sw" style="background:#dc3c3c"></i>furniture footprint</span>
+  <span><i class="sw" style="background:#3cdcff"></i>anchor (activity spot)</span>
+  <span><i class="sw" style="background:#ffffff"></i>agent + own station</span>
+  <span>agents walk their A* route — they never cross a footprint</span>
+</div>
+
+<script src="nav.js"></script>
+<script>
+'use strict';
+// IIFE: nav.js declares a top-level `const NAV`, and classic scripts share the
+// global lexical scope - a second top-level `const NAV` here is a SyntaxError
+// that silently kills this whole block. Function scope avoids the collision.
+(function () {
+const NAV = window.NAV;
+if (!NAV) {
+  document.getElementById('hud').textContent = 'nav.js failed to load — check /static/nav.js';
+  return;
+}
+const L = NAV.DEFAULT_LAYOUT;
+const grid = NAV.buildGrid(L);
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const AGENTS = [
+  { id: 'hermes-szarik', colour: '#e05c5c', activity: 'writing'   },
+  { id: 'openchamber',   colour: '#5ce07a', activity: 'executing' },
+  { id: 'opencode',      colour: '#5ca8e0', activity: 'researching' },
+  { id: 'florian',       colour: '#e0c85c', activity: 'syncing'   },
+  { id: 'careerpa',      colour: '#c05ce0', activity: 'idle'      },
+];
+const ACTIVITIES = Object.keys(L.activityDestinations);
+
+const assign = NAV.allocateStations(L, {}, AGENTS.map(a => a.id));
+
+// resolve each agent's station and current destination
+for (const a of AGENTS) {
+  const s = NAV.stationAnchor(L, assign[a.id]);
+  const sp = NAV.nearestWalkable(grid, s.x, s.y);
+  a.station = { x: sp.x, y: sp.y };
+  a.pos = { x: sp.x, y: sp.y };
+  setActivity(a, a.activity, true);
+}
+
+function setActivity(a, act, instant) {
+  a.activity = act;
+  const d = NAV.destinationFor(grid, L, act, assign[a.id]);
+  if (!d) return;
+  const raw = NAV.findPath(grid, a.pos.x, a.pos.y, d.x, d.y);
+  a.route = raw ? NAV.simplify(raw) : null;
+  a.leg = 0; a.legT = 0;
+  if (instant && a.route) { a.pos = { x: a.route[a.route.length-1].x, y: a.route[a.route.length-1].y }; }
+}
+
+function advance(a, speed) {
+  if (!a.route || a.route.length < 2) return;
+  const p = a.route[a.leg], q = a.route[a.leg + 1];
+  if (!q) return;
+  const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+  a.legT += speed / len;
+  while (a.legT >= 1) {
+    a.legT -= 1; a.leg++;
+    if (a.leg >= a.route.length - 1) { a.leg = a.route.length - 2; a.legT = 1; break; }
+  }
+  const p2 = a.route[a.leg], q2 = a.route[a.leg + 1];
+  a.pos = { x: p2.x + (q2.x - p2.x) * a.legT, y: p2.y + (q2.y - p2.y) * a.legT };
+}
+
+const img = new Image();
+img.src = 'star-lodge-scene.png';
+
+let showNav = true, showPaths = true, running = true, frame = 0;
+const $ = (id) => document.getElementById(id);
+$('bNav').onclick   = (e) => { showNav = !showNav; e.target.classList.toggle('on', showNav); };
+$('bPaths').onclick = (e) => { showPaths = !showPaths; e.target.classList.toggle('on', showPaths); };
+$('bSim').onclick   = () => { for (const a of AGENTS) setActivity(a, ACTIVITIES[(Math.random()*ACTIVITIES.length)|0]); };
+$('bStep').onclick  = () => { for (const a of AGENTS) setActivity(a, ACTIVITIES[(ACTIVITIES.indexOf(a.activity)+1) % ACTIVITIES.length]); };
+
+function drawNav() {
+  for (const [cx, cy] of gridWalkable()) {
+    ctx.fillStyle = 'rgba(60,200,110,.16)';
+    ctx.fillRect(cx * L.cell, cy * L.cell, L.cell - 1, L.cell - 1);
+  }
+  // footprints
+  ctx.lineWidth = 2;
+  for (const f of L.footprints) {
+    ctx.strokeStyle = 'rgba(220,60,60,.85)';
+    ctx.strokeRect(f.x1, f.y1, f.x2 - f.x1, f.y2 - f.y1);
+    ctx.fillStyle = 'rgba(220,60,60,.12)';
+    ctx.fillRect(f.x1, f.y1, f.x2 - f.x1, f.y2 - f.y1);
+    ctx.fillStyle = 'rgba(255,190,190,.9)';
+    ctx.font = '12px ui-sans-serif';
+    ctx.fillText(f.id, f.x1 + 4, f.y1 + 13);
+  }
+  // anchors
+  for (const [name, a] of Object.entries(L.anchors)) {
+    const p = NAV.nearestWalkable(grid, a.x, a.y);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+    ctx.fillStyle = '#3cdcff'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = 'rgba(190,245,255,.95)'; ctx.font = '12px ui-sans-serif';
+    ctx.fillText(name, p.x + 9, p.y - 6);
+  }
+}
+
+let cachedWalk = null;
+function gridWalkable() {
+  if (cachedWalk) return cachedWalk;
+  const out = [];
+  for (let cy = 0; cy < grid.rows; cy++)
+    for (let cx = 0; cx < grid.cols; cx++)
+      if (grid.walkable[cy * grid.cols + cx]) out.push([cx, cy]);
+  return (cachedWalk = out);
+}
+
+function drawAgent(a) {
+  const { x, y } = a.pos;
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(x, y - 3, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // station marker ring
+  ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(a.station.x, a.station.y, 13, 0, Math.PI*2); ctx.stroke();
+
+  // body (placeholder — no licence-clean sprite exists yet, and faking one
+  // would hide that fact)
+  ctx.fillStyle = a.colour;
+  ctx.strokeStyle = '#10121a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x - 8, y - 30, 16, 30, 6); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y - 38, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // label
+  ctx.font = '600 12px ui-sans-serif';
+  const text = a.id;
+  const w = ctx.measureText(text).width;
+  ctx.fillStyle = 'rgba(10,11,15,.8)';
+  ctx.fillRect(x - w/2 - 5, y - 62, w + 10, 17);
+  ctx.fillStyle = '#f2f2f7';
+  ctx.fillText(text, x - w/2, y - 50);
+  ctx.fillStyle = 'rgba(190,195,210,.95)';
+  ctx.font = '11px ui-sans-serif';
+  const w2 = ctx.measureText(a.activity).width;
+  ctx.fillText(a.activity, x - w2/2, y - 38 + 22);
+}
+
+function frameLoop() {
+  frame++;
+  if (running) {
+    for (const a of AGENTS) advance(a, 0.9);
+    if (frame % 260 === 0) for (const a of AGENTS) setActivity(a, ACTIVITIES[(Math.random()*ACTIVITIES.length)|0]);
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  else { ctx.fillStyle = '#161820'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  if (showNav) drawNav();
+  if (showPaths) {
+    for (const a of AGENTS) {
+      if (!a.route || a.route.length < 2) continue;
+      ctx.strokeStyle = a.colour + 'cc'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(a.route[0].x, a.route[0].y);
+      for (let i = 1; i < a.route.length; i++) ctx.lineTo(a.route[i].x, a.route[i].y);
+      ctx.stroke();
+    }
+  }
+  for (const a of AGENTS) drawAgent(a);
+
+  $('hud').innerHTML =
+    `${AGENTS.length} agents &middot; ${gridWalkable().length} walkable cells<br>` +
+    `overlap check: <code>${new Set(AGENTS.map(a => Math.round(a.station.x)+','+Math.round(a.station.y))).size === AGENTS.length ? 'distinct stations OK' : 'COLLISION'}</code>`;
+  requestAnimationFrame(frameLoop);
+}
+frameLoop();
+})();
+</script>
+</body>
+</html>

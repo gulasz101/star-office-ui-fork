@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # 更新报告 — 2026-03-05
 
 > 本次更新覆盖 8 个 commit，聚焦「稳定性修复 + 移动端体验 + 安全收尾」。

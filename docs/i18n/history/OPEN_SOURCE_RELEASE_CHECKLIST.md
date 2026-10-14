@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # Star Office UI — 开源发布准备清单（仅准备，不上传）
 
 ## 0. 当前目标

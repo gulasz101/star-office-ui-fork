@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # Star Office UI — 项目阶段总结（2026-03-01）
 
 ## 一、今日工作总结
@@ -96,4 +98,4 @@
 2. 增加 `/agent-push` 与前端渲染诊断日志（可开关）。
 3. 增加“状态过期自动 idle”兜底（脚本侧 + 服务端侧双保险）。
 4. 补一份可复现联调流程（10 分钟 smoke test）。
-5. 完成开源前隐私清理与发布清单（见 `docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`）。
+5. 完成开源前隐私清理与发布清单（见 `docs/i18n/history/OPEN_SOURCE_RELEASE_CHECKLIST.md`）。

@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # Star Office UI 更新文档（P0 / P1）
 
 更新时间：2026-03-04

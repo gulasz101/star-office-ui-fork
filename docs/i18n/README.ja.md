@@ -1,8 +1,10 @@
+<!-- ARCHIVED TRANSLATION (SOU-79): the product UI and docs are English-only. Canonical readme: ../../README.md -->
+
 # Star Office UI
 
-🌐 言語: [中文](./README.md) | [English](./README.en.md) | **日本語**
+🌐 言語: [中文](../../README.md) | [English](../../README.md) | **日本語**
 
-![Star Office UI カバー](docs/screenshots/readme-cover-2.jpg)
+![Star Office UI カバー](../../docs/screenshots/readme-cover-2.jpg)
 
 **ピクセルアート AI オフィス ダッシュボード** —— AI エージェントの作業状態をリアルタイムで可視化。誰が何をしているか、昨日何をしていたか、オンラインかどうかを一目で確認できます。
 
@@ -62,7 +64,7 @@ curl -X POST http://127.0.0.1:19000/events \
 > を実行して同じアドレスを開いてください。公開イメージは起動時に自らマイグレーションします
 > （詳細は下の「Docker デプロイ」参照）。
 
-![Star Office UI プレビュー](docs/screenshots/readme-cover-1.jpg)
+![Star Office UI プレビュー](../../docs/screenshots/readme-cover-1.jpg)
 
 ---
 
@@ -332,7 +334,7 @@ npm run dev
 - ウィンドウは既定で `http://127.0.0.1:19000/?desktop=1`
 - 環境変数でプロジェクトパスと Python パスを設定可能
 
-> ⚠️ **任意の実験的機能**で、主に macOS で開発・テストされています。詳細は [`desktop-pet/README.md`](./desktop-pet/README.md)。
+> ⚠️ **任意の実験的機能**で、主に macOS で開発・テストされています。詳細は [`desktop-pet/README.md`](../../desktop-pet/README.md)。
 >
 > 🙏 デスクトップペットは [@Zhaohan-Wang](https://github.com/Zhaohan-Wang) による独立貢献——感謝します！
 
@@ -349,7 +351,7 @@ npm run dev
 
 ### ライセンス
 
-- **コード / ロジック：MIT**（[`LICENSE`](./LICENSE) 参照）
+- **コード / ロジック：MIT**（[`LICENSE`](../../LICENSE) 参照）
 - **アートアセット：非商用のみ**（学習 / デモ / 共有）
 
 > 商用利用の場合は全アートアセットを自作に置き換えてください（本分支は Apache-2.0 モデルでアセットパック全面再生成中——プロジェクト board 参照）。
@@ -361,11 +363,11 @@ npm run dev
 | 日付 | 概要 | 詳細 |
 |------|------|------|
 | 2026-10 | 🌱 **分支プログラム** —— Phase 1–4：イベント DB（SQLite/Postgres）、`POST /events` + `GET /events/recent`、OpenClaw デカップリング完了（`SKILL.md`・`set_state.py`・`office-agent-push.py` 削除、接続方法は本ドキュメントが正本） | Issue SOU-18 … SOU-46 |
-| 2026-03-06 | 🔌 デフォルトポート変更 —— ローカル browser-control サービスとの競合回避のため 18791 → 19000。スクリプト・デスクトップシェル・ドキュメントも追随 | [`docs/CHANGELOG_2026-03.md`](./docs/CHANGELOG_2026-03.md) |
-| 2026-03-05 | 📱 安定性修正 —— CDN キャッシュ、非同期画像生成、モバイルサイドバー、join key 有効期限と同時接続 | [`docs/UPDATE_REPORT_2026-03-05.md`](./docs/UPDATE_REPORT_2026-03-05.md) |
-| 2026-03-04 | 🔒 P0/P1 セキュリティ強化 —— 弱パスワードブロック、バックエンドリファクタ、状態タイムアウト自動 idle、スケルトンロード | [`docs/UPDATE_REPORT_2026-03-04_P0_P1.md`](./docs/UPDATE_REPORT_2026-03-04_P0_P1.md) |
-| 2026-03-03 | 📋 オープンソース公開チェックリスト完了 | [`docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`](./docs/OPEN_SOURCE_RELEASE_CHECKLIST.md) |
-| 2026-03-01 | 🎉 **v2 リビルド** —— 3言語対応、アセット管理、AI 部屋デザイン、アセット全面更新 | [`docs/FEATURES_NEW_2026-03-01.md`](./docs/FEATURES_NEW_2026-03-01.md) |
+| 2026-03-06 | 🔌 デフォルトポート変更 —— ローカル browser-control サービスとの競合回避のため 18791 → 19000。スクリプト・デスクトップシェル・ドキュメントも追随 | [`docs/CHANGELOG_2026-03.md`](../../docs/CHANGELOG_2026-03.md) |
+| 2026-03-05 | 📱 安定性修正 —— CDN キャッシュ、非同期画像生成、モバイルサイドバー、join key 有効期限と同時接続 | [`docs/i18n/history/UPDATE_REPORT_2026-03-05.md`](../../docs/i18n/history/UPDATE_REPORT_2026-03-05.md) |
+| 2026-03-04 | 🔒 P0/P1 セキュリティ強化 —— 弱パスワードブロック、バックエンドリファクタ、状態タイムアウト自動 idle、スケルトンロード | [`docs/i18n/history/UPDATE_REPORT_2026-03-04_P0_P1.md`](../../docs/i18n/history/UPDATE_REPORT_2026-03-04_P0_P1.md) |
+| 2026-03-03 | 📋 オープンソース公開チェックリスト完了 | [`docs/i18n/history/OPEN_SOURCE_RELEASE_CHECKLIST.md`](../../docs/i18n/history/OPEN_SOURCE_RELEASE_CHECKLIST.md) |
+| 2026-03-01 | 🎉 **v2 リビルド** —— 3言語対応、アセット管理、AI 部屋デザイン、アセット全面更新 | [`docs/i18n/history/FEATURES_NEW_2026-03-01.md`](../../docs/i18n/history/FEATURES_NEW_2026-03-01.md) |
 
 ---
 

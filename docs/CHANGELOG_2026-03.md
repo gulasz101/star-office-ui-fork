@@ -2,10 +2,10 @@
 
 ## 2026-03-06
 
-- 默认端口从 `18791` 调整为 `19000`，避开 OpenClaw Browser Control 端口冲突
-- 同步更新 `office-agent-push.py`、`healthcheck.sh`、`scripts/smoke_test.py` 的默认地址
-- 同步更新 Tauri / Electron 桌面壳默认连接地址
-- 同步更新 README / SKILL / join-office 文档中的本地访问与 tunnel 示例
+- Default port moved from `18791` to `19000` to avoid the OpenClaw Browser Control port conflict
+- Default addresses synced in `office-agent-push.py`, `healthcheck.sh` and `scripts/smoke_test.py`
+- Default connection address synced in the Tauri / Electron desktop shells
+- Local-access and tunnel examples synced in the README / SKILL / join-office docs
 
 # Changelog — 2026-03 Refresh
 

@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # Star Office UI — 新增功能说明（本阶段）
 
 ## 1. 多龙虾访客系统

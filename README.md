@@ -1,323 +1,340 @@
 # Star Office UI
 
-🌐 语言: **中文** | [English](./README.en.md) | [日本語](./README.ja.md)
+🌐 **Language:** The product decision is English-only — UI, API strings and docs (SOU-79). Superseded zh/ja translations live archived under [docs/i18n/](./docs/i18n/).
 
-![Star Office UI 封面](docs/screenshots/readme-cover-2.jpg)
+![Star Office UI Cover](docs/screenshots/readme-cover-2.jpg)
 
-**像素风 AI 办公室看板** —— 实时可视化你的 AI 助手的工作状态：谁在干什么、昨天做了什么、是否在线，一眼看清。
+**A pixel-art AI office dashboard** — visualize your AI agents' work status in real time, so you can see at a glance who's doing what, and whether they're online.
 
-支持多 Agent 协作、三语界面（中/英/日）、AI 房间设计、桌面宠物模式。
+Supports multi-agent collaboration, an English-only UI, AI-powered room design, and desktop pet mode.
 
-**Agent 无关（Agent-Agnostic）设计。** 办公室只讲一种开放 HTTP 协议——任何能发请求的 AI Agent 都能上板：Hermes、OpenChamber、OpenCode、Pi、Claude，或你自己的脚本。后端不依赖、也不读取任何 Agent 框架的工作区文件。
+**Agent-agnostic by design.** The office speaks one open HTTP protocol — any AI agent that can send a request can live on the board: [Hermes](https://github.com/NousResearch/Hermes-Agent), OpenChamber, OpenCode, Pi, Claude, or your own scripts. No agent framework, client library, or proprietary workspace is required or read by the backend.
 
-> 本项目由 **[Ring Hyacinth](https://x.com/ring_hyacinth)** 与 **[Simon Lee](https://x.com/simonxxoo)** 联合创作。本仓库是其维护分支（[gulasz101/star-office-ui-fork](https://github.com/gulasz101/star-office-ui-fork)）：事件入库、协议统一、并完成 OpenClaw 解耦。
-> 欢迎提 Issue / PR —— 感谢每一位贡献者。
+> This project was originally created by **[Ring Hyacinth](https://x.com/ring_hyacinth)** and **[Simon Lee](https://x.com/simonxxoo)**. This repository is a maintained fork ([gulasz101/star-office-ui-fork](https://github.com/gulasz101/star-office-ui-fork)) with a database-backed event stream and decoupled agent integration.
+> Issues and PRs are welcome — thank you to everyone who contributes.
 
 ---
 
-## ✨ 快速开始
+## ✨ Quick Start
 
-### 方式一：让你的 AI Agent 帮你部署
+### Option 1: Let your AI agent deploy it
 
-任何能执行 shell 和 HTTP 请求的 Agent 都能完成部署。把这段话发给它：
+Any agent that can run shell commands and HTTP requests can set this up. Send it this prompt:
 
 ```text
-帮我部署 Star Office UI：
+Deploy Star Office UI for me:
 1. git clone https://github.com/gulasz101/star-office-ui-fork && cd star-office-ui-fork
-2. python3 -m pip install -r backend/requirements.txt   （需要 Python 3.10+）
-3. cd backend && python3 app.py    # 起服务：http://127.0.0.1:19000
-4. 然后用 POST /events 推送你自己的状态，见 README「Agent 接入」一节。
+2. python3 -m pip install -r backend/requirements.txt   (Python 3.10+)
+3. cd backend && python3 app.py    # serves http://127.0.0.1:19000
+4. Then push your own status to it: POST /events — see the Agent Integration section of README.
 ```
 
-Agent 会自动 clone、装依赖、起后端，并用第一条事件把自己注册上看板。
+Your agent will clone, install, start the backend, and register itself on the board with its very first event.
 
-### 方式二：30 秒手动部署
+### Option 2: 30-second manual setup
 
-> **需要 Python 3.10+**（代码使用了 `X | Y` 联合类型语法，3.9 及以下不支持）
+> **Requires Python 3.10+** (the codebase uses `X | Y` union type syntax, which is not supported on 3.9 or earlier)
 
 ```bash
-# 1) 克隆仓库
+# 1) Clone the repo
 git clone https://github.com/gulasz101/star-office-ui-fork.git
 cd star-office-ui-fork
 
-# 2) 安装依赖（Python 3.10+）
+# 2) Install dependencies (Python 3.10+ required)
 python3 -m pip install -r backend/requirements.txt
 
-# 3) 启动后端 —— 事件数据库自动初始化
-#    （默认 SQLite；如需 PostgreSQL 设置 DATABASE_URL=postgresql+psycopg2://...）
+# 3) Start the backend — the event database initializes automatically
+#    (SQLite by default; set DATABASE_URL=postgresql+psycopg2://... to use Postgres)
 cd backend
 python3 app.py
 ```
 
-打开 **http://127.0.0.1:19000**，推一条状态试试：
+Open **http://127.0.0.1:19000** and push a status change:
 
 ```bash
 curl -X POST http://127.0.0.1:19000/events \
   -H 'Content-Type: application/json' \
   -d '{"version":1,"agent":"hermes","event_type":"state_change",
-       "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"正在整理文档"}}'
+       "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"Organizing documents"}}'
 ```
 
-> 🐳 想用容器？一条命令即可：`docker run -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:latest`，
-> 然后打开同一个地址——镜像会在启动时自行迁移数据库（详见下文「容器部署」）。
+> 🐳 Prefer a container? `docker run -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:latest`
+> and open the same address — the published image migrates its own database on start-up
+> (see **Docker Deployment** below).
 
-![Star Office UI 预览](docs/screenshots/readme-cover-1.jpg)
-
----
-
-## 🤔 适合谁用？
-
-### 有 AI Agent 的用户
-这是**完整体验**。每个 Agent（Hermes、OpenChamber、OpenCode、Pi、Claude……）工作时自己 POST `state_change` 事件，像素小人实时走到对应区域——多个 Agent 共用一块看板，各用各的名字。
-
-### 没有 Agent 运行时的用户
-照样可以部署使用：
-- 用 `curl` 一行命令 / cron / CI 步骤推送状态（任何 HTTP 客户端都行）
-- 用页面内置的状态控制条（走 `POST /set_state`）
-- 当像素风个人状态页或远程协作看板用
+![Star Office UI Preview](docs/screenshots/readme-cover-1.jpg)
 
 ---
 
-## 📋 功能特性
+## 🤔 Who is this for?
 
-1. **状态可视化** —— 6 种状态（`idle` / `writing` / `researching` / `executing` / `syncing` / `error`）映射到不同办公区域，带动画精灵与对话气泡
-2. **昨日小记** —— 自动读取 `memory/*.md` 最新日记，脱敏后以"昨日小记"卡片展示
-3. **多 Agent 协作** —— 通过 join key 邀请其他 Agent 加入办公室，或直接让它们用 `POST /events` 自助注册，实时查看所有人状态
-4. **三语界面** —— 中/英/日一键切换，全部 UI 文案、气泡、加载提示即时更新
-5. **自定义美术资产** —— 侧边栏管理角色、场景、装饰；动态帧同步防闪烁
-6. **AI 房间设计** —— 接入自己的 Gemini API 生成新办公室背景；不接 API 也能用核心功能
-7. **移动端友好** —— 手机打开即可速览状态
-8. **安全加固** —— 侧边栏密码保护、生产环境弱密码拦截、加固 Session Cookie
-9. **灵活公网访问** —— Cloudflare Tunnel 一键公网分享，或自备域名/反代
-10. **桌面宠物模式** —— 可选 Electron 桌面壳，把办公室变成透明桌面小组件（见下文）
-11. **事件数据库** —— 每个事件都落库（SQLite/PostgreSQL），可通过 `GET /events/recent` 读取；看板是事件流的纯视图
+### Users with AI agents
+This is the **full experience**. Each agent (Hermes, OpenChamber, OpenCode, Pi, Claude, …) posts its own `state_change` events as it works; its pixel character walks to the matching office area in real time. Multiple agents share one board — each shows up under its own name.
+
+### Users without an agent runtime
+You can still deploy and use it:
+- Push status with a `curl` one-liner or a cron job / CI step (any HTTP client works)
+- Use the built-in control bar on the page (it writes through `POST /set_state`)
+- Use it as a pixel-art personal status page or remote-work dashboard
 
 ---
 
-## 🚀 详细部署指南
+## 📋 Features
 
-### 1) 安装依赖
+1. **Status Visualization** — 6 states (`idle` / `writing` / `researching` / `executing` / `syncing` / `error`) mapped to different office areas with animated sprites and speech bubbles
+2. **Multi-Agent Collaboration** — Invite other agents to join your office via join keys, or let them register themselves through `POST /events`; see everyone's status in real time
+3. **Custom Art Assets** — Manage characters, scenes, and decorations through the sidebar; dynamic frame sync prevents flickering
+4. **AI-Powered Room Design** — Connect your own Gemini API to generate new office backgrounds; core features work fine without an API
+5. **Mobile-Friendly** — Open on your phone for a quick status check on the go
+6. **Security Hardening** — Sidebar password protection, weak-password blocking in production, hardened session cookies
+7. **Flexible Public Access** — Use Cloudflare Tunnel for instant public access, or bring your own domain / reverse proxy
+8. **Desktop Pet Mode** — Optional Electron desktop wrapper that turns the office into a transparent desktop widget (see below)
+9. **Event Database** — every event is stored (SQLite or PostgreSQL) and readable via `GET /events/recent`; the dashboard is a pure view over the event stream
+
+---
+
+## 🚀 Detailed Setup Guide
+
+### 1) Install dependencies
 
 ```bash
 cd star-office-ui-fork
 python3 -m pip install -r backend/requirements.txt
 ```
 
-### 2) 选择数据库（可选）
+### 2) Choose your database (optional)
 
-不需要再复制状态文件：主状态与事件都存在数据库里，默认自动落到本地 SQLite 文件；如需 PostgreSQL，导出 `DATABASE_URL=postgresql+psycopg2://user:pass@host/star_office` 后正常启动即可——迁移在启动时自动执行。
+No state files to copy: the backend stores agent state and events in a database. It falls back to a local SQLite file automatically; to use PostgreSQL instead, export e.g. `DATABASE_URL=postgresql+psycopg2://user:pass@host/star_office` and start normally — migrations run on startup.
 
-### 3) 启动后端
+### 3) Start the backend
 
 ```bash
 cd backend
 python3 app.py
 ```
 
-打开 `http://127.0.0.1:19000`
+Open `http://127.0.0.1:19000`
 
-> ✅ 本地开发直接用默认配置即可；生产部署请把 `.env.example` 复制为 `.env`，为 `FLASK_SECRET_KEY` 和 `ASSET_DRAWER_PASS` 设置强随机值，避免弱密码与会话泄露。
+> ✅ For local development you can start with the defaults; in production, copy `.env.example` to `.env` and set strong random values for `FLASK_SECRET_KEY` and `ASSET_DRAWER_PASS` to avoid weak passwords and session leaks.
 >
-> 🏷️ 想给办公室牌匾起名字？启动前设置 `OFFICE_NAME="Wojtek 的办公室"` 即可——后端不再读取任何 Agent 工作区的文件。
+> 🏷️ Want a custom office name on the plaque? Start with `OFFICE_NAME="Wojtek's Office"` — the backend never reads any agent's workspace files for it.
 
-### 4) 切换状态
+### 4) Switch states
 
-推送事件（面向 Agent 的入口，见下一节）：
+Post an event (the agent-facing door, see next section):
 
 ```bash
 curl -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json' -d '{
   "version": 1, "agent": "hermes", "event_type": "state_change",
   "timestamp": "2026-10-13T14:20:55Z",
-  "payload": {"state": "executing", "detail": "正在跑测试"}
+  "payload": {"state": "executing", "detail": "Running the test suite"}
 }'
 ```
 
-或者直接用页面上的状态控制条（走 `POST /set_state`，只作用于主 Agent）。
+Or use the built-in page control bar (writes through `POST /set_state`, the main agent only).
 
-### 5) 公网访问（可选）
+### 5) Public access (optional)
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:19000
 ```
 
-把 `https://xxx.trycloudflare.com` 链接发给任何人。
+Share the `https://xxx.trycloudflare.com` link with anyone.
 
-### 6) 验证部署（可选）
+### 6) Verify your installation (optional)
 
 ```bash
 python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 ```
 
-全部 `OK` 即部署完成。
+If all checks report `OK`, your deployment is good to go.
 
 ---
 
-## 🐳 容器部署（Docker）
+## 🐳 Docker Deployment
 
-一个镜像、两种数据库后端、启动即迁移。CI 负责构建与发布
-（`.github/workflows/docker-image.yml`）：镜像在推送之前，会先在 SQLite 与真实
-PostgreSQL 上跑一遍冒烟测试。
+One image, two backends, migrations on start-up. CI builds and publishes it
+(`.github/workflows/docker-image.yml`): the image is smoke-tested on SQLite and
+against a real PostgreSQL before it is ever pushed.
 
 ```bash
-# SQLite（默认）：首次启动自动创建并迁移 backend/sou.db
+# SQLite (the default): the first start creates and migrates backend/sou.db
 docker run -d --name star-office -p 127.0.0.1:19000:19000 \
   ghcr.io/gulasz101/star-office-ui-fork:latest
 
-# PostgreSQL：同一个镜像，指到你的数据库即可
+# PostgreSQL: same image, just point it at your server
 docker run -d --name star-office -p 127.0.0.1:19000:19000 \
   -e DATABASE_URL='postgresql+psycopg2://user:pass@host:5432/star_office' \
   ghcr.io/gulasz101/star-office-ui-fork:v1.0.0-agent-agnostic
 ```
 
-| 环境变量 | 默认值 | 作用 |
+| Variable | Default | What it does |
 |---|---|---|
-| `DATABASE_URL` | 未设置 → SQLite（`backend/sou.db`） | 填 `postgresql+psycopg2://…` 后，全部状态层改用 PostgreSQL（ADR-034）。 |
-| `STAR_BACKEND_PORT` | `19000` | 容器内 gunicorn 的监听端口（`0.0.0.0:$STAR_BACKEND_PORT`），记得同步 `-p` 映射。 |
-| `FLASK_SECRET_KEY` / `STAR_OFFICE_SECRET` | 开发默认值 | 会话签名。开启 `STAR_OFFICE_ENV=production` 后必须是强随机值（≥24 位、非默认）。 |
-| `ASSET_DRAWER_PASS` | `1234` | 素材编辑入口。生产环境不得使用默认值。 |
-| `STAR_OFFICE_ENV` | 未设置 | 设为 `production` 会启用安全校验：弱密钥或弱口令将直接拒绝启动。 |
-| `OFFICE_NAME` | 未设置 | 门牌文字。后端绝不会去读任何 agent 的工作区文件。 |
+| `DATABASE_URL` | unset → SQLite at `backend/sou.db` | Give it a `postgresql+psycopg2://…` URL and the whole state layer moves to PostgreSQL (ADR-034). |
+| `STAR_BACKEND_PORT` | `19000` | Port gunicorn binds inside the container (`0.0.0.0:$STAR_BACKEND_PORT`); keep your `-p` mapping in sync. |
+| `FLASK_SECRET_KEY` / `STAR_OFFICE_SECRET` | dev default | Session signing. Must be strong (≥24 chars, non-default) once `STAR_OFFICE_ENV=production`. |
+| `ASSET_DRAWER_PASS` | `1234` | Asset-editor door. Must not be the default in production. |
+| `STAR_OFFICE_ENV` | unset | `production` arms the hardening guard: a weak secret or drawer password refuses to boot instead of warning. |
+| `OFFICE_NAME` | unset | Text on the office plaque. The backend never reads an agent's workspace files for it. |
 
-容器启动时依次发生：
+What happens when the container starts:
 
-1. `entrypoint.sh` 用 `backend/alembic.ini` 执行 `alembic upgrade head`。
-   `DATABASE_URL` 优先，未设置则回退 SQLite，并在 `backend/sou.db` 缺失时创建并迁移。
-   迁移失败容器直接退出——绝不把半迁移状态的服务放出去。
+1. `entrypoint.sh` runs `alembic upgrade head` against `backend/alembic.ini`.
+   `DATABASE_URL` wins, the SQLite fallback is used when it is unset — and a
+   missing `backend/sou.db` is created and migrated. If the migration fails the
+   container exits: the server never comes up on a half-migrated schema.
 2. `exec gunicorn --chdir backend --worker-class gthread --workers 1 --threads 8`
-   启动 `app:app`。这里刻意只用一个 worker：应用持有进程内状态与后台任务，多 worker
-   会导致各自持有不一致的副本。
-3. 镜像内的 `HEALTHCHECK`（30 秒间隔、重试 3 次）访问
-   `/events/recent?limit=1`，也就是看板用的同一条读取路径，所以库表或连接出问题时会
-   如实报 `unhealthy`，而不是给个假绿灯。
+   serves `app:app`. A single worker is deliberate — the app keeps in-process
+   state and background tasks, so several workers would each hold a divergent copy.
+3. The image `HEALTHCHECK` (30s interval, 3 retries) asks
+   `/events/recent?limit=1`, the same read path the dashboard uses, so a broken
+   schema or a dead connection reports `unhealthy` instead of a green light.
 
-状态持久化与本地构建：
+Persisting state, and building locally:
 
-- **PostgreSQL** 是持久方案：不用挂任何卷，数据在容器之外。
-- **SQLite**：镜像里的 `backend/` 不是数据目录。要跨重启保留，请挂载一个目录并指过去——
-  `chown 10001:10001 data` 后加 `-v "$PWD/data:/data" -e DATABASE_URL='sqlite:////data/sou.db'`。
-  千万不要把卷挂到 `/app/backend` 上，那里放的是应用代码。
-- 容器以非特权用户 uid **10001** 运行。
-- 自行构建：在仓库根目录 `docker build -t star-office-ui .`，示例中的镜像名换成
-  `star-office-ui` 即可。
-- 镜像内不含任何凭据。`.dockerignore` 已把 `.git`、`.env*`、虚拟环境、缓存以及所有
-  `*.db` 挡在构建上下文之外，密钥只在运行时注入。
+- **PostgreSQL** is the durable option: mount nothing, the database lives outside
+  the container.
+- **SQLite**: the image's own `backend/` is *not* a data directory. To keep the
+  file across restarts, mount one and point at it —
+  `-v "$PWD/data:/data" -e DATABASE_URL='sqlite:////data/sou.db'` after
+  `chown 10001:10001 data`. Never mount a volume over `/app/backend`; that is
+  where the application code lives.
+- The container runs as the unprivileged uid **10001**.
+- Build it yourself from the repo root: `docker build -t star-office-ui .` and use
+  `star-office-ui` wherever the examples above use the registry name.
+- No credentials live in the image. `.dockerignore` keeps `.git`, `.env*`, virtual
+  environments, caches and every `*.db` out of the build context, and secrets are
+  injected at run time.
 
 ---
 
-## 🤖 Agent 接入（任意 Agent，一套协议）
+## 🤖 Agent Integration (any agent, one protocol)
 
-办公室只有一个写入口：**`POST /events`**。没有需要安装的客户端脚本、没有共享的工作区文件、没有必须配置的框架——只要你的 Agent 会发 HTTP POST，它就能加入。
+The office has exactly one ingest door: **`POST /events`**. There is no agent-side client to install, no workspace files to share, and no framework to configure — if your agent can send an HTTP POST, it can join.
 
-### 事件信封（Schema v1）
+### The event envelope (schema v1)
 
-每个事件是一个小 JSON 信封（定义在 `backend/schemas/event_v1.json`）：
+Every event is a small JSON envelope (`backend/schemas/event_v1.json`):
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `version` | int | 固定为 `1` |
-| `agent` | string | Agent 显示名，如 `hermes`、`openchamber`、`opencode`、`pi`、`claude`。**未知名字的第一条事件会自动注册**该 Agent |
-| `event_type` | string | 如 `state_change`、`tool_call`、`file_edit`、`command_run`、`session_start`、`session_end`——非白名单，未知类型原样入库 |
-| `timestamp` | string | ISO-8601 时刻（带时区则归一化为 UTC） |
-| `payload` | object | 类型自定义数据；`state_change` 用 `{"state": "<6 状态之一>", "detail": "<一句话>"}` |
+| Field | Type | Notes |
+|-------|------|-------|
+| `version` | int | always `1` |
+| `agent` | string | your agent's display name, e.g. `hermes`, `openchamber`, `opencode`, `pi`, `claude`. The **first event from an unknown name auto-registers** that agent on the board. |
+| `event_type` | string | e.g. `state_change`, `tool_call`, `file_edit`, `command_run`, `session_start`, `session_end` — not a closed list; unknown types are stored as sent |
+| `timestamp` | string | ISO-8601 instant (offsets honoured, normalised to UTC) |
+| `payload` | object | type-specific data; for `state_change` use `{"state": "<one of the 6 states>", "detail": "<short text>"}` |
 
 ```bash
 curl -X POST https://your.office.host/events \
   -H 'Content-Type: application/json' \
   -d '{"version":1,"agent":"claude","event_type":"state_change",
        "timestamp":"2026-10-13T14:20:55Z",
-       "payload":{"state":"researching","detail":"正在读代码库"}}'
+       "payload":{"state":"researching","detail":"Reading the codebase"}}'
 ```
 
-- `201 {"ok": true}` —— 已入库，一个轮询周期内即可在看板看到
-- `400 {"ok": false, "error": "<字段>: <怎么改>"}` —— 错误信息点名出问题的字段，方便 hook 自纠错
+- `201 {"ok": true}` — stored and visible on the board within one poll cycle
+- `400 {"ok": false, "error": "<field>: <what to fix>"}` — the message names the offending field, so a hook can self-correct
 
-**6 状态 → 3 区域：**
+**6 states → 3 office areas:**
 
-| 状态 | 办公室区域 | 何时使用 |
-|------|-----------|----------|
-| `idle` | 🛋 休息区（沙发） | 待命 / 完成任务 |
-| `writing` | 💻 工作区（办公桌） | 写代码 / 写文档 |
-| `researching` | 💻 工作区 | 搜索 / 调研 |
-| `executing` | 💻 工作区 | 执行命令 / 跑任务 |
-| `syncing` | 💻 工作区 | 同步数据 / 推送 |
-| `error` | 🐛 Bug 区 | 报错 / 排查 |
+| State | Office Area | When to use |
+|-------|-------------|-------------|
+| `idle` | 🛋 Breakroom (sofa) | Standing by / task complete |
+| `writing` | 💻 Workspace (desk) | Writing code or docs |
+| `researching` | 💻 Workspace | Searching / researching |
+| `executing` | 💻 Workspace | Running commands / tasks |
+| `syncing` | 💻 Workspace | Syncing data / pushing |
+| `error` | 🐛 Bug Corner | Error / debugging |
 
-### 常见 Agent 的挂接方式
+### Wiring common agents
 
-套路永远只有一个——状态一变，发一条 `curl`（或任意 HTTP 调用）：
+The pattern is always the same — emit one `curl` (or `python3 -c "import requests…"`) when the agent's state changes:
 
-| Agent | 挂接点 |
-|-------|--------|
-| Hermes | 动作循环的任务开始/结束处：POST `state_change`（`executing` → `idle`） |
-| OpenChamber | 会话 hook 或 Itsaplan bridge 运行时：`session_start` + `state_change` |
-| OpenCode | `opencode.json` 自定义命令 / 插件事件：每次工具调用 `tool_call`，工作/待机 `state_change` |
-| Pi | 驱动它的调度器的状态迁移处 |
-| Claude (Code) | `Stop` / `PostToolUse` hook，或在 `CLAUDE.md` 写规则："开始任务前 POST executing，完成后 POST idle" |
+| Agent | Where to hook |
+|-------|----------------|
+| Hermes | On task start/finish in its action loop: POST `state_change` (`executing` → `idle`) |
+| OpenChamber | In a session hook or the Itsaplan bridge runner: `session_start` + `state_change` |
+| OpenCode | In `opencode.json` custom commands / plugin events: `tool_call` per tool, `state_change` idle/work |
+| Pi | On state transitions in the scheduler driving it |
+| Claude (Code) | A `Stop`/`PostToolUse` hook, or a rule in `CLAUDE.md`: "before starting a task POST state_change executing; when finished POST idle" |
 
-在你 Agent 支持的任意指令文件里加一次规则即可：
+Add the rule once, e.g. in whatever instruction file your agent honours:
 
 ```markdown
-## Star Office 状态同步
-- 开始任务前：POST /events 一条 state "executing" 事件，detail 写一句话
-- 完成任务后：POST /events 一条 state "idle" 事件
-只外发状态词和简短描述——绝不外发文件内容。
+## Star Office status sync
+- Before starting a task: POST /events with state "executing" and a one-line detail
+- When finishing: POST /events with state "idle"
+Only the state word and a short description leave your machine — never file contents.
 ```
 
-### 读取路径
+### No-curl option: the OpenChamber / OpenCode reporter plugin
 
-`GET /events/recent` 按新→旧返回事件数组（`limit` ≤ 200，可用 `agent`、`event_type`、`since` 过滤，详见下方 API 表）。看板自身就在轮询它，外部组件也可以走同一个门。
+If your agent runs on OpenCode (or OpenChamber, which embeds it), you can skip the
+hand-wired `curl`s entirely: the [reporter plugin](reporter/openchamber-star-office-reporter/README.md)
+hooks tool execution and session lifecycle and pushes the event stream to
+`POST /events` automatically — `tool_call`, `file_edit`, `command_run`,
+`code_completion`, `session_start`, `session_end`. Copy
+`openchamber-star-office-reporter.js` into `~/.config/opencode/plugins/` (or
+`.opencode/plugins/` per project), restart, done. It never blocks the agent,
+redacts credentials from every payload, and switches off with one env var.
+Also published as the standalone repo `openchamber-star-office-reporter` (MIT).
 
-### 邀请访客 Agent（join key 名册通道）
+### Read path
 
-需要审批、在线 TTL、并发上限的受控访客，用经典加入流程：
+`GET /events/recent` returns the newest stored events as a bare JSON array
+(`limit` ≤ 200, `agent`, `event_type`, `since` filters — see the API table below).
+The dashboard itself polls it; external widgets can poll the same door.
 
-**第 1 步：准备接入密钥**
+### Invite guest agents (join-key roster door)
 
-首次启动后端时，若项目根目录没有 `join-keys.json`，服务会自动根据 `join-keys.sample.json` 生成一份（内含示例密钥 `ocj_example_team_01`）。之后编辑生成的 `join-keys.json` 增删密钥即可；默认每个密钥最多 3 个并发访客。
+For controlled guest access with approval, presence TTL and concurrency caps, keep the classic join ceremony:
 
-**第 2 步：访客注册并推送**
+**Step 1: Prepare join keys**
+
+When you start the backend for the first time, if there is no `join-keys.json` in the project root, the service creates one from `join-keys.sample.json` (which contains an example key such as `ocj_example_team_01`). Edit the generated `join-keys.json` to add, change, or remove keys; by default each key allows up to 3 concurrent guests.
+
+**Step 2: The guest registers and pushes**
 
 ```bash
-# 加入一次 —— 返回 {"ok":true,"agentId":"42","authStatus":"approved"}
+# join once — returns {"ok":true,"agentId":"42","authStatus":"approved"}
 curl -X POST https://your.office.host/join-agent -H 'Content-Type: application/json' \
-  -d '{"name":"AliceBot","joinKey":"ocj_starteam02","state":"idle","detail":"刚刚加入"}'
+  -d '{"name":"AliceBot","joinKey":"ocj_starteam02","state":"idle","detail":"just joined"}'
 
-# 之后在状态变化时推送（建议约 15 秒一次或按需）
+# then push status whenever it changes (every ~15s is a good default)
 curl -X POST https://your.office.host/agent-push -H 'Content-Type: application/json' \
-  -d '{"agentId":"42","joinKey":"ocj_starteam02","state":"writing","detail":"在写报告"}'
+  -d '{"agentId":"42","joinKey":"ocj_starteam02","state":"writing","detail":"drafting the report"}'
 ```
 
-访客会出现在看板上，随状态走向对应区域；5 分钟无推送自动标记离线，`POST /leave-agent` 可退出。
+The guest appears on the dashboard and moves between areas with its state; 5 minutes of silence marks it offline, and `POST /leave-agent` removes it.
 
-**第 3 步（可选）：把接入说明书发给访客**
+**Step 3 (optional): give the guest the onboarding doc**
 
-`frontend/join-office-skill.md` 是一份可直接粘贴的、Agent 无关的接入说明——任何 Agent 用纯 `curl` 就能照着做。
-
----
-
-## 📡 API 一览
-
-| 端点 | 说明 |
-|------|------|
-| `POST /events` | **写入一条 Agent 事件（上文 v1 信封）；未知 Agent 自动注册** |
-| `GET /events/recent` | 读取事件流：新→旧的 `{id, agent, event_type, payload, created_at}` 数组；参数 `limit`（≤200）、`agent`（大小写不敏感）、`event_type`、`since`（ISO） |
-| `GET /health` | 健康检查 |
-| `GET /status` | 主 Agent 状态（设置了 `OFFICE_NAME` 环境变量时附带 `officeName`） |
-| `POST /set_state` | 设置主 Agent 状态（页面内置控制条；落一条 `state_change` 事件） |
-| `GET /agents` | 全部 Agent 名册（含在线/授权状态） |
-| `POST /join-agent` | 访客用接入密钥加入 |
-| `POST /agent-push` | 访客推送状态（agentId + joinKey） |
-| `POST /leave-agent` | 访客退出 |
-| `GET /yesterday-memo` | 昨日小记 |
-| `GET /config/gemini` | 读取 Gemini API 配置 |
-| `POST /config/gemini` | 设置 Gemini API 配置 |
-| `GET /assets/generate-rpg-background/poll` | 轮询生图进度 |
+`frontend/join-office-skill.md` is a paste-ready, agent-agnostic instruction sheet — any agent can follow it with plain `curl`.
 
 ---
 
-## 🖥 桌面宠物模式（可选）
+## 📡 API Reference
 
-`desktop-pet/` 目录是基于 **Electron** 的桌面壳，把像素办公室变成透明桌面小组件。
+| Endpoint | Description |
+|----------|-------------|
+| `POST /events` | **Ingest one agent event (schema v1 envelope above); auto-registers unknown agents** |
+| `GET /events/recent` | Read the feed: newest-first array of `{id, agent, event_type, payload, created_at}`; params `limit` (≤200), `agent` (case-insensitive), `event_type`, `since` (ISO) |
+| `GET /health` | Health check |
+| `GET /status` | Main agent status (`officeName` included when the `OFFICE_NAME` env is set) |
+| `POST /set_state` | Set main agent status (built-in page control bar; writes a `state_change` event) |
+| `GET /agents` | List all agents (roster with presence/auth) |
+| `POST /join-agent` | Guest joins the office with a join key |
+| `POST /agent-push` | Guest pushes status (agentId + joinKey) |
+| `POST /leave-agent` | Guest leaves |
+| `GET /config/gemini` | Get Gemini API config |
+| `POST /config/gemini` | Set Gemini API config |
+| `GET /assets/generate-rpg-background/poll` | Poll image generation progress |
+
+---
+
+## 🖥 Desktop Pet Mode (Optional)
+
+The `desktop-pet/` directory contains a **Electron**-based desktop wrapper that turns the pixel office into a transparent desktop widget.
 
 ```bash
 cd desktop-pet
@@ -325,71 +342,72 @@ npm install
 npm run dev
 ```
 
-- 启动时自动拉起 Python 后端
-- 窗口默认指向 `http://127.0.0.1:19000/?desktop=1`
-- 可通过环境变量自定义项目路径与 Python 路径
+- Auto-launches the Python backend on startup
+- Window points to `http://127.0.0.1:19000/?desktop=1` by default
+- Customizable via environment variables for project path and Python path
 
-> ⚠️ 这是**可选的实验特性**，主要在 macOS 上开发测试，详见 [`desktop-pet/README.md`](./desktop-pet/README.md)。
+> ⚠️ This is an **optional, experimental feature**, primarily developed and tested on macOS. See [`desktop-pet/README.md`](./desktop-pet/README.md) for details.
 >
-> 🙏 桌面宠物模块由 [@Zhaohan-Wang](https://github.com/Zhaohan-Wang) 独立贡献——感谢！
+> 🙏 The desktop pet module was independently developed by [@Zhaohan-Wang](https://github.com/Zhaohan-Wang) — thank you for this contribution!
 
 ---
 
-## 🎨 美术资产与许可
+## 🎨 Art Assets & License
 
-### 素材来源
+### Asset Attribution
 
-访客角色动画使用 **LimeZu** 免费素材：
+Guest character animations use free assets by **LimeZu**:
 - [Animated Mini Characters 2 (Platformer) [FREE]](https://limezu.itch.io/animated-mini-characters-2-platform-free)
 
-再分发或演示时请保留出处，并遵守原始许可。
+Please keep attribution when redistributing or demoing, and follow the original license terms.
 
-### 许可
+### License
 
-- **代码 / 逻辑：MIT**（见 [`LICENSE`](./LICENSE)）
-- **美术资产：仅限非商用**（学习 / 演示 / 分享）
+- **Code / Logic: MIT** (see [`LICENSE`](./LICENSE))
+- **Art Assets: Non-commercial use only** (learning / demo / sharing)
 
-> 商用请替换全部美术资产（本分支正在用 Apache-2.0 模型重制整套素材，见项目看板）。
-
----
-
-## 📝 更新日志
-
-| 日期 | 摘要 | 详情 |
-|------|------|------|
-| 2026-10 | 🌱 **分支计划** —— Phase 1–4：事件数据库（SQLite/Postgres）、`POST /events` 写入 + `GET /events/recent` 读取，并完成 OpenClaw 解耦（删除 `SKILL.md`、`set_state.py`、`office-agent-push.py`，接入方式以本文为准） | 看板 Issue SOU-18 … SOU-46 |
-| 2026-03-06 | 🔌 默认端口调整 —— 默认后端端口从 18791 调整为 19000，以避开本地浏览器控制服务端口冲突；同步更新脚本、桌面壳与文档默认值 | [`docs/CHANGELOG_2026-03.md`](./docs/CHANGELOG_2026-03.md) |
-| 2026-03-05 | 📱 稳定性修复 —— CDN 缓存修正、异步生图、移动端侧边栏 UX、接入密钥过期与并发上限 | [`docs/UPDATE_REPORT_2026-03-05.md`](./docs/UPDATE_REPORT_2026-03-05.md) |
-| 2026-03-04 | 🔒 P0/P1 安全加固 —— 弱密码拦截、后端重构、状态超时自动回落、骨架屏加载 | [`docs/UPDATE_REPORT_2026-03-04_P0_P1.md`](./docs/UPDATE_REPORT_2026-03-04_P0_P1.md) |
-| 2026-03-03 | 📋 开源发布清单完成 | [`docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`](./docs/OPEN_SOURCE_RELEASE_CHECKLIST.md) |
-| 2026-03-01 | 🎉 **v2 重构** —— 三语支持、资产管理系统、AI 房间设计、全套美术更新 | [`docs/FEATURES_NEW_2026-03-01.md`](./docs/FEATURES_NEW_2026-03-01.md) |
+> For commercial use, replace all art assets with your own original artwork (this fork is regenerating the full art pack on Apache-2.0 models — see the project board).
 
 ---
 
-## 📁 项目结构
+## 📝 Changelog
+
+| Date | Summary | Details |
+|------|---------|---------|
+| 2026-10 | 🌱 **Fork program** — Phases 1–4: event database (SQLite/Postgres), `POST /events` ingest + `GET /events/recent` read path, and full OpenClaw decoupling (`SKILL.md`, `set_state.py`, `office-agent-push.py` removed; agent-agnostic integration documented here) | Issues SOU-18 … SOU-46 on the fork board |
+| 2026-03-06 | 🔌 Default port updated — backend default port changed from 18791 to 19000 to avoid conflicts with a local browser-control service; synced scripts, desktop shells, and docs defaults | [`docs/CHANGELOG_2026-03.md`](./docs/CHANGELOG_2026-03.md) |
+| 2026-03-05 | 📱 Stability fixes — CDN cache fix, async image generation, mobile sidebar UX, join key expiration & concurrency | [`docs/i18n/history/UPDATE_REPORT_2026-03-05.md`](./docs/i18n/history/UPDATE_REPORT_2026-03-05.md) |
+| 2026-03-04 | 🔒 P0/P1 Security hardening — weak password blocking, backend refactor, stale-state auto-idle, skeleton loading | [`docs/i18n/history/UPDATE_REPORT_2026-03-04_P0_P1.md`](./docs/i18n/history/UPDATE_REPORT_2026-03-04_P0_P1.md) |
+| 2026-03-03 | 📋 Open-source release checklist completed | [`docs/i18n/history/OPEN_SOURCE_RELEASE_CHECKLIST.md`](./docs/i18n/history/OPEN_SOURCE_RELEASE_CHECKLIST.md) |
+| 2026-03-01 | 🎉 **v2 Rebuild** — Trilingual support, asset management system, AI room design, full art asset overhaul | [`docs/i18n/history/FEATURES_NEW_2026-03-01.md`](./docs/i18n/history/FEATURES_NEW_2026-03-01.md) |
+
+---
+
+## 📁 Project Structure
 
 ```text
 star-office-ui-fork/
-├── backend/            # Flask 后端
-│   ├── app.py          # 路由：/events、/events/recent、/status、/agents ...
-│   ├── db.py           # SQLite/Postgres 事件适配器（分支 Phase 1）
-│   ├── schemas/event_v1.json  # POST /events 契约
-│   ├── migrations/     # Alembic 数据库迁移
+├── backend/            # Flask backend
+│   ├── app.py          # routes: /events, /events/recent, /status, /agents, ...
+│   ├── db.py           # SQLite/Postgres event adapter (fork Phase 1)
+│   ├── schemas/event_v1.json  # the POST /events contract
+│   ├── migrations/     # Alembic schema
 │   ├── requirements.txt
 │   └── run.sh
-├── frontend/           # 前端页面与素材
+├── frontend/           # Frontend pages & assets
 │   ├── index.html
 │   ├── join.html
 │   ├── invite.html
-│   ├── join-office-skill.md   # 可直接粘贴的访客接入说明（Agent 无关）
+│   ├── join-office-skill.md   # paste-ready guest instructions (agent-agnostic)
 │   └── layout.js
-├── desktop-pet/        # Electron 桌面壳（可选）
-├── docs/               # 文档与截图
+├── desktop-pet/        # Electron desktop wrapper (optional)
+├── docs/               # Documentation & screenshots
+│   ├── i18n/           # Archived zh/ja translations and history (English-only decision: SOU-79)
 │   └── screenshots/
-├── scripts/            # 冒烟测试、安全检查、开发辅助
-├── state.sample.json     # 旧状态模板（当前状态已入库）
-├── join-keys.sample.json # 接入密钥模板（运行时生成 join-keys.json）
-└── LICENSE               # MIT 许可证
+├── scripts/            # smoke test, security check, dev helpers
+├── state.sample.json     # legacy state template (state now lives in the DB)
+├── join-keys.sample.json # Join key template (runtime generates join-keys.json)
+└── LICENSE               # MIT License
 ```
 
 ---

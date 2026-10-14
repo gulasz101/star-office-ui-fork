@@ -1,3 +1,5 @@
+<!-- ARCHIVED DOC (SOU-79): pre-English-only project history, kept as-is. Active docs live in ../../ -->
+
 # Star-Office-UI 项目维护 SOP（轻量版）
 
 > 目标：让 Star-Office-UI 在继续增长的同时，保持仓库干净、回复友好、节奏稳定、社区感明确。

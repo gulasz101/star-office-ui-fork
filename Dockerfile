@@ -44,6 +44,15 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin app
 
 WORKDIR /app
 
+# /app itself has to be writable by the app user: at import the backend creates
+# its runtime JSON state (join-keys.json, state.json, agents-state.json,
+# runtime-config.json) next to backend/, and .dockerignore deliberately keeps
+# the local copies out of the image. Found by the CI smoke run on the real
+# image, not by the sandbox tests - PermissionError: '/app/join-keys.json'.
+# A single chown of the directory, never a recursive one (that would duplicate
+# the whole tree in a new layer).
+RUN chown app:app /app
+
 # Installed packages and their console scripts (gunicorn, alembic) merge into
 # the base image's own /usr/local, so nothing custom has to be on PYTHONPATH.
 COPY --from=deps /install/ /usr/local/

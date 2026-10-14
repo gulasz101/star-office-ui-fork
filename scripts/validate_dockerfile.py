@@ -229,6 +229,18 @@ def main() -> int:
         "AC1: no COPY of frontend/ into the image (the app serves it as static)",
     )
 
+    # AC1 (learned the hard way in the SOU-62 CI run): the app writes its JSON
+    # state - join-keys.json, state.json, agents-state.json, runtime-config.json -
+    # into the root of /app at import time, and .dockerignore keeps those files out
+    # of the image, so the directory itself must belong to the runtime user.
+    app_writable = re.search(r"(?im)^\s*RUN\s+chown\s+[\w.-]+:[\w.-]+\s+/app/?\b", df_text)
+    whole_tree = re.search(r'(?im)^\s*COPY\s+--chown=\S+\s+\.\s+/app\b', df_text)
+    check(
+        app_writable is not None or whole_tree is not None,
+        "AC1: /app is not made writable by the runtime user; the backend creates "
+        "join-keys.json / state.json there at start-up (PermissionError otherwise)",
+    )
+
     # --- AC1 port --------------------------------------------------------
     exposes = [line for line in df_lines if line.upper().startswith("EXPOSE ")]
     check(bool(exposes), "Dockerfile has no EXPOSE instruction")

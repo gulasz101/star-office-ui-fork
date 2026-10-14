@@ -31,7 +31,7 @@
 // 65536-byte cap. Non-blocking (AC2): hooks never await the network; send
 // failures are one stderr line and a counter.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -80,6 +80,9 @@ function normalizeLayer(obj) {
   if (obj.enabled !== undefined) {
     layer.enabled = typeof obj.enabled === "boolean" ? obj.enabled : !OFF_WORDS.has(String(obj.enabled).trim().toLowerCase());
   }
+  if (obj.debug !== undefined) {
+    layer.debug = typeof obj.debug === "boolean" ? obj.debug : !OFF_WORDS.has(String(obj.debug).trim().toLowerCase());
+  }
   if (obj.timeoutMs !== undefined) {
     const n = Number.parseInt(String(obj.timeoutMs), 10);
     layer.timeoutMs = Number.isFinite(n) ? n : undefined;
@@ -93,7 +96,7 @@ function normalizeLayer(obj) {
  */
 export function loadConfig(env = process.env, opts = {}) {
   const readFile = opts.readFile ?? safeReadFile;
-  let merged = { dashboardUrl: DEFAULTS.dashboardUrl, agent: DEFAULTS.agent, timeoutMs: DEFAULTS.timeoutMs, enabled: DEFAULTS.enabled };
+  let merged = { dashboardUrl: DEFAULTS.dashboardUrl, agent: DEFAULTS.agent, timeoutMs: DEFAULTS.timeoutMs, enabled: DEFAULTS.enabled, debug: false };
 
   const candidates = opts.configPath ? [opts.configPath] : configFileCandidates(env);
   for (const file of candidates) {
@@ -112,16 +115,20 @@ export function loadConfig(env = process.env, opts = {}) {
     agent: env.SOU_AGENT_NAME,
     timeoutMs: env.SOU_TIMEOUT_MS,
     enabled: env.SOU_REPORTER_ENABLED === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_REPORTER_ENABLED).trim().toLowerCase()),
+    debug: env.SOU_DEBUG === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_DEBUG).trim().toLowerCase()),
   });
   Object.assign(merged, envLayer);
 
   const timeoutMs = parseTimeoutMs(merged.timeoutMs, DEFAULTS.timeoutMs);
   const dashboardUrl = String(merged.dashboardUrl || DEFAULTS.dashboardUrl).trim().replace(/\/+$/, "");
+  const stateHome = env.XDG_STATE_HOME || path.join(homedir(), ".local", "state");
   return {
     dashboardUrl,
     eventsUrl: `${dashboardUrl}/events`,
     agent: merged.agent || DEFAULTS.agent,
     enabled: merged.enabled !== false,
+    debug: merged.debug === true,
+    debugLogFile: env.SOU_REPORTER_LOG || path.join(stateHome, "sou-reporter", "reporter.log"),
     timeoutMs,
     maxFieldChars: DEFAULTS.maxFieldChars,
     maxPayloadBytes: DEFAULTS.maxPayloadBytes,
@@ -333,8 +340,22 @@ function pickPath(input) {
 function extractText(result) {
   if (result == null) return undefined;
   if (typeof result === "string") return result;
-  const candidate = result.output ?? result.text ?? result.content ?? undefined;
-  if (typeof candidate === "string") return candidate;
+  // OpenCode tool results arrive as { output, content: [{ type:"text", text }], metadata }.
+  const out = result.output;
+  if (typeof out === "string") return out;
+  if (out && typeof out === "object" && typeof out.output === "string") return out.output;
+  if (typeof result.text === "string") return result.text;
+  if (Array.isArray(result.content)) {
+    const texts = result.content.filter((c) => c && typeof c.text === "string").map((c) => c.text);
+    if (texts.length) return texts.join("\n");
+  }
+  if (out && typeof out === "object") {
+    try {
+      return JSON.stringify(out).slice(0, 2000);
+    } catch {
+      return undefined;
+    }
+  }
   try {
     return JSON.stringify(result).slice(0, 2000);
   } catch {
@@ -374,7 +395,39 @@ export function createPlugin(inject = {}) {
 
 async function setupInner(ctx, inject) {
   const config = inject.config ?? loadConfig();
-  const reporter = inject.reporter ?? createReporter(config, { fetch: inject.fetch, logger: inject.logger });
+  const loggerSink =
+    inject.logger ??
+    ((msg, level = "warn") => {
+      const line = `[sou-reporter] ${msg}`;
+      try {
+        console.error(line);
+      } catch {
+        /* ignore */
+      }
+      // Mirror into OpenCode's structured log when the host exposes app.log.
+      try {
+        ctx?.app?.log?.({ level, message: line, service: PLUGIN_ID });
+      } catch {
+        /* shape varies */
+      }
+      try {
+        ctx?.app?.log?.({ body: { level, message: line, service: PLUGIN_ID } });
+      } catch {
+        /* best effort */
+      }
+      // SOU_DEBUG=1: append to a file too — plugin console output is often
+      // swallowed by the embedding server, and troubleshooting needs evidence.
+      if (config.debug) {
+        try {
+          const file = config.debugLogFile;
+          mkdirSync(path.dirname(file), { recursive: true });
+          appendFileSync(file, `${new Date().toISOString()} ${level.toUpperCase()} ${line}\n`, "utf8");
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+  const reporter = inject.reporter ?? createReporter(config, { fetch: inject.fetch, logger: loggerSink });
   const startedAt = Date.now();
   const editSessions = new Map(); // sessionID -> Set(files)
   const startTimes = new Map(); // hook key -> t0
@@ -383,6 +436,25 @@ async function setupInner(ctx, inject) {
   const loggedSoFar = () => {
     const s = reporter.stats();
     return s.sent + s.failed + s.dropped;
+  };
+
+  // Emit a code_completion for every edit still unreported (agent stopped
+  // working on those files); used by session.idle, session.deleted and exit.
+  const flushCompletions = () => {
+    for (const [sessionID, files] of editSessions) {
+      if (!files.size) continue;
+      void reporter.report("code_completion", compact({ session_id: sessionID, files_touched: [...files].slice(0, 50), edits: files.size }));
+      files.clear();
+    }
+  };
+
+  let processEndReported = false;
+  const reportProcessEnd = (reason) => {
+    if (processEndReported) return;
+    processEndReported = true;
+    flushCompletions();
+    void reporter.report("session_end", compact({ reason, duration_seconds: elapsedSeconds(), events_logged: loggedSoFar() }));
+    void reporter.flush(Math.min(config.timeoutMs, 2000));
   };
 
   // never let a hook throw into OpenCode's tool pipeline
@@ -494,13 +566,10 @@ async function setupInner(ctx, inject) {
   for (const name of ["SIGINT", "SIGTERM"]) {
     const fn = () => {
       try {
-        void reporter.report("session_end", compact({
-          reason: name.toLowerCase(),
-          duration_seconds: elapsedSeconds(),
-          events_logged: loggedSoFar(),
-        }));
-        void reporter.flush(Math.min(config.timeoutMs, 2000));
-      } catch { /* exiting */ }
+        reportProcessEnd(name.toLowerCase());
+      } catch {
+        /* exiting */
+      }
     };
     try {
       process.on(name, fn);
@@ -515,11 +584,7 @@ async function setupInner(ctx, inject) {
     }
     try { await beforeReg?.dispose?.(); } catch { /* ignore */ }
     try { await afterReg?.dispose?.(); } catch { /* ignore */ }
-    void reporter.report("session_end", compact({
-      reason: "plugin_unload",
-      duration_seconds: elapsedSeconds(),
-      events_logged: loggedSoFar(),
-    }));
+    reportProcessEnd("plugin_unload");
     await reporter.flush(Math.min(config.timeoutMs, 2000));
   };
 }

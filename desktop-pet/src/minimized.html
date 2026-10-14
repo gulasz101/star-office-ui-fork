@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -84,11 +84,11 @@
 </head>
 <body>
   <div id="wrap">
-    <div id="status-pill">加载中...</div>
-    <div id="pet-box" title="点击恢复主窗口">
+    <div id="status-pill">Loading...</div>
+    <div id="pet-box" title="Click to restore the main window">
       <canvas id="pet-canvas" width="140" height="140" aria-label="Star"></canvas>
     </div>
-    <div id="hint">点击形象恢复主窗口</div>
+    <div id="hint">Click the pet to restore the main window</div>
   </div>
   <script>
     (async function () {
@@ -106,9 +106,7 @@
       const STATIC_URL = `${BASE_URL}/static/`;
       let uiLang = 'en';
       const I18N = {
-        zh: { stateIdle: '待命', stateWriting: '整理文档', stateResearching: '搜索信息', stateExecuting: '执行任务', stateSyncing: '同步备份', stateError: '出错了', fallbackIdleDetail: '待命', connecting: '连接中...' },
-        en: { stateIdle: 'Standby', stateWriting: 'Organizing Docs', stateResearching: 'Researching', stateExecuting: 'Executing Tasks', stateSyncing: 'Syncing Backup', stateError: 'Error', fallbackIdleDetail: 'Standby', connecting: 'Connecting...' },
-        ja: { stateIdle: '待機', stateWriting: '文書整理', stateResearching: '情報検索', stateExecuting: 'タスク実行', stateSyncing: '同期バックアップ', stateError: 'エラー発生', fallbackIdleDetail: '待機', connecting: '接続中...' }
+        en: { stateIdle: 'Standby', stateWriting: 'Organizing Docs', stateResearching: 'Researching', stateExecuting: 'Executing Tasks', stateSyncing: 'Syncing Backup', stateError: 'Error', fallbackIdleDetail: 'Standby', connecting: 'Connecting...' }
       };
       const t = (key) => ((I18N[uiLang] && I18N[uiLang][key]) || key);
 

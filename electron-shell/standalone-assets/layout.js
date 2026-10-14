@@ -1,19 +1,19 @@
-// Star Office UI - 布局与层级配置
-// 所有坐标、depth、资源路径统一管理在这里
-// 避免 magic numbers，降低改错风险
+// Star Office UI - layout and layering config
+// All coordinates, depths and asset paths are managed here
+// Avoid magic numbers and reduce the risk of mistakes
 
-// 核心规则：
-// - 透明资源（如办公桌）强制 .png，不透明优先 .webp
-// - 层级：低 → sofa(10) → starWorking(900) → desk(1000) → flower(1100)
+// Core rules:
+// - Transparent assets (e.g. the desk) are forced to .png; opaque ones prefer .webp
+// - Layering: low -> sofa(10) -> starWorking(900) -> desk(1000) -> flower(1100)
 
 const LAYOUT = {
-  // === 游戏画布 ===
+  // === game canvas ===
   game: {
     width: 1280,
     height: 720
   },
 
-  // === 各区域坐标 ===
+  // === area coordinates ===
   areas: {
     door:        { x: 640, y: 550 },
     writing:     { x: 320, y: 360 },
@@ -22,9 +22,9 @@ const LAYOUT = {
     breakroom:   { x: 640, y: 360 }
   },
 
-  // === 装饰与家具：坐标 + 原点 + depth ===
+  // === decorations & furniture: position + origin + depth ===
   furniture: {
-    // 沙发
+    // sofa
     sofa: {
       x: 670,
       y: 144,
@@ -32,7 +32,7 @@ const LAYOUT = {
       depth: 10
     },
 
-    // 新办公桌（透明 PNG 强制）
+    // new desk (forced transparent PNG)
     desk: {
       x: 218,
       y: 417,
@@ -40,7 +40,7 @@ const LAYOUT = {
       depth: 1000
     },
 
-    // 桌上花盆
+    // flower pot on the desk
     flower: {
       x: 310,
       y: 390,
@@ -49,7 +49,7 @@ const LAYOUT = {
       scale: 0.8
     },
 
-    // Star 在桌前工作（在 desk 下面）
+    // Star working at the desk (below desk)
     starWorking: {
       x: 217,
       y: 333,
@@ -58,21 +58,21 @@ const LAYOUT = {
       scale: 1.32
     },
 
-    // 植物们
+    // plants
     plants: [
       { x: 565, y: 178, depth: 5 },
       { x: 230, y: 185, depth: 5 },
       { x: 977, y: 496, depth: 5 }
     ],
 
-    // 海报
+    // poster
     poster: {
       x: 252,
       y: 66,
       depth: 4
     },
 
-    // 咖啡机
+    // coffee machine
     coffeeMachine: {
       x: 659,
       y: 397,
@@ -80,7 +80,7 @@ const LAYOUT = {
       depth: 99
     },
 
-    // 服务器区
+    // server area
     serverroom: {
       x: 1021,
       y: 142,
@@ -88,7 +88,7 @@ const LAYOUT = {
       depth: 2
     },
 
-    // 错误 bug
+    // error bug
     errorBug: {
       x: 1007,
       y: 221,
@@ -98,7 +98,7 @@ const LAYOUT = {
       pingPong: { leftX: 1007, rightX: 1111, speed: 0.6 }
     },
 
-    // 同步动画
+    // sync animation
     syncAnim: {
       x: 1157,
       y: 592,
@@ -106,7 +106,7 @@ const LAYOUT = {
       depth: 40
     },
 
-    // 小猫
+    // cat
     cat: {
       x: 94,
       y: 557,
@@ -115,7 +115,7 @@ const LAYOUT = {
     }
   },
 
-  // === 牌匾 ===
+  // === plaque ===
   plaque: {
     x: 640,
     y: 720 - 36,
@@ -123,11 +123,11 @@ const LAYOUT = {
     height: 44
   },
 
-  // === 资源加载规则：哪些强制用 PNG（透明资源） ===
+  // === asset loading rules: which ones are forced to PNG (transparent assets) ===
   forcePng: {
-    desk_v2: true // 新办公桌必须透明，强制 PNG
+    desk_v2: true // the new desk must be transparent, forced PNG
   },
 
-  // === 总资源数量（用于加载进度条） ===
+  // === total asset count (for the loading progress bar) ===
   totalAssets: 15
 };

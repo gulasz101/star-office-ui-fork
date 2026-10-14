@@ -339,7 +339,7 @@ function createTray(projectRoot) {
 
   const menu = Menu.buildFromTemplate([
     {
-      label: "显示主窗口",
+      label: "Show Main Window",
       click: () => {
         if (miniWindow && !miniWindow.isDestroyed()) miniWindow.hide();
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -349,7 +349,7 @@ function createTray(projectRoot) {
       },
     },
     {
-      label: "显示 Mini 窗口",
+      label: "Show Mini Window",
       click: () => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
         if (miniWindow && !miniWindow.isDestroyed()) {
@@ -360,7 +360,7 @@ function createTray(projectRoot) {
     },
     { type: "separator" },
     {
-      label: "退出",
+      label: "Quit",
       click: () => app.quit(),
     },
   ]);

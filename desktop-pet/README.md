@@ -1,10 +1,10 @@
 # Star Office Tauri Desktop Shell
 
-这个目录用于把 `Star-Office-UI` 包成桌面应用（透明窗口），并在启动时自动拉起后端进程。
+This directory wraps `Star-Office-UI` into a desktop app (transparent window) and automatically starts the backend process on launch.
 
-## 开发运行
+## Dev run
 
-先在仓库根目录准备 Python 环境：
+First prepare the Python environment at the repo root:
 
 ```bash
 cd /Users/wangzhaohan/Documents/GitHub/Star-Office-UI
@@ -12,7 +12,7 @@ uv venv .venv
 uv pip install -r backend/requirements.txt --python .venv/bin/python
 ```
 
-再启动 Tauri：
+Then start Tauri:
 
 ```bash
 cd /Users/wangzhaohan/Documents/GitHub/Star-Office-UI/desktop-pet
@@ -20,18 +20,18 @@ npm install
 npm run dev
 ```
 
-## 自动拉起后端逻辑
+## Backend auto-start logic
 
-- 优先使用：`../.venv/bin/python backend/app.py`
-- 回退到：`python3 backend/app.py`
-- 再回退到：`python backend/app.py`
+- Preferred: `../.venv/bin/python backend/app.py`
+- First fallback: `python3 backend/app.py`
+- Second fallback: `python backend/app.py`
 
-窗口默认会跳转到：
+The window navigates to this URL by default:
 
 - `http://127.0.0.1:19000/?desktop=1`
 
-## 可选环境变量
+## Optional environment variables
 
-- `STAR_PROJECT_ROOT`：项目根目录（默认会自动探测）
-- `STAR_BACKEND_PYTHON`：自定义 Python 可执行路径
-- `STAR_BACKEND_URL`：自定义桌面窗口打开的 URL
+- `STAR_PROJECT_ROOT`: project root directory (auto-detected by default)
+- `STAR_BACKEND_PYTHON`: custom Python executable path
+- `STAR_BACKEND_URL`: custom URL the desktop window opens

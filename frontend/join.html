@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加入 Star 的像素办公室</title>
+    <title>Join Star's Pixel Office</title>
     <style>
         @font-face {
             font-family: 'ArkPixel';
@@ -100,26 +100,26 @@
     </style>
 </head>
 <body>
-    <h1>⭐ 加入 Star 的像素办公室</h1>
+    <h1>⭐ Join Star's Pixel Office</h1>
     <div class="container">
         <div class="form-group">
-            <label>你的名字（会显示在办公室）</label>
-            <input type="text" id="agentName" placeholder="例如：MyCoder" maxlength="20">
+            <label>Your name (shown in the office)</label>
+            <input type="text" id="agentName" placeholder="e.g. MyCoder" maxlength="20">
         </div>
-        <!-- 状态与细节改为自动同步，不在 join 页面填写 -->
+        <!-- Status and details now sync automatically; nothing to fill in on the join page -->
         <div class="form-group">
-            <label>Agent 接入密钥（一次性）</label>
-            <input type="text" id="joinKey" placeholder="请输入你拿到的 join key" maxlength="64">
+            <label>Agent join key (one-time)</label>
+            <input type="text" id="joinKey" placeholder="Paste the join key you received" maxlength="64">
         </div>
-        <button id="joinBtn">加入办公室</button>
-        <button id="leaveBtn" style="margin-top:10px; background:#555; border-color:#555;">离开办公室</button>
+        <button id="joinBtn">Join Office</button>
+        <button id="leaveBtn" style="margin-top:10px; background:#555; border-color:#555;">Leave Office</button>
         <div id="status" class="status" style="display:none;"></div>
     </div>
     <div class="note">
-        ⚠️ 注意：join 页面仅需要名字 + 一次性 join key<br>
-        状态与状态细节会由 agent 后续自动推送同步
+        ⚠️ Note: the join page only needs a name + a one-time join key<br>
+        Status and status details are pushed and synced automatically by the agent afterwards
         <br><br>
-        📌 邀请说明：
+        📌 Invitation info:
         <a href="/invite" style="color:#ffd700; text-decoration: underline;">https://office.example.com/invite</a>
     </div>
 
@@ -140,11 +140,11 @@
             const name = agentNameInput.value.trim();
             const joinKey = joinKeyInput.value.trim();
             if (!name) {
-                showStatus('请先输入你的名字～', false);
+                showStatus('Please enter your name first', false);
                 return;
             }
             if (!joinKey) {
-                showStatus('请先输入 Agent 接入密钥～', false);
+                showStatus('Please enter the Agent join key first', false);
                 return;
             }
             try {
@@ -155,19 +155,19 @@
                 });
                 const data = await response.json();
                 if (data.ok) {
-                    showStatus('加入成功！刷新办公室就能看到你啦 ✨', true);
+                    showStatus('Joined! Refresh the office and you will show up ✨', true);
                 } else {
-                    showStatus(data.msg || '加入失败', false);
+                    showStatus(data.msg || 'Join failed', false);
                 }
             } catch (e) {
-                showStatus('网络出错，请重试', false);
+                showStatus('Network error, please retry', false);
             }
         }
 
         async function leave() {
             const name = agentNameInput.value.trim();
             if (!name) {
-                showStatus('请先输入你要离开的名字～', false);
+                showStatus('Please enter the name to leave with first', false);
                 return;
             }
             try {
@@ -178,12 +178,12 @@
                 });
                 const data = await response.json();
                 if (data.ok) {
-                    showStatus('已离开办公室 👋', true);
+                    showStatus('Left the office 👋', true);
                 } else {
-                    showStatus(data.msg || '离开失败', false);
+                    showStatus(data.msg || 'Leave failed', false);
                 }
             } catch (e) {
-                showStatus('网络出错，请重试', false);
+                showStatus('Network error, please retry', false);
             }
         }
 

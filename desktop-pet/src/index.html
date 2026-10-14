@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <style>
@@ -85,9 +85,9 @@
 <body>
     <div id="bubble-layer"></div>
     <div id="context-menu">
-        <div class="menu-item" data-action="info">🏷️ Star 桌宠</div>
+        <div class="menu-item" data-action="info">🏷️ Star Desktop Pet</div>
         <div class="menu-sep"></div>
-        <div class="menu-item" data-action="quit">❌ 退出</div>
+        <div class="menu-item" data-action="quit">❌ Quit</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
@@ -164,14 +164,14 @@
         sync:'syncing', research:'researching'
     };
     const BUBBLE = {
-        idle:        ['摸鱼中…','有没有新任务？','咖啡真好喝☕','伸个懒腰~'],
-        writing:     ['这个要记下来','写得手酸','再检查一遍✍️'],
-        receiving:   ['有人找我！','看看是什么','来消息了📨'],
-        replying:    ['让我想想…','打字中…','这样回好了💬'],
-        researching: ['让我搜一下🔍','找到线索了','再深挖一点'],
-        executing:   ['冲鸭！🦆','加油加油','马上搞定⚡'],
-        syncing:     ['备份备份☁️','安全第一','同步中…'],
-        error:       ['啊哦…','出问题了❗','马上修好🔧']
+        idle:        ['Slacking off…','Any new tasks?','Coffee is the best ☕','Time for a stretch~'],
+        writing:     ['Gotta note this down','My hand is cramping','Let me double-check ✍️'],
+        receiving:   ['Someone needs me!','Let me see what it is','A new message📨'],
+        replying:    ['Let me think…','Typing…','I will reply like this💬'],
+        researching: ['Let me search🔍','Found a lead','Dig a bit deeper'],
+        executing:   ['Go go!🦆','Keep pushing','Almost done⚡'],
+        syncing:     ['Backup, backup☁️','Safety first','Syncing…'],
+        error:       ['Uh oh…','Something broke❗','Fixing it right away🔧']
     };
     const EMOJI = {
         idle:'💤', writing:'✏️', receiving:'📨', replying:'💬',

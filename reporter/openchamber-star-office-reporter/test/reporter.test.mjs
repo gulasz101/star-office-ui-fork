@@ -23,7 +23,18 @@ import {
 } from "../openchamber-star-office-reporter.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(HERE, "..", "..", "..");
+// Locate a Star-Office-UI checkout for the Python validator: explicit env,
+// then nearest ancestor containing backend/event_schema.py (works inside the
+// fork monorepo and from any checkout of this repo placed beside one).
+const REPO_ROOT = (() => {
+  if (process.env.SOU_REPO_ROOT) return process.env.SOU_REPO_ROOT;
+  let dir = HERE;
+  for (let i = 0; i < 6; i++) {
+    if (existsSync(path.join(dir, "backend", "event_schema.py"))) return dir;
+    dir = path.dirname(dir);
+  }
+  return path.resolve(HERE, "..", "..", "..");
+})();
 const BACKEND = path.join(REPO_ROOT, "backend", "event_schema.py");
 
 // ---------------------------------------------------------------------------

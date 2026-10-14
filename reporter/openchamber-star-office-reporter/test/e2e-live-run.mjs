@@ -256,3 +256,61 @@ describe(
     })
   }
 )
+
+// AC6 second half: the REAL dashboard. Enable with E2E_LIVE=1 (writes to the
+// live event feed, which is the point of the acceptance criterion).
+async function fetchLiveFeed(baseUrl, sinceIso) {
+  const url = `${baseUrl}/events/recent?agent=openchamber&since=${encodeURIComponent(sinceIso)}&limit=200`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`feed read HTTP ${res.status}`)
+  return res.json()
+}
+
+describe(
+  'e2e: live Star-Office-UI dashboard',
+  { skip: SKIP || process.env.E2E_LIVE !== '1' },
+  () => {
+    const LIVE_URL = (process.env.SOU_LIVE_URL || 'http://192.168.1.119:19000').replace(/\/+$/, '')
+
+    test('a real run shows up in GET /events/recent?agent=openchamber', async () => {
+      const since = new Date(Date.now() - 2000).toISOString()
+      const marker = `sou71-live-probe-${Date.now()}`
+      const s3 = makeScratch('provision')
+      const run3 = await runOpencode(
+        s3,
+        `Do exactly these two things with tools, one at a time, then reply OK:
+1. Use the write tool to create live-probe.txt containing: ${marker}
+2. Use the bash tool to run: echo ${marker}`,
+        {
+          SOU_DASHBOARD_URL: LIVE_URL,
+          SOU_AGENT_NAME: 'openchamber',
+          SOU_DEBUG: '1',
+        }
+      )
+      if (run3.code !== 0) throw new Error(`live run exited ${run3.code}: ${run3.err.slice(-300)}`)
+
+      const wanted = ['session_start', 'tool_call', 'file_edit', 'command_run', 'code_completion', 'session_end']
+      const deadline = Date.now() + 30000
+      let feed = []
+      for (;;) {
+        feed = await fetchLiveFeed(LIVE_URL, since)
+        const kinds = new Set(feed.map((e) => e.event_type))
+        if (wanted.every((k) => kinds.has(k)) && feed.some((e) => JSON.stringify(e.payload ?? {}).includes(marker))) break
+        if (Date.now() > deadline) break
+        await sleep(1000)
+      }
+      if (!feed.length) throw new Error('live feed empty after 30s — nothing reached the real dashboard')
+      const kinds = new Set(feed.map((e) => e.event_type))
+      for (const kind of wanted) {
+        if (!kinds.has(kind)) throw new Error(`live feed missing ${kind}; got ${JSON.stringify([...kinds])}`)
+      }
+      const probe = feed.filter((e) => JSON.stringify(e.payload ?? {}).includes(marker))
+      if (!probe.length) throw new Error(`marker ${marker} not found in live feed (ids ${feed.map((e) => e.id).join(',')})`)
+      if (!probe.some((e) => e.event_type === 'command_run')) throw new Error('marker not attached to a command_run event')
+      for (const e of feed) {
+        if (e.agent !== 'openchamber') throw new Error(`foreign agent in feed: ${e.agent}`)
+      }
+      console.log(`LIVE FEED PROOF since ${since}: ${feed.length} events, kinds=${JSON.stringify([...kinds])}, marker ids=${probe.map((e) => e.id).join(',')}`)
+    })
+  }
+)

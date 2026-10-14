@@ -310,3 +310,227 @@ export function createReporter(config, deps = {}) {
 
   return { report, flush, stats: () => ({ ...stats }), enabled };
 }
+
+// --- OpenCode adapter --------------------------------------------------------
+
+function compact(obj) {
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null) out[key] = value;
+  }
+  return out;
+}
+
+function eventKey(ev) {
+  return ev.callID ?? ev.callId ?? `${ev.sessionID ?? ev.session_id ?? ""}:${ev.tool ?? ""}`;
+}
+
+function pickPath(input) {
+  if (!input || typeof input !== "object") return undefined;
+  return input.filePath ?? input.file_path ?? input.path ?? input.file ?? undefined;
+}
+
+function extractText(result) {
+  if (result == null) return undefined;
+  if (typeof result === "string") return result;
+  const candidate = result.output ?? result.text ?? result.content ?? undefined;
+  if (typeof candidate === "string") return candidate;
+  try {
+    return JSON.stringify(result).slice(0, 2000);
+  } catch {
+    return undefined;
+  }
+}
+
+function extractExitCode(result, status) {
+  if (result && typeof result === "object") {
+    const v = result.exit_code ?? result.exitCode ?? result.exit ?? result.metadata?.exit_code ?? result.metadata?.exitCode;
+    if (typeof v === "number") return v;
+  }
+  return status === "completed" ? 0 : 1;
+}
+
+/**
+ * Build the plugin object. `inject` overrides the config / transport and
+ * exists so the adapter is unit-testable without OpenCode or a network.
+ * The default export is the plain plugin OpenCode's loader reads
+ * (id + async setup(ctx)); do not import OpenCode packages here — the
+ * installed 2.0.22 runtime resolves plugin files without them.
+ */
+export function createPlugin(inject = {}) {
+  return {
+    id: PLUGIN_ID,
+    async setup(ctx = {}) {
+      let cleanup = async () => {};
+      try {
+        cleanup = await setupInner(ctx, inject);
+      } catch (err) {
+        try { console.error(`[sou-reporter] setup failed: ${err && err.message}`); } catch { /* ignore */ }
+      }
+      return cleanup;
+    },
+  };
+}
+
+async function setupInner(ctx, inject) {
+  const config = inject.config ?? loadConfig();
+  const reporter = inject.reporter ?? createReporter(config, { fetch: inject.fetch, logger: inject.logger });
+  const startedAt = Date.now();
+  const editSessions = new Map(); // sessionID -> Set(files)
+  const startTimes = new Map(); // hook key -> t0
+
+  const elapsedSeconds = () => Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  const loggedSoFar = () => {
+    const s = reporter.stats();
+    return s.sent + s.failed + s.dropped;
+  };
+
+  // never let a hook throw into OpenCode's tool pipeline
+  const safe = (fn) => (ev) => {
+    try {
+      const r = fn(ev ?? {});
+      if (r && typeof r.catch === "function") r.catch(() => {});
+    } catch { /* reporting must not break the host */ }
+  };
+
+  void reporter.report("session_start", compact({
+    directory: ctx.location?.directory ?? safeCwd(),
+    engine: "opencode",
+    engine_version: ctx.app?.version,
+    plugin: PLUGIN_ID,
+    pid: process.pid,
+  }));
+
+  const beforeReg = await ctx.tool?.hook?.("execute.before", safe((ev) => {
+    if (startTimes.size > 500) startTimes.delete(startTimes.keys().next().value);
+    startTimes.set(eventKey(ev), { t0: Date.now(), input: ev.input });
+  }));
+
+  const afterReg = await ctx.tool?.hook?.("execute.after", safe(async (ev) => {
+    const key = eventKey(ev);
+    const start = startTimes.get(key);
+    startTimes.delete(key);
+    const durationMs = start?.t0 ? Date.now() - start.t0 : undefined;
+    const input = ev.input ?? start?.input;
+    const tool = typeof ev.tool === "string" ? ev.tool : String(ev.tool ?? "unknown");
+    const status = ev.status === "completed" ? "completed" : ev.status === "error" ? "error" : "unknown";
+    const sessionID = ev.sessionID ?? ev.session_id;
+    const cls = classifyTool(tool);
+
+    void reporter.report("tool_call", compact({
+      tool,
+      status,
+      session_id: sessionID,
+      duration_ms: durationMs,
+      error: status === "error" ? (ev.error?.message ?? String(ev.error ?? "tool failed")) : undefined,
+    }));
+
+    if (cls.fileEdit) {
+      const file = pickPath(input);
+      if (sessionID && file) {
+        if (!editSessions.has(sessionID)) editSessions.set(sessionID, new Set());
+        editSessions.get(sessionID).add(String(file));
+      }
+      void reporter.report("file_edit", compact({
+        tool,
+        file,
+        session_id: sessionID,
+        status,
+        duration_ms: durationMs,
+      }));
+    }
+
+    if (cls.command) {
+      void reporter.report("command_run", compact({
+        command: input?.command ?? input?.cmd ?? undefined,
+        cwd: input?.cwd,
+        session_id: sessionID,
+        status,
+        exit_code: extractExitCode(ev.result, status),
+        duration_ms: durationMs,
+        output: extractText(ev.result),
+      }));
+    }
+  }));
+
+  const controller = new AbortController();
+  void (async () => {
+    try {
+      if (!ctx.event?.subscribe) return;
+      for await (const ev of ctx.event.subscribe({ signal: controller.signal })) {
+        try {
+          handleBusEvent(ev);
+        } catch { /* ignore one bad event */ }
+      }
+    } catch { /* subscription ended */ }
+  })();
+
+  function handleBusEvent(ev) {
+    const type = typeof ev?.type === "string" ? ev.type : "";
+    const props = ev?.properties ?? ev?.payload ?? ev?.data ?? {};
+    const sessionID = props.sessionID ?? props.session_id;
+    if (type === "session.idle") {
+      const files = sessionID ? editSessions.get(sessionID) : undefined;
+      if (files && files.size) {
+        void reporter.report("code_completion", compact({
+          session_id: sessionID,
+          files_touched: [...files].slice(0, 50),
+          edits: files.size,
+        }));
+        editSessions.set(sessionID, new Set());
+      }
+    } else if (type === "session.deleted") {
+      void reporter.report("session_end", compact({
+        session_id: sessionID,
+        reason: "session_deleted",
+        duration_seconds: elapsedSeconds(),
+        events_logged: loggedSoFar(),
+      }));
+      if (sessionID) editSessions.delete(sessionID);
+    }
+  }
+
+  const signalFns = [];
+  for (const name of ["SIGINT", "SIGTERM"]) {
+    const fn = () => {
+      try {
+        void reporter.report("session_end", compact({
+          reason: name.toLowerCase(),
+          duration_seconds: elapsedSeconds(),
+          events_logged: loggedSoFar(),
+        }));
+        void reporter.flush(Math.min(config.timeoutMs, 2000));
+      } catch { /* exiting */ }
+    };
+    try {
+      process.on(name, fn);
+      signalFns.push([name, fn]);
+    } catch { /* no process signal access */ }
+  }
+
+  return async function cleanup() {
+    try { controller.abort(); } catch { /* ignore */ }
+    for (const [name, fn] of signalFns) {
+      try { process.off(name, fn); } catch { /* ignore */ }
+    }
+    try { await beforeReg?.dispose?.(); } catch { /* ignore */ }
+    try { await afterReg?.dispose?.(); } catch { /* ignore */ }
+    void reporter.report("session_end", compact({
+      reason: "plugin_unload",
+      duration_seconds: elapsedSeconds(),
+      events_logged: loggedSoFar(),
+    }));
+    await reporter.flush(Math.min(config.timeoutMs, 2000));
+  };
+}
+
+function safeCwd() {
+  try {
+    return process.cwd();
+  } catch {
+    return undefined;
+  }
+}
+
+const plugin = createPlugin();
+export default plugin;

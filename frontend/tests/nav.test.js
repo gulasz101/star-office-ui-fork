@@ -216,6 +216,122 @@ test('path: NO SEGMENT between waypoints crosses a footprint', () => {
   assert.deepStrictEqual(hits, [], `routes cross furniture:\n${hits.join('\n')}`);
 });
 
+// ---------------------------------------------------------------------------
+// multi-room
+// ---------------------------------------------------------------------------
+
+const built = nav.buildBuilding(nav.BUILDING);
+
+test('building: both rooms build a usable grid', () => {
+  assert.ok(Object.keys(built.rooms).length >= 2, 'expected at least two rooms');
+  for (const [id, r] of Object.entries(built.rooms)) {
+    const walk = r.grid.walkable.reduce((a, b) => a + b, 0);
+    assert.ok(walk > 100, `room '${id}' has almost no walkable floor (${walk} cells)`);
+  }
+});
+
+test('building: every doorway resolves onto walkable floor in BOTH rooms', () => {
+  for (const l of nav.BUILDING.links) {
+    const a = nav.doorPoint(built, l.a.room, l.a.door);
+    const b = nav.doorPoint(built, l.b.room, l.b.door);
+    assert.ok(a, `door '${l.a.door}' in room '${l.a.room}' is not walkable`);
+    assert.ok(b, `door '${l.b.door}' in room '${l.b.room}' is not walkable`);
+  }
+});
+
+test('building: second room anchors are walkable and connected', () => {
+  for (const [name, a] of Object.entries(nav.SERVER_ROOM.anchors)) {
+    const p = nav.nearestWalkable(built.rooms.serverroom.grid, a.x, a.y);
+    assert.ok(p, `server room anchor '${name}' unresolved`);
+    for (const [n2, b] of Object.entries(nav.SERVER_ROOM.anchors)) {
+      if (n2 === name) continue;
+      const path = nav.findPath(built.rooms.serverroom.grid, a.x, a.y, b.x, b.y);
+      assert.ok(path, `server room anchor '${name}' cannot reach '${n2}'`);
+    }
+  }
+});
+
+test('linkChain: finds the hop between two rooms and is symmetric', () => {
+  const ab = nav.linkChain(built, 'lodge', 'serverroom');
+  const ba = nav.linkChain(built, 'serverroom', 'lodge');
+  assert.strictEqual(ab.length, 1);
+  assert.strictEqual(ba.length, 1);
+  assert.strictEqual(ab[0].to, 'serverroom');
+  assert.strictEqual(ba[0].to, 'lodge');
+});
+
+test('linkChain: same room is zero hops, unknown room is null', () => {
+  assert.deepStrictEqual(nav.linkChain(built, 'lodge', 'lodge'), []);
+  assert.strictEqual(nav.linkChain(built, 'lodge', 'nowhere'), null);
+});
+
+test('CROSS-ROOM route walks out of one room, through the door, into the other', () => {
+  // The whole point of the multi-room layer: an agent ordered from the lodge to
+  // the server room must WALK there, not appear there.
+  const from = nav.stationAnchor(nav.DEFAULT_LAYOUT, 'station-1');
+  const to = nav.SERVER_ROOM.anchors.rack;
+
+  const legs = nav.findRoute(built, 'lodge', from, 'serverroom', to);
+  assert.ok(legs, 'cross-room route should exist');
+
+  const roomLegs = legs.filter((l) => l.path);
+  const doorLegs = legs.filter((l) => l.door);
+  assert.strictEqual(roomLegs.length, 2, 'expected one walking leg per room');
+  assert.strictEqual(doorLegs.length, 1, 'expected exactly one doorway crossing');
+  assert.strictEqual(roomLegs[0].room, 'lodge');
+  assert.strictEqual(roomLegs[1].room, 'serverroom');
+
+  // the first leg must END at the lodge side of the door, and the second must
+  // START at the server-room side - otherwise the crossing is a teleport
+  const doorA = legs.find((l) => l.door).door.from;
+  const doorB = legs.find((l) => l.door).door.to;
+  const legOneEnd = roomLegs[0].path[roomLegs[0].path.length - 1];
+  const legTwoStart = roomLegs[1].path[0];
+  assert.strictEqual(legOneEnd.x, doorA.x);
+  assert.strictEqual(legOneEnd.y, doorA.y);
+  assert.strictEqual(legTwoStart.x, doorB.x);
+  assert.strictEqual(legTwoStart.y, doorB.y);
+});
+
+test('CROSS-ROOM route: no leg enters a footprint in its own room', () => {
+  const legs = nav.findRoute(built, 'lodge', nav.DEFAULT_LAYOUT.anchors.door,
+                                    'serverroom', nav.SERVER_ROOM.anchors.workbench);
+  assert.ok(legs);
+  for (const leg of legs) {
+    if (!leg.path) continue;
+    const fps = built.rooms[leg.room].layout.footprints;
+    for (let i = 1; i < leg.path.length; i++) {
+      const p = leg.path[i - 1], q = leg.path[i];
+      const len = Math.hypot(q.x - p.x, q.y - p.y);
+      const n = Math.max(2, Math.ceil(len / 2));
+      for (let k = 0; k <= n; k++) {
+        const t = k / n;
+        const x = p.x + (q.x - p.x) * t, y = p.y + (q.y - p.y) * t;
+        for (const f of fps) {
+          const inside = x >= f.x1 && x <= f.x2 && y >= f.y1 && y <= f.y2;
+          assert.ok(!inside, `leg in '${leg.room}' enters '${f.id}' at (${x.toFixed(0)},${y.toFixed(0)})`);
+        }
+      }
+    }
+  }
+});
+
+test('route: same-room request returns a single leg, no doorway', () => {
+  const a = nav.DEFAULT_LAYOUT.anchors.desk, b = nav.DEFAULT_LAYOUT.anchors.rug;
+  const legs = nav.findRoute(built, 'lodge', a, 'lodge', b);
+  assert.strictEqual(legs.length, 1);
+  assert.strictEqual(legs[0].room, 'lodge');
+  assert.ok(legs[0].path.length >= 2);
+});
+
+test('route: all six lodge anchors reach the server room', () => {
+  const to = nav.SERVER_ROOM.anchors.rack;
+  for (const [name, a] of Object.entries(nav.DEFAULT_LAYOUT.anchors)) {
+    const legs = nav.findRoute(built, 'lodge', a, 'serverroom', to);
+    assert.ok(legs, `anchor '${name}' cannot reach the server room`);
+  }
+});
+
 test('simplify: fewer or equal waypoints, same endpoints', () => {
   const raw = nav.findPath(grid, L.anchors.door.x, L.anchors.door.y, L.anchors.armchair.x, L.anchors.armchair.y);
   const s = nav.simplify(raw);

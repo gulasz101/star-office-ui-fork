@@ -82,6 +82,15 @@ const DEFAULT_LAYOUT = {
     },
   ],
 
+  /**
+   * Doorways. A door is a walkable position on the floor shared with another
+   * room; crossing it is a room transition, not a teleport through a wall.
+   * `doors[otherRoomId] = {x, y}`.
+   */
+  doors: {
+    serverroom: { x: 300, y: 790 },
+  },
+
   // Where a newly-allocated room would be carved out, in order. Each entry is a
   // station anchor the agent owns inside the building.
   stationSlots: [
@@ -337,12 +346,153 @@ function destinationFor(grid, layout, activity, slotId) {
   return p ? { x: p.x, y: p.y, anchor: key || slotId, facing: target.facing || 'down' } : null;
 }
 
+// ---------------------------------------------------------------------------
+// multi-room scene
+// ---------------------------------------------------------------------------
+
+/**
+ * A second room. Same modelling rules as the lodge - the floor is a band and
+ * furniture casts a floor-contact footprint. The doorway on the left wall is
+ * where agents cross from the lodge.
+ */
+const SERVER_ROOM = {
+  id: 'serverroom',
+  name: 'Server Room',
+  kind: 'shared',
+  scene: { width: 1216, height: 832 },
+  cell: 16,
+  floor: { top: 612, bottom: 820 },
+  footprints: [
+    { id: 'rack-back',  x1: 0,   y1: 700, x2: 300, y2: 790, pad: 4 },
+    { id: 'workbench',  x1: 300, y1: 690, x2: 560, y2: 740, pad: 4 },
+    { id: 'rack-left',  x1: 0,   y1: 745, x2: 260, y2: 812, pad: 4 },
+    { id: 'crate',      x1: 620, y1: 750, x2: 840, y2: 816, pad: 4 },
+    { id: 'basket',     x1: 850, y1: 770, x2: 960, y2: 818, pad: 4 },
+  ],
+  anchors: {
+    'rack':      { x: 400, y: 775, facing: 'up'    },
+    'workbench': { x: 580, y: 700, facing: 'up'    },
+    'crates':    { x: 700, y: 730, facing: 'down'  },
+  },
+  doors: { lodge: { x: 1150, y: 770 } },
+  rooms: [{ id: 'serverroom', name: 'Server Room', kind: 'shared',
+            bounds: { x1: 0, y1: 0, x2: 1216, y2: 832 },
+            door: { x: 1150, y: 770 } }],
+  stationSlots: [
+    { id: 'server-station-1', x: 1150, y: 770 },
+  ],
+  activityDestinations: {},
+};
+
+/**
+ * The building. Rooms plus the doorways that join them.
+ * `links` is what makes multi-room routing possible: they are symmetric.
+ */
+const BUILDING = {
+  rooms: { lodge: DEFAULT_LAYOUT, serverroom: SERVER_ROOM },
+  links: [
+    { a: { room: 'lodge', door: 'serverroom' }, b: { room: 'serverroom', door: 'lodge' } },
+  ],
+};
+
+/** Build a grid for every room in the building. */
+function buildBuilding(building) {
+  const out = { rooms: {}, links: building.links };
+  for (const [id, layout] of Object.entries(building.rooms)) {
+    out.rooms[id] = { layout, grid: buildGrid(layout) };
+  }
+  return out;
+}
+
+/** Resolve a doorway position onto walkable floor in its room. */
+function doorPoint(built, roomId, otherId) {
+  const room = built.rooms[roomId];
+  if (!room) return null;
+  const d = room.layout.doors && room.layout.doors[otherId];
+  if (!d) return null;
+  return nearestWalkable(room.grid, d.x, d.y);
+}
+
+/**
+ * Find the room-to-room link chain between two rooms (BFS, so it already works
+ * for a building of more than two rooms).
+ * Returns the list of hops: [{from, doorA, to, doorB}, ...] or null.
+ */
+function linkChain(built, fromRoom, toRoom) {
+  if (fromRoom === toRoom) return [];
+  const q = [[fromRoom, []]];
+  const seen = new Set([fromRoom]);
+  while (q.length) {
+    const [cur, hops] = q.shift();
+    for (const l of built.links) {
+      let nxt = null, aDoor = null, bDoor = null;
+      if (l.a.room === cur) { nxt = l.b.room; aDoor = l.a.door; bDoor = l.b.door; }
+      else if (l.b.room === cur) { nxt = l.a.room; aDoor = l.b.door; bDoor = l.a.door; }
+      else continue;
+      if (seen.has(nxt)) continue;
+      const nextHops = [...hops, { from: cur, doorA: aDoor, to: nxt, doorB: bDoor }];
+      if (nxt === toRoom) return nextHops;
+      seen.add(nxt);
+      q.push([nxt, nextHops]);
+    }
+  }
+  return null;
+}
+
+/**
+ * Route an agent between two points that may be in DIFFERENT rooms.
+ * Returns [{room, path}, ...] - one leg per room, joined at the doorways - or
+ * null if the destination is unreachable.
+ *
+ * This is the difference between "movement" and "teleportation": the agent walks
+ * to the door, crosses, and walks on inside the next room.
+ */
+function findRoute(built, fromRoom, fromPt, toRoom, toPt) {
+  if (fromRoom === toRoom) {
+    const g = built.rooms[fromRoom].grid;
+    const p = findPath(g, fromPt.x, fromPt.y, toPt.x, toPt.y);
+    return p ? [{ room: fromRoom, path: simplify(p) }] : null;
+  }
+  const chain = linkChain(built, fromRoom, toRoom);
+  if (!chain) return null;
+
+  const legs = [];
+  let curRoom = fromRoom, curPt = fromPt;
+
+  for (const hop of chain) {
+    const aOut = doorPoint(built, hop.from, hop.doorA);
+    const bIn = doorPoint(built, hop.to, hop.doorB);
+    if (!aOut || !bIn) return null;
+
+    const gA = built.rooms[hop.from].grid;
+    const leg = findPath(gA, curPt.x, curPt.y, aOut.x, aOut.y);
+    if (!leg) return null;
+    legs.push({ room: hop.from, path: simplify(leg) });
+
+    legs.push({ room: hop.to, door: { from: { x: aOut.x, y: aOut.y }, to: { x: bIn.x, y: bIn.y } } });
+    curRoom = hop.to;
+    curPt = bIn;
+  }
+
+  const gZ = built.rooms[curRoom].grid;
+  const last = findPath(gZ, curPt.x, curPt.y, toPt.x, toPt.y);
+  if (!last) return null;
+  legs.push({ room: curRoom, path: simplify(last) });
+  return legs;
+}
+
 // Works as a node module (tests) AND as a plain browser script (renderer).
 // In the browser this file is loaded before the renderer and its functions are
 // globals, so the renderer never re-implements the layout.
 const NAV = {
   DEFAULT_LAYOUT,
+  SERVER_ROOM,
+  BUILDING,
   buildGrid,
+  buildBuilding,
+  doorPoint,
+  linkChain,
+  findRoute,
   nearestWalkable,
   findPath,
   simplify,

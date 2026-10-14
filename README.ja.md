@@ -1,106 +1,108 @@
 # Star Office UI
 
-🌐 Language: [中文](./README.md) | [English](./README.en.md) | **日本語**
+🌐 言語: [中文](./README.md) | [English](./README.en.md) | **日本語**
 
 ![Star Office UI カバー](docs/screenshots/readme-cover-2.jpg)
 
-**ピクセルアート風 AI オフィスダッシュボード** —— AI アシスタントの作業状態をリアルタイムで可視化し、「誰が何をしているか」「昨日何をしたか」「今オンラインか」を直感的に把握できます。
+**ピクセルアート AI オフィス ダッシュボード** —— AI エージェントの作業状態をリアルタイムで可視化。誰が何をしているか、昨日何をしていたか、オンラインかどうかを一目で確認できます。
 
-マルチ Agent 協調、中英日 3 言語、AI 画像生成による模様替え、デスクトップペットモードに対応。
-[OpenClaw](https://github.com/openclaw/openclaw) との統合で最高の体験が得られますが、単体でもステータスダッシュボードとして利用可能です。
+マルチエージェント協働、3言語 UI（中/英/日）、AI 部屋デザイン、デスクトップペットモード対応。
 
-> 本プロジェクトは **[Ring Hyacinth](https://x.com/ring_hyacinth)** と **[Simon Lee](https://x.com/simonxxoo)** の共同制作（co-created project）であり、コミュニティの開発者（[@Zhaohan-Wang](https://github.com/Zhaohan-Wang)、[@Jah-yee](https://github.com/Jah-yee)、[@liaoandi](https://github.com/liaoandi)）とともに継続的にメンテナンス・改善を行っています。
-> Issue や PR を歓迎します。貢献してくださるすべての方に感謝いたします。
+**Agent-Agnostic（エージェント非依存）設計。** オフィスが話すのは 1 つのオープンな HTTP プロトコルだけ。リクエストを送れる AI エージェントなら誰でも-board に参加できます：Hermes、OpenChamber、OpenCode、Pi、Claude、自作スクリプトでも。バックエンドは特定のエージェントフレームワークに依存せず、そのワークスペースファイルを読むこともありません。
+
+> 本プロジェクトは **[Ring Hyacinth](https://x.com/ring_hyacinth)** と **[Simon Lee](https://x.com/simonxxoo)** が創作。このリポジトリは其のメンテ分支（[gulasz101/star-office-ui-fork](https://github.com/gulasz101/star-office-ui-fork)）です：イベント DB 化、プロトコル統一、OpenClaw デカップリング完了。
+> Issue / PR 歓迎 —— コントビューター全員に感謝します。
 
 ---
 
 ## ✨ クイックスタート
 
-### 方法 1：ロブスターにデプロイしてもらう（OpenClaw ユーザー向け）
+### オプション 1：AI エージェントにデプロイさせる
 
-[OpenClaw](https://github.com/openclaw/openclaw) をご利用中なら、以下のメッセージをロブスターに送るだけ：
+shell と HTTP が使えるエージェントなら誰でも設置できます。この文を送ってください：
 
 ```text
-この SKILL.md に従って Star Office UI をデプロイしてください：
-https://github.com/ringhyacinth/Star-Office-UI/blob/master/SKILL.md
+Star Office UI をデプロイして：
+1. git clone https://github.com/gulasz101/star-office-ui-fork && cd star-office-ui-fork
+2. python3 -m pip install -r backend/requirements.txt   （Python 3.10+ 必要）
+3. cd backend && python3 app.py    # サーバー起動：http://127.0.0.1:19000
+4. 自分の状態を POST /events で送信する。README の「Agent 接続」セクション参照。
 ```
 
-ロブスターが自動的にリポジトリのクローン、依存関係のインストール、バックエンドの起動、ステータス同期の設定を行い、アクセス URL をお知らせします。
+エージェントが clone・依存インストール・起動を自動で行い、1 件目のイベントで自身が board に登録されます。
 
-### 方法 2：30 秒手動セットアップ
+### オプション 2：30 秒の手動セットアップ
 
-> **Python 3.10+ が必要です**（コードベースは `X | Y` ユニオン型構文を使用しており、3.9 以前のバージョンではサポートされていません）
+> **Python 3.10+ が必要**（`X | Y` ユニオン構文を使用、3.9 以前は非対応）
 
 ```bash
-# 1) リポジトリをクローン
-git clone https://github.com/ringhyacinth/Star-Office-UI.git
-cd Star-Office-UI
+# 1) リポジトリを clone
+git clone https://github.com/gulasz101/star-office-ui-fork.git
+cd star-office-ui-fork
 
-# 2) 依存関係をインストール（Python 3.10+ が必要）
+# 2) 依存インストール（Python 3.10+）
 python3 -m pip install -r backend/requirements.txt
 
-# 3) 状態ファイルを初期化（初回のみ）
-cp state.sample.json state.json
-
-# 4) バックエンドを起動
+# 3) バックエンド起動 —— イベント DB は自動初期化
+#    （デフォルト SQLite。PostgreSQL は DATABASE_URL=postgresql+psycopg2://... を設定）
 cd backend
 python3 app.py
 ```
 
-**http://127.0.0.1:19000** を開き、状態を切り替えてみましょう：
+**http://127.0.0.1:19000** を開き、状態を送ってみます：
 
 ```bash
-python3 set_state.py writing "ドキュメント整理中"
-python3 set_state.py error "問題を検出、調査中"
-python3 set_state.py idle "待機中"
+curl -X POST http://127.0.0.1:19000/events \
+  -H 'Content-Type: application/json' \
+  -d '{"version":1,"agent":"hermes","event_type":"state_change",
+       "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"ドキュメント整理中"}}'
 ```
 
 ![Star Office UI プレビュー](docs/screenshots/readme-cover-1.jpg)
 
 ---
 
-## 🤔 誰に向いている？
+## 🤔 こんな方におすすめ
 
-### OpenClaw / AI Agent をお持ちの方
-これが**フル体験**です。Agent が作業中に自動でステータスを切り替え、ピクセルキャラクターがリアルタイムで対応エリアに移動します。ページを開くだけで、AI が今何をしているかがわかります。
+### AI エージェントを使っている方
+これが**完全体験**です。各エージェント（Hermes、OpenChamber、OpenCode、Pi、Claude…）が作業中に自ら `state_change` を送信し、ピクセルキャラが対応エリアへ移動します。複数エージェントが 1 つの board を共有し、それぞれ自分の名前表示です。
 
-### OpenClaw をお持ちでない方
-デプロイして使うことも全く問題ありません：
-- `set_state.py` や API で手動 / スクリプトからステータスを更新
-- ピクセルアート風の個人ステータスページやリモートワークダッシュボードとして利用
-- HTTP リクエストを送れるシステムなら何でもステータスを駆動可能
-
----
-
-## 📋 機能一覧
-
-1. **ステータス可視化** —— 6 種類の状態（`idle` / `writing` / `researching` / `executing` / `syncing` / `error`）がオフィスの各エリアに自動マッピングされ、アニメーションと吹き出しでリアルタイム表示
-2. **昨日メモ** —— `memory/*.md` から直近の作業記録を自動取得し、匿名化して「昨日メモ」カードとして表示
-3. **マルチ Agent 協調** —— join key で他の Agent をオフィスに招待し、全員のステータスをリアルタイム確認
-4. **中英日 3 言語対応** —— CN / EN / JP をワンクリック切替、UI テキスト・吹き出し・ローディング表示すべてが連動
-5. **アート資産カスタマイズ** —— サイドバーからキャラクター / 背景 / 装飾素材を管理、動的フレーム同期でちらつき防止
-6. **AI 画像生成による模様替え** —— Gemini API を接続してオフィス背景を AI 生成; API 未接続でもコア機能は利用可能
-7. **モバイル対応** —— スマホからそのまま閲覧可能、外出先からのクイックチェックに最適
-8. **セキュリティ強化** —— サイドバーのパスワード保護、本番環境での弱パスワード拒否、Session Cookie 強化
-9. **柔軟な公開アクセス** —— Cloudflare Tunnel でワンステップ公開、独自ドメイン / リバースプロキシにも対応
-10. **デスクトップペット版** —— オプションの Electron デスクトップラッパーで、オフィスを透明ウィンドウのデスクトップペットに（下記参照）
+### 実行環境がない方
+でもデプロイして使えます：
+- `curl` 1 行 / cron / CI ステップで状態送信（HTTP クライアントなら何でも可）
+- ページ内蔵の状態コントロールバー（`POST /set_state` 経由）
+- ピクセルアート風ステータスページ・リモートワーク board として
 
 ---
 
-## 🚀 詳細セットアップガイド
+## 📋 機能
 
-### 1) 依存関係インストール
+1. **状態可視化** —— 6 状態（`idle` / `writing` / `researching` / `executing` / `syncing` / `error`）をオフィスエリアにマッピング、アニメスプライトと吹き出し付き
+2. **昨日のメモ** —— `memory/*.md` の最新日誌を自動読込・サニタイズしてカード表示
+3. **マルチエージェント協働** —— join key でゲスト招待、または `POST /events` でセルフ登録、全員の状態をリアルタイム表示
+4. **3言語 UI** —— 中/英/日ワンクリック切替、全 UI テキストが即座に更新
+5. **カスタムアセット** —— サイドバーでキャラ・シーン・装飾管理、フレーム同期でチラつき防止
+6. **AI 部屋デザイン** —— 自前の Gemini API で背景生成、未接続でもコア機能は動作
+7. **モバイル対応** —— スマホでサッと状態確認
+8. **セキュリティ強化** —— サイドバー保護、本番弱パスワードブロック、Session Cookie 強化
+9. **柔軟な公開アクセス** —— Cloudflare Tunnel か、独自ドメイン/リバプロで
+10. **デスクトップペットモード** —— 任意の Electron シェルで透明ウィジェット化（下記）
+11. **イベント DB** —— 全イベントを保存（SQLite/PostgreSQL）、`GET /events/recent` で読取。board はイベントストリームの純粋なビュー
+
+---
+
+## 🚀 詳細セットアップ
+
+### 1) 依存インストール
 
 ```bash
-cd Star-Office-UI
+cd star-office-ui-fork
 python3 -m pip install -r backend/requirements.txt
 ```
 
-### 2) 状態ファイル初期化
+### 2) データベース選択（任意）
 
-```bash
-cp state.sample.json state.json
-```
+状態ファイルのコピーは不要です：主状態とイベントは DB に保存され、デフォルトはローカル SQLite に自動初期化。PostgreSQL は `DATABASE_URL=postgresql+psycopg2://user:pass@host/star_office` を設定して起動するだけ——マイグレーションは起動時に自動実行されます。
 
 ### 3) バックエンド起動
 
@@ -111,16 +113,23 @@ python3 app.py
 
 `http://127.0.0.1:19000` を開く
 
-> ✅ ローカル開発ではデフォルト設定のままで構いませんが、本番環境では `.env.example` を `.env` にコピーし、`FLASK_SECRET_KEY` と `ASSET_DRAWER_PASS` に十分な長さのランダム値を設定してください。
+> ✅ ローカル開発はデフォルトで OK。本番では `.env.example` を `.env` にコピーし、`FLASK_SECRET_KEY` と `ASSET_DRAWER_PASS` に強いランダム値を設定してください。
+>
+> 🏷️ 看板のプレートにオフィス名を出したい場合：`OFFICE_NAME="Wojtek's Office"` を設定して起動。バックエンドはエージェントのワークスペースファイルを読むことを一切やめました。
 
-### 4) ステータス切替
+### 4) 状態切り替え
+
+イベント送信（エージェント向けドア、次セクション参照）：
 
 ```bash
-python3 set_state.py writing "ドキュメント整理中"
-python3 set_state.py syncing "進捗同期中"
-python3 set_state.py error "問題を検出、調査中"
-python3 set_state.py idle "待機中"
+curl -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json' -d '{
+  "version": 1, "agent": "hermes", "event_type": "state_change",
+  "timestamp": "2026-10-13T14:20:55Z",
+  "payload": {"state": "executing", "detail": "テスト実行中"}
+}'
 ```
+
+またはページの状態コントロールバー（`POST /set_state` 経由、主エージェントのみ）。
 
 ### 5) 公開アクセス（任意）
 
@@ -128,7 +137,7 @@ python3 set_state.py idle "待機中"
 cloudflared tunnel --url http://127.0.0.1:19000
 ```
 
-`https://xxx.trycloudflare.com` のリンクを共有するだけで OK。
+`https://xxx.trycloudflare.com` を共有。
 
 ### 6) インストール確認（任意）
 
@@ -136,86 +145,124 @@ cloudflared tunnel --url http://127.0.0.1:19000
 python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 ```
 
-すべてのチェックが `OK` と表示されればデプロイ成功です。
+全て `OK` ならデプロイ成功。
 
 ---
 
-## 🦞 OpenClaw 連携
+## 🤖 Agent 接続（任意のエージェント、1 つのプロトコル）
 
-> 以下は [OpenClaw](https://github.com/openclaw/openclaw) ユーザー向けの内容です。OpenClaw を使用していない場合はスキップしてください。
+オフィスには書き込み口が 1 つだけあります：**`POST /events`**。インストールするクライアントも、共有ワークスペースも、必須フレームワークもありません——HTTP POST できるエージェントなら参加できます。
 
-### ステータス自動同期
+### イベントエンベロープ（Schema v1）
 
-`SOUL.md`（またはエージェント設定ファイル）に以下のルールを追加すると、Agent がステータスを自動で更新します：
+各イベントは小さな JSON エンベロープ（定義：`backend/schemas/event_v1.json`）：
 
-```markdown
-## Star Office ステータス同期ルール
-- タスク開始時：`python3 set_state.py <状態> "<説明>"` を実行してから作業開始
-- タスク完了時：`python3 set_state.py idle "待機中"` を実行してから返答
-```
-
-**6 種類のステータス → 3 つのエリア：**
-
-| ステータス | オフィスエリア | 使用場面 |
-|-----------|--------------|---------|
-| `idle` | 🛋 休憩エリア（ソファ） | 待機 / タスク完了 |
-| `writing` | 💻 ワークエリア（デスク） | コーディング / ドキュメント作成 |
-| `researching` | 💻 ワークエリア | 検索 / リサーチ |
-| `executing` | 💻 ワークエリア | コマンド実行 / タスク処理 |
-| `syncing` | 💻 ワークエリア | データ同期 / プッシュ |
-| `error` | 🐛 バグコーナー | エラー / デバッグ |
-
-### 他の Agent をオフィスに招待
-
-**Step 1：join key を準備**
-
-バックエンドを初回起動するとき、カレントディレクトリに `join-keys.json` が存在しない場合は、`join-keys.sample.json` を元にランタイム用の `join-keys.json` が自動生成されます（例として `ocj_example_team_01` などのサンプル key が含まれます）。生成された `join-keys.json` を編集して key を追加・変更・削除できます。各 key はデフォルトで最大 3 名まで同時接続できます。
-
-**Step 2：ゲストにプッシュスクリプトを実行してもらう**
-
-ゲストは `office-agent-push.py` をダウンロードし、3 つの変数を入力するだけ：
-
-```python
-JOIN_KEY = "ocj_starteam02"          # あなたが割り当てたキー
-AGENT_NAME = "太郎のロブスター"        # 表示名
-OFFICE_URL = "https://office.hyacinth.im"  # あなたのオフィス URL
-```
+| フィールド | 型 | 説明 |
+|-----------|----|------|
+| `version` | int | 常に `1` |
+| `agent` | string | 表示名（`hermes`、`openchamber`、`opencode`、`pi`、`claude` など）。**未知の名前の 1 件目で自動登録** |
+| `event_type` | string | `state_change`、`tool_call`、`file_edit`、`command_run`、`session_start`、`session_end` など——ホワイトリストではなく、未知型はそのまま保存 |
+| `timestamp` | string | ISO-8601 時刻（オフセット付きは UTC に正規化） |
+| `payload` | object | 型別データ。`state_change` は `{"state": "<6 状態のいずれか>", "detail": "<一言>"}` |
 
 ```bash
-python3 office-agent-push.py
+curl -X POST https://your.office.host/events \
+  -H 'Content-Type: application/json' \
+  -d '{"version":1,"agent":"claude","event_type":"state_change",
+       "timestamp":"2026-10-13T14:20:55Z",
+       "payload":{"state":"researching","detail":"コードベース読込中"}}'
 ```
 
-スクリプトが自動で参加し、15 秒ごとにステータスをプッシュします。ゲストがダッシュボードに表示され、状態に応じて該当エリアに移動します。
+- `201 {"ok": true}` —— 保存され、次のポーリングで board に表示
+- `400 {"ok": false, "error": "<フィールド>: <修正点>"}` —— 機械（hook）が自己修正できるよう問題フィールドを明示
 
-**Step 3（任意）：ゲストも Skill をインストール**
+**6 状態 → 3 エリア：**
 
-ゲストは `frontend/join-office-skill.md` を Skill として使うこともできます。Agent が設定とプッシュを自動で行います。
+| 状態 | オフィスエリア | 使いどころ |
+|------|---------------|-----------|
+| `idle` | 🛋 休憩室（ソファ） | 待機 / タスク完了 |
+| `writing` | 💻 作業エリア（デスク） | コード・ドキュメント執筆 |
+| `researching` | 💻 作業エリア | 検索 / 調査 |
+| `executing` | 💻 作業エリア | コマンド / タスク実行 |
+| `syncing` | 💻 作業エリア | データ同期 / push |
+| `error` | 🐛 バグコーナー | エラー / デバッグ |
 
-> 詳しいゲスト参加手順は [`frontend/join-office-skill.md`](./frontend/join-office-skill.md) を参照。
+### 主要エージェントの接続点
+
+パターンは常に同じ——状態が変わったら `curl` を 1 発：
+
+| エージェント | 接続ポイント |
+|-------------|--------------|
+| Hermes | アクションループの開始/終了で `state_change`（`executing` → `idle`） |
+| OpenChamber | セッションフックまたは Itsaplan ブリッジ実行時：`session_start` + `state_change` |
+| OpenCode | `opencode.json` のカスタムコマンド / プラグインイベント：ツール毎 `tool_call`、稼働/待機 `state_change` |
+| Pi | それを駆動するスケジューラの状態遷移点 |
+| Claude (Code) | `Stop` / `PostToolUse` フック、または `CLAUDE.md` にルール記載：「タスク開始前に executing、完了後に idle を POST」 |
+
+エージェントが尊重する指示ファイルに 1 回ルールを追加するだけ：
+
+```markdown
+## Star Office 状態同期
+- タスク開始前：state "executing" の state_change を POST /events に送信
+- タスク完了後：state "idle" を送信
+外部に出すのは状態語と短い説明だけ——ファイル内容は絶対に送らない。
+```
+
+### 読み取りパス
+
+`GET /events/recent` は新しい順にイベント配列を返します（`limit` ≤ 200、`agent`・`event_type`・`since` で絞り込み、下記 API 表参照）。board 自体がこれをポーリングしており、外部ウィジェットも同じドアを使えます。
+
+### ゲストエージェントの招待（join key ルーター）
+
+承認・オンライン TTL・同時接続上限付きの管理された参加には、従来の join 手続きを使います：
+
+**ステップ 1：join key の準備**
+
+バックエンド初回起動時、プロジェクト直下に `join-keys.json` がなければ `join-keys.sample.json`（例：`ocj_example_team_01`）から自動生成。以降は生成された `join-keys.json` を編集して key の追加・変更・削除を。デフォルトは 1 key あたり同時 3 ゲストまで。
+
+**ステップ 2：ゲストが登録して送信する**
+
+```bash
+# 1 回 join —— 返り値 {"ok":true,"agentId":"42","authStatus":"approved"}
+curl -X POST https://your.office.host/join-agent -H 'Content-Type: application/json' \
+  -d '{"name":"AliceBot","joinKey":"ocj_starteam02","state":"idle","detail":"参加しました"}'
+
+# 以降、状態変化時に送信（15 秒間隔が目安）
+curl -X POST https://your.office.host/agent-push -H 'Content-Type: application/json' \
+  -d '{"agentId":"42","joinKey":"ocj_starteam02","state":"writing","detail":"レポート執筆中"}'
+```
+
+ゲストは board に表示され、状態に応じたエリアへ移動。5 分送信がないとオフライン扱い、`POST /leave-agent` で退出します。
+
+**ステップ 3（任意）：オンボーディング資料を渡す**
+
+`frontend/join-office-skill.md` はそのまま貼れる Agent 非依存の手順書です——どんなエージェントでも `curl` だけで実行できます。
 
 ---
 
-## 📡 API リファレンス
+## 📡 API レファレンス
 
 | エンドポイント | 説明 |
-|--------------|------|
+|---------------|------|
+| `POST /events` | **エージェントイベント 1 件を投入（上記 v1 エンベロープ）。未知のエージェントは自動登録** |
+| `GET /events/recent` | フィード読取：新しい順の `{id, agent, event_type, payload, created_at}` 配列。パラメータ `limit`（≤200）、`agent`（大文字小文字無視）、`event_type`、`since`（ISO） |
 | `GET /health` | ヘルスチェック |
-| `GET /status` | メイン Agent のステータス取得 |
-| `POST /set_state` | メイン Agent のステータス設定 |
-| `GET /agents` | 全 Agent リスト取得 |
-| `POST /join-agent` | ゲスト参加 |
-| `POST /agent-push` | ゲストステータスプッシュ |
+| `GET /status` | 主エージェントの状態（`OFFICE_NAME` 設定時は `officeName` 付き） |
+| `POST /set_state` | 主エージェントの状態設定（ページ内バー用。`state_change` を 1 件書く） |
+| `GET /agents` | 全エージェント一覧（在席/承認状態つき） |
+| `POST /join-agent` | ゲストが join key で参加 |
+| `POST /agent-push` | ゲストの状態送信（agentId + joinKey） |
 | `POST /leave-agent` | ゲスト退出 |
-| `GET /yesterday-memo` | 昨日メモ取得 |
+| `GET /yesterday-memo` | 昨日のメモ |
 | `GET /config/gemini` | Gemini API 設定取得 |
-| `POST /config/gemini` | Gemini API 設定変更 |
-| `GET /assets/generate-rpg-background/poll` | 画像生成の進捗確認 |
+| `POST /config/gemini` | Gemini API 設定 |
+| `GET /assets/generate-rpg-background/poll` | 画像生成状況のポーリング |
 
 ---
 
-## 🖥 デスクトップペット版（任意）
+## 🖥 デスクトップペットモード（任意）
 
-`desktop-pet/` ディレクトリには **Electron** ベースのデスクトップラッパーが含まれており、ピクセルオフィスを透明ウィンドウのデスクトップペットにできます。
+`desktop-pet/` は **Electron** ベースのデスクトップシェル。ピクセルオフィスが透明デスクトップウィジェットになります。
 
 ```bash
 cd desktop-pet
@@ -224,30 +271,30 @@ npm run dev
 ```
 
 - 起動時に Python バックエンドを自動起動
-- デフォルトで `http://127.0.0.1:19000/?desktop=1` を表示
-- 環境変数でプロジェクトパスや Python パスをカスタマイズ可能
+- ウィンドウは既定で `http://127.0.0.1:19000/?desktop=1`
+- 環境変数でプロジェクトパスと Python パスを設定可能
 
-> ⚠️ これは**オプションの実験的機能**であり、現在は主に macOS で開発・テストされています。詳細は [`desktop-pet/README.md`](./desktop-pet/README.md) を参照。
+> ⚠️ **任意の実験的機能**で、主に macOS で開発・テストされています。詳細は [`desktop-pet/README.md`](./desktop-pet/README.md)。
 >
-> 🙏 デスクトップペット版は [@Zhaohan-Wang](https://github.com/Zhaohan-Wang) が独自に開発しました。貢献に感謝します！
+> 🙏 デスクトップペットは [@Zhaohan-Wang](https://github.com/Zhaohan-Wang) による独立貢献——感謝します！
 
 ---
 
-## 🎨 アート資産とライセンス
+## 🎨 アセットとライセンス
 
-### 資産の出典
+### アセット 귀属
 
-ゲストキャラクターのアニメーションには **LimeZu** のフリー素材を使用しています：
+ゲストキャラアニメは **LimeZu** の無料アセットを使用：
 - [Animated Mini Characters 2 (Platformer) [FREE]](https://limezu.itch.io/animated-mini-characters-2-platform-free)
 
-再配布やデモの際は出典を明記し、原作者のライセンス条項に従ってください。
+再配布・デモ時は出典を明記し、元のライセンスに従ってください。
 
 ### ライセンス
 
-- **コード / ロジック：MIT**（[`LICENSE`](./LICENSE) を参照）
-- **アート資産：非商用のみ**（学習 / デモ / 共有用途）
+- **コード / ロジック：MIT**（[`LICENSE`](./LICENSE) 参照）
+- **アートアセット：非商用のみ**（学習 / デモ / 共有）
 
-> 商用利用の場合は、すべてのアート資産をオリジナル素材に差し替えてください。
+> 商用利用の場合は全アートアセットを自作に置き換えてください（本分支は Apache-2.0 モデルでアセットパック全面再生成中——プロジェクト board 参照）。
 
 ---
 
@@ -255,36 +302,39 @@ npm run dev
 
 | 日付 | 概要 | 詳細 |
 |------|------|------|
-| 2026-03-06 | 🔌 デフォルトポート変更 — OpenClaw Browser Control との競合を避けるため、バックエンドの既定ポートを 18791 から 19000 に変更。スクリプト、デスクトップシェル、ドキュメントの既定値も同期更新 | [`docs/CHANGELOG_2026-03.md`](./docs/CHANGELOG_2026-03.md) |
-| 2026-03-05 | 📱 安定性修正 — CDN キャッシュ修正、画像生成非同期化、モバイルサイドバー UX 改善、join key 有効期限・同時接続制御 | [`docs/UPDATE_REPORT_2026-03-05.md`](./docs/UPDATE_REPORT_2026-03-05.md) |
-| 2026-03-04 | 🔒 P0/P1 セキュリティ強化 — 弱パスワード拒否、バックエンド分割、stale ステータス自動 idle 復帰、スケルトンローディング | [`docs/UPDATE_REPORT_2026-03-04_P0_P1.md`](./docs/UPDATE_REPORT_2026-03-04_P0_P1.md) |
+| 2026-10 | 🌱 **分支プログラム** —— Phase 1–4：イベント DB（SQLite/Postgres）、`POST /events` + `GET /events/recent`、OpenClaw デカップリング完了（`SKILL.md`・`set_state.py`・`office-agent-push.py` 削除、接続方法は本ドキュメントが正本） | Issue SOU-18 … SOU-46 |
+| 2026-03-06 | 🔌 デフォルトポート変更 —— ローカル browser-control サービスとの競合回避のため 18791 → 19000。スクリプト・デスクトップシェル・ドキュメントも追随 | [`docs/CHANGELOG_2026-03.md`](./docs/CHANGELOG_2026-03.md) |
+| 2026-03-05 | 📱 安定性修正 —— CDN キャッシュ、非同期画像生成、モバイルサイドバー、join key 有効期限と同時接続 | [`docs/UPDATE_REPORT_2026-03-05.md`](./docs/UPDATE_REPORT_2026-03-05.md) |
+| 2026-03-04 | 🔒 P0/P1 セキュリティ強化 —— 弱パスワードブロック、バックエンドリファクタ、状態タイムアウト自動 idle、スケルトンロード | [`docs/UPDATE_REPORT_2026-03-04_P0_P1.md`](./docs/UPDATE_REPORT_2026-03-04_P0_P1.md) |
 | 2026-03-03 | 📋 オープンソース公開チェックリスト完了 | [`docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`](./docs/OPEN_SOURCE_RELEASE_CHECKLIST.md) |
-| 2026-03-01 | 🎉 **v2 リビルド公開** — 3 言語対応、資産管理システム、AI 画像生成による模様替え、アート資産全面刷新 | [`docs/FEATURES_NEW_2026-03-01.md`](./docs/FEATURES_NEW_2026-03-01.md) |
+| 2026-03-01 | 🎉 **v2 リビルド** —— 3言語対応、アセット管理、AI 部屋デザイン、アセット全面更新 | [`docs/FEATURES_NEW_2026-03-01.md`](./docs/FEATURES_NEW_2026-03-01.md) |
 
 ---
 
 ## 📁 プロジェクト構成
 
 ```text
-Star-Office-UI/
+star-office-ui-fork/
 ├── backend/            # Flask バックエンド
-│   ├── app.py
+│   ├── app.py          # ルート：/events、/events/recent、/status、/agents…
+│   ├── db.py           # SQLite/Postgres イベントアダプタ（Phase 1）
+│   ├── schemas/event_v1.json  # POST /events の契約
+│   ├── migrations/     # Alembic マイグレーション
 │   ├── requirements.txt
 │   └── run.sh
-├── frontend/           # フロントエンドページ & 資産
+├── frontend/           # フロントページ & アセット
 │   ├── index.html
 │   ├── join.html
 │   ├── invite.html
+│   ├── join-office-skill.md   # ゲスト用手順書（Agent 非依存）
 │   └── layout.js
-├── desktop-pet/        # Electron デスクトップラッパー（任意）
+├── desktop-pet/        # Electron デスクトップシェル（任意）
 ├── docs/               # ドキュメント & スクリーンショット
 │   └── screenshots/
-├── office-agent-push.py  # ゲストプッシュスクリプト
-├── set_state.py          # ステータス切替スクリプト
-├── state.sample.json     # 状態ファイルテンプレート
-├── join-keys.sample.json # Join Key テンプレート（起動時に join-keys.json を生成）
-├── SKILL.md              # OpenClaw Skill
-└── LICENSE               # MIT ライセンス
+├── scripts/            # スモークテスト、セキュリティチェック、開発支援
+├── state.sample.json     # 旧状態テンプレ（状態は DB 保存）
+├── join-keys.sample.json # join key テンプレ（実行時に join-keys.json 生成）
+└── LICENSE             # MIT ライセンス
 ```
 
 ---

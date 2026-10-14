@@ -8,8 +8,8 @@
 import os
 from PIL import Image
 
-# 路径
-FRONTEND_DIR = "/root/.openclaw/workspace/star-office-ui/frontend"
+# 路径（SOU-46: repo-relative, was a hardcoded agent-workspace path）
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
 STATIC_DIR = os.path.join(FRONTEND_DIR, "")
 
 # 文件分类配置

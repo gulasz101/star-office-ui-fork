@@ -226,8 +226,8 @@ class EventsIngestTest(_AppTestCase):
         )
 
     def test_agent_field_maps_to_the_agents_row(self) -> None:
-        self.assertEqual(self.post_event(valid_event(agent="openclaw")).status_code, 201)
-        row = next(a for a in self.agents() if a.name == "openclaw")
+        self.assertEqual(self.post_event(valid_event(agent="zephyr")).status_code, 201)
+        row = next(a for a in self.agents() if a.name == "zephyr")
         stored = self.raw_event_rows()[-1]
         self.assertEqual(stored["agent_id"], row.id, "AC 3: agent -> agents.id")
 

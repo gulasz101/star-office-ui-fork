@@ -46,8 +46,10 @@ FRONTEND_PATH = Path(FRONTEND_DIR)
 ASSET_ALLOWED_EXTS = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".avif"}
 ASSET_TEMPLATE_ZIP = os.path.join(ROOT_DIR, "assets-replace-template.zip")
 WORKSPACE_DIR = os.path.dirname(ROOT_DIR)
-OPENCLAW_WORKSPACE = os.environ.get("OPENCLAW_WORKSPACE") or os.path.join(os.path.expanduser("~"), ".openclaw", "workspace")
-IDENTITY_FILE = os.path.join(OPENCLAW_WORKSPACE, "IDENTITY.md")
+# Office display name for the plaque, if the operator wants one (SOU-46).
+# Read from the environment at request time — the backend never reads any
+# agent's private workspace files; that door is closed for good.
+OFFICE_NAME_ENV = "OFFICE_NAME"
 GEMINI_SCRIPT = os.path.join(WORKSPACE_DIR, "skills", "gemini-image-generate", "scripts", "gemini_image_generate.py")
 GEMINI_PYTHON = os.path.join(WORKSPACE_DIR, "skills", "gemini-image-generate", ".venv", "bin", "python")
 ROOM_REFERENCE_IMAGE = (
@@ -210,22 +212,6 @@ def load_state():
         pass
 
     return state
-
-
-def get_office_name_from_identity():
-    """Read office display name from OpenClaw workspace IDENTITY.md (Name field) -> 'XXX的办公室'."""
-    if not os.path.isfile(IDENTITY_FILE):
-        return None
-    try:
-        with open(IDENTITY_FILE, "r", encoding="utf-8") as f:
-            content = f.read()
-        m = re.search(r"-\s*\*\*Name:\*\*\s*(.+)", content)
-        if m:
-            name = m.group(1).strip().replace("\r", "").split("\n")[0].strip()
-            return f"{name}的办公室" if name else None
-    except Exception:
-        pass
-    return None
 
 
 def _main_agent_name():
@@ -1267,7 +1253,7 @@ def join_agent():
                 existing["detail"] = detail
                 existing["updated_at"] = datetime.now().isoformat()
                 existing["area"] = state_to_area(state)
-                existing["source"] = "remote-openclaw"
+                existing["source"] = "remote-push"
                 existing["joinKey"] = join_key
                 existing["authStatus"] = "approved"
                 existing["authApprovedAt"] = datetime.now().isoformat()
@@ -1288,7 +1274,7 @@ def join_agent():
                     "detail": detail,
                     "updated_at": datetime.now().isoformat(),
                     "area": state_to_area(state),
-                    "source": "remote-openclaw",
+                    "source": "remote-push",
                     "joinKey": join_key,
                     "authStatus": "approved",
                     "authApprovedAt": datetime.now().isoformat(),
@@ -1372,9 +1358,13 @@ def leave_agent():
 
 @app.route("/status", methods=["GET"])
 def get_status():
-    """Get current main state (backward compatibility). Optionally include officeName from IDENTITY.md."""
+    """Get current main state (backward compatibility).
+
+    ``officeName`` (the UI plaque) comes only from the ``OFFICE_NAME`` env
+    var (SOU-46): no agent-workspace file is ever read for it.
+    """
     state = load_state()
-    office_name = get_office_name_from_identity()
+    office_name = os.environ.get(OFFICE_NAME_ENV, "").strip()
     if office_name:
         state["officeName"] = office_name
     return jsonify(state)
@@ -1382,7 +1372,7 @@ def get_status():
 
 @app.route("/agent-push", methods=["POST"])
 def agent_push():
-    """Remote openclaw actively pushes status to office.
+    """Remote agent actively pushes status to office (join-key roster door).
 
     Required fields:
     - agentId
@@ -1449,7 +1439,7 @@ def agent_push():
             target["name"] = name
         target["updated_at"] = datetime.now().isoformat()
         target["area"] = state_to_area(state)
-        target["source"] = "remote-openclaw"
+        target["source"] = "remote-push"
         target["lastPushAt"] = datetime.now().isoformat()
 
         save_agents_state(agents)
@@ -1539,6 +1529,77 @@ def events_endpoint():
     except Exception as exc:  # pragma: no cover - adapter failure, not agent error
         return jsonify({"ok": False, "error": f"ingest failed: {exc}"}), 500
     return jsonify({"ok": True}), 201
+
+
+EVENTS_RECENT_DEFAULT_LIMIT = 50
+EVENTS_RECENT_MAX_LIMIT = 200
+
+
+@app.route("/events/recent", methods=["GET"])
+def events_recent_endpoint():
+    """Read the feed back: the newest agent events (GET /events/recent, SOU-45).
+
+    Phase 2 opened the door (POST /events); this is the matching read path —
+    a bare JSON array, newest first, of ``{id, agent, event_type, payload,
+    created_at}``. ``limit`` defaults to 50 and is capped at 200; ``agent``
+    is a case-insensitive registry name (unknown agent -> empty feed, this
+    is a read endpoint, not a lookup oracle); ``event_type`` is exact;
+    ``since`` is an inclusive ISO 8601 floor, normalised through the same
+    ``parse_timestamp`` as ingest so the two ends of the stream agree.
+    """
+    limit = EVENTS_RECENT_DEFAULT_LIMIT
+    raw_limit = request.args.get("limit")
+    if raw_limit not in (None, ""):
+        try:
+            parsed = int(raw_limit)
+        except ValueError:
+            parsed = -1
+        if parsed < 1:
+            return jsonify({
+                "ok": False,
+                "error": f"limit: must be a positive integer, got {raw_limit!r}",
+            }), 400
+        limit = min(parsed, EVENTS_RECENT_MAX_LIMIT)
+
+    since = None
+    raw_since = request.args.get("since")
+    if raw_since not in (None, ""):
+        try:
+            since = event_schema.parse_timestamp(raw_since)
+        except event_schema.EventValidationError as exc:
+            return jsonify({
+                "ok": False,
+                "error": str(exc).replace("timestamp:", "since", 1),
+            }), 400
+
+    event_type = request.args.get("event_type") or None
+    agent_name = request.args.get("agent") or None
+
+    with db.session_scope() as session:
+        agent_id = None
+        if agent_name is not None:
+            agent = find_agent_by_name(session, agent_name)
+            if agent is None:
+                return jsonify([])
+            agent_id = agent.id
+        rows = db.list_events(
+            session, agent_id=agent_id, event_type=event_type, limit=limit, since=since
+        )
+        names = {a.id: a.name for a in db.list_agents(session)}
+        feed = [
+            {
+                "id": row.id,
+                "agent": names.get(row.agent_id),
+                "event_type": row.event_type,
+                "payload": row.payload,
+                # naive UTC in storage (ADR-035); spelled back as a Z instant
+                "created_at": row.created_at.replace(tzinfo=timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z"),
+            }
+            for row in rows
+        ]
+    return jsonify(feed)
 
 
 @app.route("/set_state", methods=["POST"])

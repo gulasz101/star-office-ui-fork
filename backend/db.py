@@ -427,10 +427,13 @@ def list_events(
     agent_id: Optional[int] = None,
     event_type: Optional[str] = None,
     limit: Optional[int] = None,
+    since: Optional[datetime] = None,
 ) -> Sequence[Event]:
     """Events newest-first — the order ``idx_events_agent_created`` serves.
 
-    ``agent_id`` / ``event_type`` narrow the feed; ``limit`` caps it.
+    ``agent_id`` / ``event_type`` narrow the feed; ``limit`` caps it;
+    ``since`` is an inclusive floor on ``created_at`` (naive UTC, the
+    ADR-035 convention — GET /events/recent, SOU-45).
     ``id`` breaks created_at ties so paging stays deterministic on both
     backends (SQLite timestamps are second-granular via SQL, sub-second via
     the adapter — never assume created_at alone is unique).
@@ -440,6 +443,8 @@ def list_events(
         query = query.where(Event.agent_id == agent_id)
     if event_type is not None:
         query = query.where(Event.event_type == event_type)
+    if since is not None:
+        query = query.where(Event.created_at >= since)
     query = query.order_by(Event.created_at.desc(), Event.id.desc())
     if limit is not None:
         query = query.limit(limit)

@@ -12,7 +12,8 @@ sessions.
 
 ## What it reports
 
-Every event is one [ADR-035 schema-v1 envelope](../../README.en.md#the-event-envelope-schema-v1)
+Every event is one
+[ADR-035 schema-v1 envelope](https://github.com/gulasz101/star-office-ui-fork/blob/main/README.en.md#the-event-envelope-schema-v1)
 `POST`ed to the dashboard's `/events` endpoint:
 
 | `event_type`     | when                                        | `payload` fields                                                      |

@@ -1,0 +1,259 @@
+# Star Office UI - build, smoke and publish the container image (SOU-62, Phase 5).
+#
+# This is where the image actually gets built: the fork's worker node has no
+# container runtime, so Docker runs here on GitHub's runner. Every push and every
+# release tag gets the same treatment - contract test, real build, SQLite smoke,
+# Postgres smoke - and only a merge to master or a `v*` tag publishes to GHCR,
+# using this workflow's own GITHUB_TOKEN (packages: write). The image that is
+# pushed is the image that was tested: one job, one build.
+#
+# No third-party actions, and no registry credentials in repo secrets: GHCR auth
+# comes from the built-in token, so there is nothing to leak from a public repo.
+
+name: docker-image
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/gulasz101/star-office-ui-fork
+
+jobs:
+  contract:
+    name: Image contract + backend suite (no Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Container contract (Dockerfile, entrypoint.sh, .dockerignore)
+        run: python3 scripts/validate_dockerfile.py
+
+      - name: Shell syntax of the entrypoint
+        run: sh -n entrypoint.sh
+
+      - name: Install the app requirements exactly like the image does
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --no-cache-dir -r backend/requirements.txt
+
+      - name: Backend suite (SQLite; the Postgres legs skip without TEST_POSTGRES_URL)
+        run: |
+          source .venv/bin/activate
+          python -m pytest backend/tests -q
+
+  image:
+    name: Build, smoke on SQLite + Postgres, publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Throwaway database on an ephemeral runner: this is a migration test
+          # bed, never a place for credentials (same rule as scripts/dev_postgres.sh).
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: sou
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sou"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build --progress=plain -t "$IMAGE:ci" .
+
+      - name: Image size
+        run: docker image ls "$IMAGE:ci" --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}'
+
+      - name: Smoke on SQLite (fresh install creates and migrates backend/sou.db)
+        run: |
+          set -euo pipefail
+          docker run -d --name sou-sqlite --network host \
+            -e STAR_BACKEND_PORT=19000 \
+            "$IMAGE:ci"
+
+          echo "--- waiting for the server ---"
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:19000/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker logs sou-sqlite
+
+          echo "--- runs as the unprivileged uid, not root ---"
+          docker exec sou-sqlite id
+
+          echo "--- dashboard is served from the copied frontend/ ---"
+          code=$(curl -s -o /tmp/index.html -w '%{http_code}' http://127.0.0.1:19000/)
+          test "$code" = "200" || { echo "GET / -> $code"; exit 1; }
+          grep -qiE 'phaser|canvas|office' /tmp/index.html
+          echo "GET / -> 200, dashboard markup present ($(wc -c < /tmp/index.html) bytes)"
+
+          echo "--- the healthcheck path answers from the database ---"
+          code=$(curl -s -o /tmp/feed.json -w '%{http_code}' 'http://127.0.0.1:19000/events/recent?limit=1')
+          test "$code" = "200" || { echo "GET /events/recent -> $code"; exit 1; }
+          echo "GET /events/recent?limit=1 -> 200"
+
+          echo "--- POST /events is accepted and lands in the feed ---"
+          now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          code=$(curl -s -o /tmp/post.json -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"version\":1,\"agent\":\"ci-sqlite\",\"event_type\":\"state_change\",\"timestamp\":\"$now\",\"payload\":{\"state\":\"writing\",\"detail\":\"SOU-62 CI smoke\"}}" \
+            http://127.0.0.1:19000/events)
+          test "$code" = "201" || { echo "POST /events -> $code: $(cat /tmp/post.json)"; exit 1; }
+          curl -s 'http://127.0.0.1:19000/events/recent?limit=20' | grep -q ci-sqlite
+          echo "POST /events -> 201, and the row reads back from GET /events/recent"
+
+          echo "--- entrypoint.sh migrated the schema before the server started ---"
+          docker exec -i sou-sqlite python3 - <<'PY'
+          import sqlite3
+          conn = sqlite3.connect("/app/backend/sou.db")
+          version = conn.execute("SELECT version_num FROM alembic_version").fetchall()
+          tables = sorted(r[0] for r in conn.execute(
+              "SELECT name FROM sqlite_master WHERE type='table'"))
+          events = conn.execute("SELECT count(*) FROM events").fetchone()[0]
+          print("backend/sou.db:", version, tables, "events:", events)
+          assert version == [("001_initial_schema", )], version
+          assert {"agents", "events", "sessions", "alembic_version"} <= set(tables), tables
+          assert events >= 2, events
+          PY
+
+          echo "--- Docker HEALTHCHECK reaches healthy (AC4: 30s interval, 3 retries) ---"
+          status=""
+          for _ in $(seq 1 15); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' sou-sqlite)
+            [ "$status" = "healthy" ] && break
+            sleep 10
+          done
+          echo "health status: $status"
+          test "$status" = "healthy"
+          docker inspect -f '{{json .Config.Healthcheck}}' sou-sqlite
+          docker rm -f sou-sqlite
+
+      - name: Smoke on Postgres via DATABASE_URL (ADR-034 primary backend)
+        run: |
+          set -euo pipefail
+          URL='postgresql+psycopg2://postgres@127.0.0.1:5432/sou'
+          # psql speaks the plain libpq URL; the +psycopg2 dialect is SQLAlchemy's.
+          PSQL_URL='postgresql://postgres@127.0.0.1:5432/sou'
+          docker run -d --name sou-pg --network host \
+            -e DATABASE_URL="$URL" \
+            -e STAR_BACKEND_PORT=19001 \
+            "$IMAGE:ci"
+
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:19001/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker logs sou-pg
+
+          code=$(curl -s -o /tmp/index-pg.html -w '%{http_code}' http://127.0.0.1:19001/)
+          test "$code" = "200" || { echo "GET / -> $code"; exit 1; }
+          code=$(curl -s -o /tmp/feed-pg.json -w '%{http_code}' 'http://127.0.0.1:19001/events/recent?limit=1')
+          test "$code" = "200" || { echo "GET /events/recent -> $code"; exit 1; }
+
+          now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          code=$(curl -s -o /tmp/post-pg.json -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"version\":1,\"agent\":\"ci-postgres\",\"event_type\":\"state_change\",\"timestamp\":\"$now\",\"payload\":{\"state\":\"writing\",\"detail\":\"SOU-62 CI smoke\"}}" \
+            http://127.0.0.1:19001/events)
+          test "$code" = "201" || { echo "POST /events -> $code: $(cat /tmp/post-pg.json)"; exit 1; }
+          curl -s 'http://127.0.0.1:19001/events/recent?limit=20' | grep -q ci-postgres
+          echo "Postgres leg: dashboard 200, feed 200, POST /events 201 (STAR_BACKEND_PORT=19001 honoured)"
+
+          echo "--- head is stamped in Postgres, and no SQLite file was created ---"
+          docker run --rm --network host postgres:16 \
+            psql "$PSQL_URL" -v ON_ERROR_STOP=1 -Atc \
+            "SELECT version_num FROM alembic_version; SELECT count(*) FROM events;"
+          docker run --rm --network host postgres:16 \
+            psql "$PSQL_URL" -v ON_ERROR_STOP=1 -Atc \
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'
+              AND table_name IN ('agents','events','sessions','alembic_version');" | grep -q '^4$'
+          if docker exec sou-pg test -e /app/backend/sou.db; then
+            echo "FAIL: DATABASE_URL was set but the SQLite fallback file exists"
+            exit 1
+          fi
+          echo "verified: alembic_version in Postgres, /app/backend/sou.db absent"
+
+          echo "--- and the healthcheck goes healthy on Postgres too ---"
+          status=""
+          for _ in $(seq 1 15); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' sou-pg)
+            [ "$status" = "healthy" ] && break
+            sleep 10
+          done
+          echo "health status: $status"
+          test "$status" = "healthy"
+          docker rm -f sou-pg
+
+      - name: Publish to GHCR (master pushes and v* tags only)
+        if: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+          docker tag "$IMAGE:ci" "$IMAGE:latest"
+          docker push "$IMAGE:latest"
+          echo "pushed $IMAGE:latest"
+
+          TAGS="latest"
+          case "$GITHUB_REF" in
+            refs/tags/v*)
+              docker tag "$IMAGE:ci" "$IMAGE:$GITHUB_REF_NAME"
+              docker push "$IMAGE:$GITHUB_REF_NAME"
+              echo "pushed $IMAGE:$GITHUB_REF_NAME"
+              TAGS="latest $GITHUB_REF_NAME"
+              ;;
+          esac
+
+          {
+            echo "## Published image"
+            echo
+            echo "- built from \`$GITHUB_REF\` @ \`$GITHUB_SHA\`"
+            echo "- tags pushed: $TAGS"
+            for tag in $TAGS; do
+              echo "- local digest of \`$tag\`: $(docker image inspect --format '{{join .RepoDigests " "}}' "$IMAGE:$tag")"
+            done
+            docker image ls "$IMAGE" --format '- image: {{.Repository}}:{{.Tag}} {{.Size}}'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Read the published digests back from the registry
+        if: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
+        run: |
+          set -euo pipefail
+          TAGS="latest"
+          case "$GITHUB_REF" in
+            refs/tags/v*) TAGS="latest $GITHUB_REF_NAME" ;;
+          esac
+          for tag in $TAGS; do
+            token=$(curl -s "https://ghcr.io/token?scope=repository:gulasz101/star-office-ui-fork:pull" | jq -r .token)
+            digest=$(curl -s -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json' \
+              -o /dev/null -D - \
+              "https://ghcr.io/v2/gulasz101/star-office-ui-fork/manifests/$tag" \
+              | tr -d '\r' | awk 'tolower($1)=="docker-content-digest:"{print $2}')
+            echo "ghcr.io/gulasz101/star-office-ui-fork:$tag -> ${digest:-MISSING}"
+            test -n "$digest"
+            echo "- registry confirms \`$tag\` at \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
+          done

@@ -193,7 +193,8 @@ describe(
     })
 
     test('every envelope passes the dashboard schema validator', async () => {
-      const { stdout } = await execFileAsync('python3', [path.join(HERE, 'tools', 'validate_envelopes.py'), captureFile, '/storage/workspaces/star-office-ui-fork'])
+      const souRoot = process.env.SOU_REPO_ROOT || '/storage/workspaces/star-office-ui-fork'
+      const { stdout } = await execFileAsync('python3', [path.join(HERE, 'tools', 'validate_envelopes.py'), captureFile, souRoot])
       if (!/^VALID \d+/m.test(stdout)) throw new Error(stdout)
       if (/INVALID/.test(stdout)) throw new Error(stdout)
     })

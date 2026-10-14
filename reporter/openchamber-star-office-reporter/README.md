@@ -172,7 +172,8 @@ E2E=1 E2E_LIVE=1 node --test test/e2e-live-run.mjs         # against the live da
 
 The end-to-end harness installs the plugin the documented way (global plugins dir),
 runs `opencode run --standalone` in a throwaway `HOME`/project sandbox, and validates
-every delivered envelope with the dashboard's own `backend/event_schema.py`.
+every delivered envelope with the dashboard's own `backend/event_schema.py` (a
+Star-Office-UI checkout; point `SOU_REPO_ROOT` at one if it isn't the default path).
 
 ## Provenance
 

@@ -58,6 +58,9 @@ curl -X POST http://127.0.0.1:19000/events \
        "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"正在整理文档"}}'
 ```
 
+> 🐳 想用容器？一条命令即可：`docker run -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:latest`，
+> 然后打开同一个地址——镜像会在启动时自行迁移数据库（详见下文「容器部署」）。
+
 ![Star Office UI 预览](docs/screenshots/readme-cover-1.jpg)
 
 ---
@@ -146,6 +149,58 @@ python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 ```
 
 全部 `OK` 即部署完成。
+
+---
+
+## 🐳 容器部署（Docker）
+
+一个镜像、两种数据库后端、启动即迁移。CI 负责构建与发布
+（`.github/workflows/docker-image.yml`）：镜像在推送之前，会先在 SQLite 与真实
+PostgreSQL 上跑一遍冒烟测试。
+
+```bash
+# SQLite（默认）：首次启动自动创建并迁移 backend/sou.db
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  ghcr.io/gulasz101/star-office-ui-fork:latest
+
+# PostgreSQL：同一个镜像，指到你的数据库即可
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  -e DATABASE_URL='postgresql+psycopg2://user:pass@host:5432/star_office' \
+  ghcr.io/gulasz101/star-office-ui-fork:v1.0.0-agent-agnostic
+```
+
+| 环境变量 | 默认值 | 作用 |
+|---|---|---|
+| `DATABASE_URL` | 未设置 → SQLite（`backend/sou.db`） | 填 `postgresql+psycopg2://…` 后，全部状态层改用 PostgreSQL（ADR-034）。 |
+| `STAR_BACKEND_PORT` | `19000` | 容器内 gunicorn 的监听端口（`0.0.0.0:$STAR_BACKEND_PORT`），记得同步 `-p` 映射。 |
+| `FLASK_SECRET_KEY` / `STAR_OFFICE_SECRET` | 开发默认值 | 会话签名。开启 `STAR_OFFICE_ENV=production` 后必须是强随机值（≥24 位、非默认）。 |
+| `ASSET_DRAWER_PASS` | `1234` | 素材编辑入口。生产环境不得使用默认值。 |
+| `STAR_OFFICE_ENV` | 未设置 | 设为 `production` 会启用安全校验：弱密钥或弱口令将直接拒绝启动。 |
+| `OFFICE_NAME` | 未设置 | 门牌文字。后端绝不会去读任何 agent 的工作区文件。 |
+
+容器启动时依次发生：
+
+1. `entrypoint.sh` 用 `backend/alembic.ini` 执行 `alembic upgrade head`。
+   `DATABASE_URL` 优先，未设置则回退 SQLite，并在 `backend/sou.db` 缺失时创建并迁移。
+   迁移失败容器直接退出——绝不把半迁移状态的服务放出去。
+2. `exec gunicorn --chdir backend --worker-class gthread --workers 1 --threads 8`
+   启动 `app:app`。这里刻意只用一个 worker：应用持有进程内状态与后台任务，多 worker
+   会导致各自持有不一致的副本。
+3. 镜像内的 `HEALTHCHECK`（30 秒间隔、重试 3 次）访问
+   `/events/recent?limit=1`，也就是看板用的同一条读取路径，所以库表或连接出问题时会
+   如实报 `unhealthy`，而不是给个假绿灯。
+
+状态持久化与本地构建：
+
+- **PostgreSQL** 是持久方案：不用挂任何卷，数据在容器之外。
+- **SQLite**：镜像里的 `backend/` 不是数据目录。要跨重启保留，请挂载一个目录并指过去——
+  `chown 10001:10001 data` 后加 `-v "$PWD/data:/data" -e DATABASE_URL='sqlite:////data/sou.db'`。
+  千万不要把卷挂到 `/app/backend` 上，那里放的是应用代码。
+- 容器以非特权用户 uid **10001** 运行。
+- 自行构建：在仓库根目录 `docker build -t star-office-ui .`，示例中的镜像名换成
+  `star-office-ui` 即可。
+- 镜像内不含任何凭据。`.dockerignore` 已把 `.git`、`.env*`、虚拟环境、缓存以及所有
+  `*.db` 挡在构建上下文之外，密钥只在运行时注入。
 
 ---
 

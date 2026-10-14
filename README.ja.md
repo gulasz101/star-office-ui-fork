@@ -58,6 +58,10 @@ curl -X POST http://127.0.0.1:19000/events \
        "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"ドキュメント整理中"}}'
 ```
 
+> 🐳 コンテナがよければ: `docker run -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:latest`
+> を実行して同じアドレスを開いてください。公開イメージは起動時に自らマイグレーションします
+> （詳細は下の「Docker デプロイ」参照）。
+
 ![Star Office UI プレビュー](docs/screenshots/readme-cover-1.jpg)
 
 ---
@@ -146,6 +150,60 @@ python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 ```
 
 全て `OK` ならデプロイ成功。
+
+---
+
+## 🐳 Docker デプロイ
+
+1 つのイメージ、2 つの DB バックエンド、起動時にマイグレーション。CI
+（`.github/workflows/docker-image.yml`）がビルドと公開を担当します。Push の前に、
+SQLite と実 PostgreSQL の両方でスモークテストを通しています。
+
+```bash
+# SQLite（既定）: 初回起動時に backend/sou.db を作成してマイグレーション
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  ghcr.io/gulasz101/star-office-ui-fork:latest
+
+# PostgreSQL: 同じイメージで、あなたのサーバを指すだけ
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  -e DATABASE_URL='postgresql+psycopg2://user:pass@host:5432/star_office' \
+  ghcr.io/gulasz101/star-office-ui-fork:v1.0.0-agent-agnostic
+```
+
+| 環境変数 | 既定値 | 役割 |
+|---|---|---|
+| `DATABASE_URL` | 未設定 → SQLite（`backend/sou.db`） | `postgresql+psycopg2://…` を指定すると状態層の全体が PostgreSQL に移行します（ADR-034）。 |
+| `STAR_BACKEND_PORT` | `19000` | コンテナ内で gunicorn がバインドするポート（`0.0.0.0:$STAR_BACKEND_PORT`）。`-p` の割り当てもお忘れなく。 |
+| `FLASK_SECRET_KEY` / `STAR_OFFICE_SECRET` | 開発用デフォルト | セッション署名用。`STAR_OFFICE_ENV=production` では強い値（24 文字以上・非デフォルト）が必須です。 |
+| `ASSET_DRAWER_PASS` | `1234` | アセット編集画面の入口。本番ではデフォルト値を使わないでください。 |
+| `STAR_OFFICE_ENV` | 未設定 | `production` にすると硬化ガードが有効になり、弱い秘密情報では警告ではなく起動しません。 |
+| `OFFICE_NAME` | 未設定 | 看板のテキスト。バックエンドがエージェントのワークスペースファイルを読むことは絶対にありません。 |
+
+コンテナ起動時の流れ:
+
+1. `entrypoint.sh` が `backend/alembic.ini` に対して `alembic upgrade head` を実行します。
+   `DATABASE_URL` が優先され、未設定なら SQLite にフォールバックし、`backend/sou.db` が
+   なければ作成してマイグレーションします。マイグレーションが失敗したらコンテナは終了します —
+   途中のスキーマでサーバを起動することはありません。
+2. `exec gunicorn --chdir backend --worker-class gthread --workers 1 --threads 8`
+   が `app:app` を配信します。worker を 1 に固定のは意図的です。アプリはプロセス内の状態と
+   バックグラウンドタスクを持つため、複数 worker はそれぞれ別の状態を持ってしまいます。
+3. イメージの `HEALTHCHECK`（30 秒間隔・3 回リトライ）はダッシュボードと同じ読み取りパス
+   `/events/recent?limit=1` を見ます。だからスキーマも接続も壊れているときに、青信号ではなく
+   `unhealthy` を正直に出します。
+
+状態の永続化とローカルビルド:
+
+- **PostgreSQL** が永続化の本命です。ボリュームは不要、DB はコンテナの外にあります。
+- **SQLite**: イメージ内の `backend/` はデータディレクトリではありません。再起動をまたぐなら
+  ディレクトリをマウントして指し示してください — `chown 10001:10001 data` のあと
+  `-v "$PWD/data:/data" -e DATABASE_URL='sqlite:////data/sou.db'`。
+  `/app/backend` にボリュームを被せるのは絶対にやめてください。そこはアプリのコードです。
+- コンテナは非特権の uid **10001** で動きます。
+- ローカルビルド: リポジトリ直下で `docker build -t star-office-ui .`、上のイメージ名を
+  `star-office-ui` に置き換えれば同じように動きます。
+- イメージに秘密情報は入りません。`.dockerignore` が `.git`・`.env*`・仮想環境・キャッシュ・
+  すべての `*.db` をビルドコンテキストから除外しており、認証情報は実行時に注入します。
 
 ---
 

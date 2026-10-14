@@ -58,6 +58,10 @@ curl -X POST http://127.0.0.1:19000/events \
        "timestamp":"2026-10-13T14:20:55Z","payload":{"state":"writing","detail":"Organizing documents"}}'
 ```
 
+> 🐳 Prefer a container? `docker run -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:latest`
+> and open the same address — the published image migrates its own database on start-up
+> (see **Docker Deployment** below).
+
 ![Star Office UI Preview](docs/screenshots/readme-cover-1.jpg)
 
 ---
@@ -146,6 +150,63 @@ python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 ```
 
 If all checks report `OK`, your deployment is good to go.
+
+---
+
+## 🐳 Docker Deployment
+
+One image, two backends, migrations on start-up. CI builds and publishes it
+(`.github/workflows/docker-image.yml`): the image is smoke-tested on SQLite and
+against a real PostgreSQL before it is ever pushed.
+
+```bash
+# SQLite (the default): the first start creates and migrates backend/sou.db
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  ghcr.io/gulasz101/star-office-ui-fork:latest
+
+# PostgreSQL: same image, just point it at your server
+docker run -d --name star-office -p 127.0.0.1:19000:19000 \
+  -e DATABASE_URL='postgresql+psycopg2://user:pass@host:5432/star_office' \
+  ghcr.io/gulasz101/star-office-ui-fork:v1.0.0-agent-agnostic
+```
+
+| Variable | Default | What it does |
+|---|---|---|
+| `DATABASE_URL` | unset → SQLite at `backend/sou.db` | Give it a `postgresql+psycopg2://…` URL and the whole state layer moves to PostgreSQL (ADR-034). |
+| `STAR_BACKEND_PORT` | `19000` | Port gunicorn binds inside the container (`0.0.0.0:$STAR_BACKEND_PORT`); keep your `-p` mapping in sync. |
+| `FLASK_SECRET_KEY` / `STAR_OFFICE_SECRET` | dev default | Session signing. Must be strong (≥24 chars, non-default) once `STAR_OFFICE_ENV=production`. |
+| `ASSET_DRAWER_PASS` | `1234` | Asset-editor door. Must not be the default in production. |
+| `STAR_OFFICE_ENV` | unset | `production` arms the hardening guard: a weak secret or drawer password refuses to boot instead of warning. |
+| `OFFICE_NAME` | unset | Text on the office plaque. The backend never reads an agent's workspace files for it. |
+
+What happens when the container starts:
+
+1. `entrypoint.sh` runs `alembic upgrade head` against `backend/alembic.ini`.
+   `DATABASE_URL` wins, the SQLite fallback is used when it is unset — and a
+   missing `backend/sou.db` is created and migrated. If the migration fails the
+   container exits: the server never comes up on a half-migrated schema.
+2. `exec gunicorn --chdir backend --worker-class gthread --workers 1 --threads 8`
+   serves `app:app`. A single worker is deliberate — the app keeps in-process
+   state and background tasks, so several workers would each hold a divergent copy.
+3. The image `HEALTHCHECK` (30s interval, 3 retries) asks
+   `/events/recent?limit=1`, the same read path the dashboard uses, so a broken
+   schema or a dead connection reports `unhealthy` instead of a green light.
+
+Persisting state, and building locally:
+
+- **PostgreSQL** is the durable option: mount nothing, the database lives outside
+  the container.
+- **SQLite**: the image's own `backend/` is *not* a data directory. To keep the
+  file across restarts, mount one and point at it —
+  `-v "$PWD/data:/data" -e DATABASE_URL='sqlite:////data/sou.db'` after
+  `chown 10001:10001 data`. Never mount a volume over `/app/backend`; that is
+  where the application code lives.
+- The container runs as the unprivileged uid **10001**.
+- Build it yourself from the repo root: `docker build -t star-office-ui .` and use
+  `star-office-ui` wherever the examples above use the registry name.
+- No credentials live in the image. `.dockerignore` keeps `.git`, `.env*`, virtual
+  environments, caches and every `*.db` out of the build context, and secrets are
+  injected at run time.
 
 ---
 

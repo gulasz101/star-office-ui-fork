@@ -31,10 +31,20 @@ desktop-pet/
 electron-shell/
 
 # ---- Runtime state (local only; regenerated at run time) -------------
+# Phase 5 (SOU-62): backend/sou.db is runtime state too - the SQLite fallback
+# the entrypoint migrates on first start. Baking a developer's database into a
+# public image would ship its agents, events and join keys, so every database
+# file and journal is excluded by shape, not just by name.
 state.json
 agents-state.json
 join-keys.json
 runtime-config.json
+sou.db
+backend/sou.db
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
 *.log
 *.out
 *.pid

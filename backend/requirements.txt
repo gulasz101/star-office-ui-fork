@@ -8,6 +8,12 @@ sqlalchemy>=2.0
 alembic>=1.12
 psycopg2-binary
 
+# Event ingest contract (SOU-36, ADR-035): POST /events validates its body
+# against backend/schemas/event_v1.json. Pure-Python wheel (attrs,
+# referencing, rpds-py ship manylinux wheels), so the 3.11-slim image needs
+# no compiler.
+jsonschema>=4.18
+
 # Test runner for backend/tests (the suite is unittest-style, so it also
 # runs under `python3 -m unittest` without this installed).
 pytest

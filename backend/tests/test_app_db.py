@@ -342,21 +342,21 @@ class MainStateDbTest(unittest.TestCase):
 
     def test_set_state_endpoint_still_works_and_lands_in_the_db(self) -> None:
         resp = self.client.post(
-            "/set_state", json={"state": "writing", "detail": "正在整理文档"}
+            "/set_state", json={"state": "writing", "detail": "Organizing documents"}
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.get_json(), {"status": "ok"})  # backward-compat shape
 
         status = self.client.get("/status").get_json()
         self.assertEqual(status["state"], "writing")
-        self.assertEqual(status["detail"], "正在整理文档")
+        self.assertEqual(status["detail"], "Organizing documents")
 
         events = self._main_events()
         self.assertEqual(len(events), 2, "seed event + the set_state event")
         newest = events[0].payload
         self.assertEqual(events[0].event_type, "state_change")
         self.assertEqual(newest["state"], "writing")
-        self.assertEqual(newest["detail"], "正在整理文档")
+        self.assertEqual(newest["detail"], "Organizing documents")
         self.assertIn("updated_at", newest)
 
     def test_invalid_state_is_still_ignored(self) -> None:

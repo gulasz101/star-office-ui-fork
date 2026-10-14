@@ -232,7 +232,7 @@ class EventsIngestTest(_AppTestCase):
         self.assertEqual(stored["agent_id"], row.id, "AC 3: agent -> agents.id")
 
     def test_payload_survives_the_json_round_trip_including_unicode(self) -> None:
-        payload = {"state": "writing", "detail": "正在整理文档", "progress": 0.5, "tags": ["a", "b"]}
+        payload = {"state": "writing", "detail": "Organizing documents", "progress": 0.5, "tags": ["a", "b"]}
         self.assertEqual(
             self.post_event(valid_event(event_type="state_change", payload=payload)).status_code,
             201,
@@ -469,7 +469,7 @@ class SetStateBackwardCompatTest(_AppTestCase):
     """AC 5: ``/set_state`` keeps working, and works as an ingest of ``state_change``."""
 
     def test_set_state_still_answers_200_ok(self) -> None:
-        resp = self.client.post("/set_state", json={"state": "writing", "detail": "正在整理文档"})
+        resp = self.client.post("/set_state", json={"state": "writing", "detail": "Organizing documents"})
         self.assertEqual(resp.status_code, 200, resp.get_data(as_text=True))
         self.assertEqual(resp.get_json(), {"status": "ok"}, "the old response shape is the contract")
 

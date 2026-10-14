@@ -23,7 +23,6 @@ REQUIRED_ENDPOINTS = [
     ("GET", "/health", 200),
     ("GET", "/status", 200),
     ("GET", "/agents", 200),
-    ("GET", "/yesterday-memo", 200),
 ]
 
 

@@ -146,7 +146,7 @@ class StatusOfficeNameTest(unittest.TestCase):
         # Plant an IDENTITY.md and point *every* legacy handle at it: the
         # env var the old code read at import time, and the module constant
         # the old get_office_name_from_identity opened per request. Today
-        # this leaks "GhostInMachine的办公室" into /status (the RED we watch
+        # this leaks "GhostInMachine's office" into /status (the RED we watch
         # fail); decoupled, the backend reads no files and this is inert.
         workspace = os.path.join(self.workdir, "fake-openclaw-workspace")
         os.makedirs(workspace, exist_ok=True)

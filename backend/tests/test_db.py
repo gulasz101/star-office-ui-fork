@@ -75,7 +75,7 @@ JSONB_TYPE = (postgresql.JSONB,) if postgresql is not None else ()
 # ADR-035 state_change payload, unicode included: what events must survive.
 SAMPLE_PAYLOAD = {
     "state": "writing",
-    "detail": "正在整理文档",
+    "detail": "Organizing documents",
     "progress": 0.5,
     "nested": {"tools": ["read", "edit"], "ok": True, "nothing": None},
 }

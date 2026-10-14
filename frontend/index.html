@@ -1392,6 +1392,17 @@
         let guestBubbles = {}; // agentId -> bubble container
         const GUEST_AVATARS = ['guest_role_1','guest_role_2','guest_role_3','guest_role_4','guest_role_5','guest_role_6'];
         let guestTweens = {};  // agentId -> {move, name}
+        // SOU-88: stable per-agent stations.
+        // Previously the slot index was a per-poll ordinal (idxBreak++ / idxWrite++
+        // / idxError++). Within a single poll that still gave each agent a distinct
+        // slot, so agents did not literally stack - but the slot was tied to
+        // ITERATION ORDER rather than identity. So whenever any agent joined or
+        // left, every remaining agent shifted to a different slot and the whole
+        // room visibly reshuffled. Stations are now keyed by agent IDENTITY and
+        // released when the agent leaves, so a given agent keeps its spot for as
+        // long as it stays in the area.
+        let agentStations = {};   // agentId -> { area, slot }
+        let areaSlotsTaken = {};  // area -> Set(slotIndex)
         let hiddenDemoNames = new Set();
         const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1';
         const FETCH_INTERVAL = 1000;
@@ -3053,11 +3064,41 @@ function toggleBrokerPanel() {
             return arr[idx % arr.length];
         }
 
+        // SOU-88: allocate a station slot by agent identity, not by poll order.
+        // Stable for as long as the agent stays in the same area; moved to a free
+        // slot when it changes area. Deterministic, so two agents in the same
+        // state never stack on one tile.
+        function allocateStation(agentId, area) {
+            const existing = agentStations[agentId];
+            if (existing && existing.area === area) return existing.slot;
+
+            // Area changed (or first sight): release the old slot first
+            if (existing && areaSlotsTaken[existing.area]) {
+                areaSlotsTaken[existing.area].delete(existing.slot);
+            }
+            if (!areaSlotsTaken[area]) areaSlotsTaken[area] = new Set();
+            const taken = areaSlotsTaken[area];
+
+            let slot = 0;
+            while (taken.has(slot) && slot < 8) slot++;
+            if (slot >= 8) slot = taken.size % 8; // room is full - share, deterministically
+
+            taken.add(slot);
+            agentStations[agentId] = { area, slot };
+            return slot;
+        }
+
+        function releaseStation(agentId) {
+            const s = agentStations[agentId];
+            if (!s) return;
+            if (areaSlotsTaken[s.area]) areaSlotsTaken[s.area].delete(s.slot);
+            delete agentStations[agentId];
+        }
+
         function renderGuestAgentsInScene() {
             if (!game) return;
             const visitors = getMergedVisitors();
             const seenIds = new Set();
-            let idxBreak = 0, idxWrite = 0, idxError = 0;
 
             visitors.forEach(agent => {
                 const id = agent.agentId;
@@ -3066,10 +3107,12 @@ function toggleBrokerPanel() {
                 const isDemo = !!agent.isDemo || (DEMO_MODE && (id === 'demo_nika' || id === 'demo_mercury' || agent.name === 'Nika' || agent.name === 'Mercury'));
                 const area = agent.area || (agent.state === 'error' ? 'error' : (agent.state === 'idle' ? 'breakroom' : 'writing'));
 
-                const idx = area === 'breakroom' ? idxBreak++ : area === 'error' ? idxError++ : idxWrite++;
+                // SOU-88: the station comes from agent IDENTITY via allocateStation,
+                // not from a per-poll ordinal - that is what stops two agents in
+                // the same state landing on the same tile.
                 const p = isDemo
                     ? randomPointInRect(getAreaRect(area))
-                    : getAreaPoint(area, idx);
+                    : getAreaPoint(area, allocateStation(id, area));
 
                 if (!guestSprites[id]) {
                     // Prefer icons: demo visitors have a dedicated mapping
@@ -3170,10 +3213,36 @@ function toggleBrokerPanel() {
                         });
                         guestTweens[id] = { move: moveTween, name: nameTween };
                     } else {
-                        g.sprite.x = p.x;
-                        g.sprite.y = p.y + yOffset;
-                        g.nameText.x = p.x;
-                        g.nameText.y = (p.y + yOffset) - 120;
+                        // SOU-88: WALK, don't teleport. Previously the sprite was
+                        // snapped straight to the new point every poll. Now it
+                        // tweens there, so an agent changing room is visibly
+                        // traversing rather than blinking across the office.
+                        const destX = p.x, destY = p.y + yOffset;
+                        const needsMove = Math.abs(g.sprite.x - destX) > 1 || Math.abs(g.sprite.y - destY) > 1;
+                        if (needsMove) {
+                            if (guestTweens[id] && guestTweens[id].move) {
+                                guestTweens[id].move.stop();
+                            }
+                            if (guestTweens[id] && guestTweens[id].name) {
+                                guestTweens[id].name.stop();
+                            }
+                            const dur = 900 + Math.floor(Math.random() * 400); // walking feel
+                            const moveTween = game.tweens.add({
+                                targets: g.sprite,
+                                x: destX,
+                                y: destY,
+                                duration: dur,
+                                ease: 'Sine.easeInOut'
+                            });
+                            const nameTween = game.tweens.add({
+                                targets: g.nameText,
+                                x: destX,
+                                y: destY - 120,
+                                duration: dur,
+                                ease: 'Sine.easeInOut'
+                            });
+                            guestTweens[id] = { move: moveTween, name: nameTween };
+                        }
                     }
 
                     g.nameText.setText(agent.name || 'Guest');
@@ -3183,6 +3252,8 @@ function toggleBrokerPanel() {
             // Drop agents that disappeared and clean up their bubbles and tweens
             Object.keys(guestSprites).forEach(id => {
                 if (!seenIds.has(id)) {
+                    // SOU-88: free the station so a later joiner can use the slot
+                    releaseStation(id);
                     guestSprites[id].sprite.destroy();
                     guestSprites[id].nameText.destroy();
                     delete guestSprites[id];

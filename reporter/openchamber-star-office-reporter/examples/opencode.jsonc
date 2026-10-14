@@ -1,0 +1,24 @@
+{
+  // Project-level OpenCode config showing how the reporter plugin can be wired.
+  // You do NOT need this if the plugin file already sits in a plugin directory
+  // (~/.config/opencode/plugins/ or .opencode/plugins/) — those auto-load.
+  "$schema": "https://opencode.ai/config.json",
+
+  // Option C: load from a published npm package or a local path.
+  // "plugin" is the documented npm key; OpenCode 2.x also accepts "plugins"
+  // with local paths (a plugin PACKAGE directory — with package.json — was
+  // verified that way in the SOU-71 probe; for a plain single file, prefer
+  // the auto-loaded plugin directories above).
+  "plugins": ["./plugins/openchamber-star-office-reporter"],
+
+  // Reporter settings are NOT part of opencode.json — they live in
+  // ~/.config/opencode/star-office-reporter.json (see README.md), or as
+  // environment variables. Example of that file's contents:
+  //
+  // {
+  //   "dashboardUrl": "http://192.168.1.119:19000",
+  //   "agent": "openchamber",
+  //   "timeoutMs": 5000,
+  //   "enabled": true
+  // }
+}

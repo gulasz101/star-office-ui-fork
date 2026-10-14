@@ -269,6 +269,18 @@ Add the rule once, e.g. in whatever instruction file your agent honours:
 Only the state word and a short description leave your machine — never file contents.
 ```
 
+### No-curl option: the OpenChamber / OpenCode reporter plugin
+
+If your agent runs on OpenCode (or OpenChamber, which embeds it), you can skip the
+hand-wired `curl`s entirely: the [reporter plugin](reporter/openchamber-star-office-reporter/README.md)
+hooks tool execution and session lifecycle and pushes the event stream to
+`POST /events` automatically — `tool_call`, `file_edit`, `command_run`,
+`code_completion`, `session_start`, `session_end`. Copy
+`openchamber-star-office-reporter.js` into `~/.config/opencode/plugins/` (or
+`.opencode/plugins/` per project), restart, done. It never blocks the agent,
+redacts credentials from every payload, and switches off with one env var.
+Also published as the standalone repo `openchamber-star-office-reporter` (MIT).
+
 ### Read path
 
 `GET /events/recent` returns the newest stored events as a bare JSON array

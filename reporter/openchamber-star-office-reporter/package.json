@@ -1,0 +1,37 @@
+{
+  "name": "openchamber-star-office-reporter",
+  "version": "1.0.0",
+  "description": "OpenCode/OpenChamber plugin that reports agent activity (tool calls, edits, commands, sessions) to a Star Office UI dashboard via ADR-035 schema-v1 events. Zero dependencies, non-blocking, credentials redacted.",
+  "type": "module",
+  "main": "./openchamber-star-office-reporter.js",
+  "exports": {
+    ".": "./openchamber-star-office-reporter.js"
+  },
+  "files": [
+    "openchamber-star-office-reporter.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "openchamber",
+    "star-office-ui",
+    "agent-dashboard",
+    "events"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gulasz101/openchamber-star-office-reporter.git"
+  },
+  "scripts": {
+    "test": "node --test test/reporter.test.mjs test/adapter.test.mjs",
+    "test:e2e": "E2E=1 node --test test/e2e-live-run.mjs",
+    "test:live": "E2E=1 E2E_LIVE=1 node --test test/e2e-live-run.mjs"
+  },
+  "peerDependencies": {}
+}

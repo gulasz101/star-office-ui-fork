@@ -48,9 +48,10 @@ TOOLING_SITE = os.path.join(REPO_ROOT, ".tooling", "site")
 HEAD_REVISION = "001_initial_schema"
 TABLES = {"agents", "events", "sessions", "alembic_version"}
 
-# The stub server writes this; the tests read it back.
-STUB = """#!/usr/bin/env python3
-import json
+# The stub server writes this; the tests read it back. setUp prefixes it with a
+# `#!<sys.executable>` shebang, so the stub always runs on the same interpreter
+# (and the same SQLAlchemy) as the tests themselves, in a venv or in .tooling.
+STUB = """import json
 import os
 import sys
 
@@ -124,6 +125,7 @@ class EntrypointSandbox(unittest.TestCase):
         os.makedirs(self.bin_dir, exist_ok=True)
         stub_path = os.path.join(self.bin_dir, "gunicorn")
         with open(stub_path, "w", encoding="utf-8") as handle:
+            handle.write(f"#!{sys.executable}\n")
             handle.write(STUB)
         os.chmod(stub_path, 0o755)
 

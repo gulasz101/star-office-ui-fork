@@ -39,6 +39,17 @@ TOLERANCE = 0.07           # TIGHT on purpose: a 2:1 prop (0.50) is 13% off a 0.
 
 
 def base_slopes(path, crop=None):
+    """Base-edge slopes of a prop, measured ROBUSTLY.
+
+    A least-squares fit over each third of the bottom silhouette is NOT robust enough: a prop
+    standing on thin legs or casters puts a few tall spikes in the profile and the fit returns
+    nonsense (measured: a chair gave +1.527, -0.514/-2.739, +1.705 across three attempts, and a
+    desk gave +0.109/-1.183 - all false rejections of props whose FOOTPRINT is fine).
+
+    So: take the lower envelope (running max of y within a window), then fit each edge with
+    Theil-Sen (median of pairwise slopes), which ignores a minority of spike columns. The window
+    is expressed in pixels so it scales with the sprite.
+    """
     im = Image.open(path).convert("RGBA")
     if crop:
         im = im.crop(crop)
@@ -52,12 +63,37 @@ def base_slopes(path, crop=None):
         col = np.nonzero(mask[:, x])[0]
         if len(col):
             bottom.append((x, col.max()))
-    bottom = np.array(bottom)
-    third = max(8, len(bottom) // 3)
+    if len(bottom) < 16:
+        return None
+    bottom = np.array(bottom, dtype=float)
+
+    # lower envelope: a column whose base is far above its neighbours (a gap between legs) is
+    # replaced by the local maximum, so the envelope follows the feet rather than the gaps
+    win = max(3, (x1 - x0) // 24)
+    env = np.array([[x, np.max(bottom[max(0, i - win):i + win + 1, 1])]
+                    for i, (x, _) in enumerate(bottom)])
+
+    def theil_sen(seg):
+        xs_, ys_ = seg[:, 0], seg[:, 1]
+        n = len(xs_)
+        if n < 8:
+            return None
+        ix = np.linspace(0, n - 1, min(n, 60)).astype(int)
+        slopes = []
+        for a in range(len(ix) - 1):
+            for b in range(a + 1, len(ix)):
+                dx = xs_[ix[b]] - xs_[ix[a]]
+                if dx != 0:
+                    slopes.append((ys_[ix[b]] - ys_[ix[a]]) / dx)
+        return float(np.median(slopes)) if slopes else None
+
+    third = max(8, len(env) // 3)
     out = []
-    for seg in (bottom[:third], bottom[-third:]):
-        m, _ = np.polyfit(seg[:, 0], seg[:, 1], 1)
-        out.append(float(m))
+    for seg in (env[:third], env[-third:]):
+        s = theil_sen(seg)
+        if s is None:
+            return None
+        out.append(s)
     return out
 
 

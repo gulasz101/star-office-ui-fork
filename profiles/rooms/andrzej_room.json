@@ -12,7 +12,7 @@
   "props": [
     {"id": "desk", "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug", "grid": [3, 3], "tiles": 2.0},
     {"id": "rack", "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable", "grid": [8, 2], "tiles": 1.4},
-    {"id": "chair", "subject": "an office chair with a worn seat cushion, seen from behind", "grid": [3, 5], "tiles": 1.0},
+    {"id": "chair", "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor", "grid": [3, 5], "tiles": 1.0},
     {"id": "spool", "subject": "a cable spool on a small wooden pallet with a few loose network cables", "grid": [6, 5], "tiles": 1.0},
     {"id": "crate", "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top", "grid": [9, 6], "tiles": 1.0}
   ]

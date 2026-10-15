@@ -90,8 +90,10 @@ def main():
         f"pixel art game asset: {subject}. {PROJECTION}"
         "Single object, centred, nothing else in frame, no furniture around it, no room, "
         "no floor grid drawn. Crisp thin dark outlines, flat cel shading, limited palette of "
-        "dark blue-grey, warm wood browns and cream, no antialiasing, no blur, no drop shadow, "
-        "no checkerboard pattern, plain flat magenta background #FF00FF filling the whole frame. "
+        "dark blue-grey, warm wood browns and cream, no antialiasing, no blur, "
+        "no checkerboard pattern. The object rests DIRECTLY on the flat magenta background: do "
+        "NOT draw any ground patch, base, platform, pedestal, mat, plinth or contact shadow "
+        "under it. Plain flat magenta background #FF00FF filling the whole frame. "
         "32-bit pixel art, game asset."
     )
     pipe, torch = frg.load_pipe()          # LoRA off (ADR-060 field result)

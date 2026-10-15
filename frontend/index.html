@@ -3683,6 +3683,24 @@ function toggleBrokerPanel() {
                     const entry = pickOfficeRoom(index, list[i]);
                     if (entry) return [String(list[i]), entry];
                 }
+                // SINGLE-ROOM FALLBACK — added after verifying the loader against the REAL app.
+                //
+                // The office reports its identity from its MAIN row, which the backend hardcodes as
+                // agentId 'star' / name 'Star', while a room pack is naturally named for whoever it
+                // was generated for. Measured live: an index keyed 'andrzej' never matched this
+                // office, so tryApply fell back and the office kept drawing upstream furniture -
+                // while the unit tests passed, because they fed the identity the loader expected.
+                // Identity matching cannot be made reliable when one side is fixed upstream and the
+                // other is a human name, so do not rely on it alone.
+                //
+                // Exactly ONE room is unambiguous: apply it. With several rooms an unmatched
+                // identity still falls back, because guessing between rooms is worse than showing
+                // the upstream scene. No agent is named here (invariant 3).
+                const keys = (index && index.rooms) ? Object.keys(index.rooms) : [];
+                if (keys.length === 1) {
+                    const entry = pickOfficeRoom(index, keys[0]);
+                    if (entry) return [String(keys[0]), entry, 'single-room index'];
+                }
                 return null;
             }
 

@@ -1,0 +1,9 @@
+{
+  "rooms": {
+    "andrzej": {
+      "room": "rooms/andrzej/room.json",
+      "props": "rooms/andrzej/props/",
+      "prop_count": 8
+    }
+  }
+}

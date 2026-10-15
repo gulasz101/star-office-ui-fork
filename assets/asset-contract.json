@@ -1,0 +1,2532 @@
+{
+  "assets": {
+    "cats": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 160,
+      "expected_frame_width": 160,
+      "expected_height": 640,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 640,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "cats-spritesheet",
+          "mode": null,
+          "path": "frontend/cats-spritesheet.png",
+          "ref": "'/static/cats-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "cats-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": true,
+          "logical_asset": "cats-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/cats-spritesheet.webp",
+          "ref": "'/static/cats-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "cats-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": false,
+          "logical_asset": "cats-spritesheet",
+          "mode": null,
+          "path": "frontend/cats-spritesheet.png",
+          "ref": "'/static/cats-spritesheet' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "cats-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": false,
+          "logical_asset": "cats-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/cats-spritesheet.webp",
+          "ref": "'/static/cats-spritesheet' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "cats-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "cats-spritesheet",
+          "mode": null,
+          "path": "frontend/cats-spritesheet.png",
+          "ref": "'/static/cats-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "cats-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": true,
+          "logical_asset": "cats-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/cats-spritesheet.webp",
+          "ref": "'/static/cats-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "cats-spritesheet.webp",
+          "width": 640
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 4,
+        "total": 16
+      },
+      "key": "cats",
+      "live": true,
+      "logical_asset": "cats-spritesheet",
+      "logical_assets": [
+        "cats-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "coffee_machine": {
+      "anims": [
+        {
+          "end": null,
+          "key": "coffee_machine",
+          "source": "frontend/electron-standalone.html",
+          "start": 0
+        },
+        {
+          "end": 95,
+          "key": "coffee_machine",
+          "source": "frontend/game.js",
+          "start": 0
+        },
+        {
+          "end": null,
+          "key": "coffee_machine",
+          "source": "frontend/index.html",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 230,
+      "expected_frame_width": 230,
+      "expected_height": 1840,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 2760,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": null,
+          "live": true,
+          "logical_asset": "coffee-machine-v3-grid",
+          "mode": null,
+          "path": "frontend/coffee-machine-v3-grid.png",
+          "ref": "'/static/coffee-machine-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "coffee-machine-v3-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 12,
+            "rows": 8,
+            "total": 96
+          },
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": 1840,
+          "live": true,
+          "logical_asset": "coffee-machine-v3-grid",
+          "mode": "RGBA",
+          "path": "frontend/coffee-machine-v3-grid.webp",
+          "ref": "'/static/coffee-machine-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "coffee-machine-v3-grid.webp",
+          "width": 2760
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": null,
+          "live": false,
+          "logical_asset": "coffee-machine-spritesheet",
+          "mode": null,
+          "path": "frontend/coffee-machine-spritesheet.png",
+          "ref": "'/static/coffee-machine-spritesheet' + getExt('coffee-machine-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "coffee-machine-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": null,
+          "live": false,
+          "logical_asset": "coffee-machine-spritesheet",
+          "mode": null,
+          "path": "frontend/coffee-machine-spritesheet.webp",
+          "ref": "'/static/coffee-machine-spritesheet' + getExt('coffee-machine-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "coffee-machine-spritesheet.webp",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": null,
+          "live": true,
+          "logical_asset": "coffee-machine-v3-grid",
+          "mode": null,
+          "path": "frontend/coffee-machine-v3-grid.png",
+          "ref": "'/static/coffee-machine-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "coffee-machine-v3-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 12,
+            "rows": 8,
+            "total": 96
+          },
+          "frame_height": 230,
+          "frame_width": 230,
+          "height": 1840,
+          "live": true,
+          "logical_asset": "coffee-machine-v3-grid",
+          "mode": "RGBA",
+          "path": "frontend/coffee-machine-v3-grid.webp",
+          "ref": "'/static/coffee-machine-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "coffee-machine-v3-grid.webp",
+          "width": 2760
+        }
+      ],
+      "frame_count": {
+        "columns": 12,
+        "rows": 8,
+        "total": 96
+      },
+      "key": "coffee_machine",
+      "live": true,
+      "logical_asset": "coffee-machine-v3-grid",
+      "logical_assets": [
+        "coffee-machine-spritesheet",
+        "coffee-machine-v3-grid"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "error_bug": {
+      "anims": [
+        {
+          "end": 71,
+          "key": "error_bug",
+          "source": "frontend/electron-standalone.html",
+          "start": 0
+        },
+        {
+          "end": 95,
+          "key": "error_bug",
+          "source": "frontend/game.js",
+          "start": 0
+        },
+        {
+          "end": 71,
+          "key": "error_bug",
+          "source": "frontend/index.html",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 220,
+      "expected_frame_width": 220,
+      "expected_height": 1980,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 1760,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 220,
+          "frame_width": 220,
+          "height": null,
+          "live": true,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/error-bug-spritesheet-grid.png",
+          "ref": "'/static/error-bug-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "error-bug-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 9,
+            "total": 72
+          },
+          "frame_height": 220,
+          "frame_width": 220,
+          "height": 1980,
+          "live": true,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/error-bug-spritesheet-grid.webp",
+          "ref": "'/static/error-bug-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "error-bug-spritesheet-grid.webp",
+          "width": 1760
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 180,
+          "frame_width": 180,
+          "height": null,
+          "live": false,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/error-bug-spritesheet-grid.png",
+          "ref": "'/static/error-bug-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "error-bug-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "not_an_exact_multiple"
+          ],
+          "exists": true,
+          "frame_count": null,
+          "frame_height": 180,
+          "frame_width": 180,
+          "height": 1980,
+          "live": false,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/error-bug-spritesheet-grid.webp",
+          "ref": "'/static/error-bug-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "error-bug-spritesheet-grid.webp",
+          "width": 1760
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 220,
+          "frame_width": 220,
+          "height": null,
+          "live": true,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/error-bug-spritesheet-grid.png",
+          "ref": "'/static/error-bug-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "error-bug-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 9,
+            "total": 72
+          },
+          "frame_height": 220,
+          "frame_width": 220,
+          "height": 1980,
+          "live": true,
+          "logical_asset": "error-bug-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/error-bug-spritesheet-grid.webp",
+          "ref": "'/static/error-bug-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "error-bug-spritesheet-grid.webp",
+          "width": 1760
+        }
+      ],
+      "frame_count": {
+        "columns": 8,
+        "rows": 9,
+        "total": 72
+      },
+      "key": "error_bug",
+      "live": true,
+      "logical_asset": "error-bug-spritesheet-grid",
+      "logical_assets": [
+        "error-bug-spritesheet-grid"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "flowers": {
+      "anims": [],
+      "dynamic_frame_size": true,
+      "expected_frame_height": 128,
+      "expected_frame_width": 128,
+      "expected_height": 512,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 512,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": null,
+          "live": true,
+          "logical_asset": "flowers-bloom-v2",
+          "mode": null,
+          "path": "frontend/flowers-bloom-v2.png",
+          "ref": "'/static/flowers-bloom-v2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "flowers-bloom-v2.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": 512,
+          "live": true,
+          "logical_asset": "flowers-bloom-v2",
+          "mode": "RGBA",
+          "path": "frontend/flowers-bloom-v2.webp",
+          "ref": "'/static/flowers-bloom-v2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "flowers-bloom-v2.webp",
+          "width": 512
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 65,
+          "frame_width": 65,
+          "height": null,
+          "live": false,
+          "logical_asset": "flowers-spritesheet",
+          "mode": null,
+          "path": "frontend/flowers-spritesheet.png",
+          "ref": "'/static/flowers-spritesheet' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "flowers-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 65,
+          "frame_width": 65,
+          "height": null,
+          "live": false,
+          "logical_asset": "flowers-spritesheet",
+          "mode": null,
+          "path": "frontend/flowers-spritesheet.webp",
+          "ref": "'/static/flowers-spritesheet' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "flowers-spritesheet.webp",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": null,
+          "live": true,
+          "logical_asset": "flowers-bloom-v2",
+          "mode": null,
+          "path": "frontend/flowers-bloom-v2.png",
+          "ref": "'/static/flowers-bloom-v2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "flowers-bloom-v2.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": 512,
+          "live": true,
+          "logical_asset": "flowers-bloom-v2",
+          "mode": "RGBA",
+          "path": "frontend/flowers-bloom-v2.webp",
+          "ref": "'/static/flowers-bloom-v2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "flowers-bloom-v2.webp",
+          "width": 512
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 4,
+        "total": 16
+      },
+      "key": "flowers",
+      "live": true,
+      "logical_asset": "flowers-bloom-v2",
+      "logical_assets": [
+        "flowers-bloom-v2",
+        "flowers-spritesheet"
+      ],
+      "placement": [
+        {
+          "file": "asset-defaults.json",
+          "filename": "flowers-bloom-v2.webp",
+          "scale": 0.8,
+          "updated_at": "2026-03-03T01:32:18.211712",
+          "x": 310.0,
+          "y": 390.0
+        }
+      ],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_1": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_1",
+          "mode": null,
+          "path": "frontend/guest_anim_1.png",
+          "ref": "'/static/guest_anim_1.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_1.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_1",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_1.webp",
+          "ref": "'/static/guest_anim_1.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_1.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_1",
+          "mode": null,
+          "path": "frontend/guest_anim_1.png",
+          "ref": "'/static/guest_anim_1.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_1.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_1",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_1.webp",
+          "ref": "'/static/guest_anim_1.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_1.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_1",
+      "live": true,
+      "logical_asset": "guest_anim_1",
+      "logical_assets": [
+        "guest_anim_1"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_2": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_2",
+          "mode": null,
+          "path": "frontend/guest_anim_2.png",
+          "ref": "'/static/guest_anim_2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_2.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_2",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_2.webp",
+          "ref": "'/static/guest_anim_2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_2.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_2",
+          "mode": null,
+          "path": "frontend/guest_anim_2.png",
+          "ref": "'/static/guest_anim_2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_2.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_2",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_2.webp",
+          "ref": "'/static/guest_anim_2.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_2.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_2",
+      "live": true,
+      "logical_asset": "guest_anim_2",
+      "logical_assets": [
+        "guest_anim_2"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_3": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_3",
+          "mode": null,
+          "path": "frontend/guest_anim_3.png",
+          "ref": "'/static/guest_anim_3.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_3.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_3",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_3.webp",
+          "ref": "'/static/guest_anim_3.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_3.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_3",
+          "mode": null,
+          "path": "frontend/guest_anim_3.png",
+          "ref": "'/static/guest_anim_3.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_3.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_3",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_3.webp",
+          "ref": "'/static/guest_anim_3.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_3.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_3",
+      "live": true,
+      "logical_asset": "guest_anim_3",
+      "logical_assets": [
+        "guest_anim_3"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_4": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_4",
+          "mode": null,
+          "path": "frontend/guest_anim_4.png",
+          "ref": "'/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_4.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_4",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_4.webp",
+          "ref": "'/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_4.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_4",
+          "mode": null,
+          "path": "frontend/guest_anim_4.png",
+          "ref": "'/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_4.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_4",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_4.webp",
+          "ref": "'/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_4.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_4",
+      "live": true,
+      "logical_asset": "guest_anim_4",
+      "logical_assets": [
+        "guest_anim_4"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_5": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_5",
+          "mode": null,
+          "path": "frontend/guest_anim_5.png",
+          "ref": "'/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_5.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_5",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_5.webp",
+          "ref": "'/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_5.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_5",
+          "mode": null,
+          "path": "frontend/guest_anim_5.png",
+          "ref": "'/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_5.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_5",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_5.webp",
+          "ref": "'/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_5.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_5",
+      "live": true,
+      "logical_asset": "guest_anim_5",
+      "logical_assets": [
+        "guest_anim_5"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "guest_anim_6": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 32,
+      "expected_frame_width": 32,
+      "expected_height": 64,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 128,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_6",
+          "mode": null,
+          "path": "frontend/guest_anim_6.png",
+          "ref": "'/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_6.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_6",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_6.webp",
+          "ref": "'/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "guest_anim_6.webp",
+          "width": 128
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": null,
+          "live": true,
+          "logical_asset": "guest_anim_6",
+          "mode": null,
+          "path": "frontend/guest_anim_6.png",
+          "ref": "'/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_6.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 2,
+            "total": 8
+          },
+          "frame_height": 32,
+          "frame_width": 32,
+          "height": 64,
+          "live": true,
+          "logical_asset": "guest_anim_6",
+          "mode": "RGBA",
+          "path": "frontend/guest_anim_6.webp",
+          "ref": "'/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "guest_anim_6.webp",
+          "width": 128
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 2,
+        "total": 8
+      },
+      "key": "guest_anim_6",
+      "live": true,
+      "logical_asset": "guest_anim_6",
+      "logical_assets": [
+        "guest_anim_6"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "plants": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 160,
+      "expected_frame_width": 160,
+      "expected_height": 640,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 640,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "plants-spritesheet",
+          "mode": null,
+          "path": "frontend/plants-spritesheet.png",
+          "ref": "'/static/plants-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "plants-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": true,
+          "logical_asset": "plants-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/plants-spritesheet.webp",
+          "ref": "'/static/plants-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "plants-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": false,
+          "logical_asset": "plants-spritesheet",
+          "mode": null,
+          "path": "frontend/plants-spritesheet.png",
+          "ref": "'/static/plants-spritesheet' + getExt('plants-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "plants-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": false,
+          "logical_asset": "plants-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/plants-spritesheet.webp",
+          "ref": "'/static/plants-spritesheet' + getExt('plants-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "plants-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "plants-spritesheet",
+          "mode": null,
+          "path": "frontend/plants-spritesheet.png",
+          "ref": "'/static/plants-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "plants-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 4,
+            "total": 16
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 640,
+          "live": true,
+          "logical_asset": "plants-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/plants-spritesheet.webp",
+          "ref": "'/static/plants-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "plants-spritesheet.webp",
+          "width": 640
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 4,
+        "total": 16
+      },
+      "key": "plants",
+      "live": true,
+      "logical_asset": "plants-spritesheet",
+      "logical_assets": [
+        "plants-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "posters": {
+      "anims": [],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 160,
+      "expected_frame_width": 160,
+      "expected_height": 1280,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 640,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "posters-spritesheet",
+          "mode": null,
+          "path": "frontend/posters-spritesheet.png",
+          "ref": "'/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "posters-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 8,
+            "total": 32
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 1280,
+          "live": true,
+          "logical_asset": "posters-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/posters-spritesheet.webp",
+          "ref": "'/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "posters-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": false,
+          "logical_asset": "posters-spritesheet",
+          "mode": null,
+          "path": "frontend/posters-spritesheet.png",
+          "ref": "'/static/posters-spritesheet' + getExt('posters-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "posters-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 8,
+            "total": 32
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 1280,
+          "live": false,
+          "logical_asset": "posters-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/posters-spritesheet.webp",
+          "ref": "'/static/posters-spritesheet' + getExt('posters-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "posters-spritesheet.webp",
+          "width": 640
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": null,
+          "live": true,
+          "logical_asset": "posters-spritesheet",
+          "mode": null,
+          "path": "frontend/posters-spritesheet.png",
+          "ref": "'/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "posters-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 4,
+            "rows": 8,
+            "total": 32
+          },
+          "frame_height": 160,
+          "frame_width": 160,
+          "height": 1280,
+          "live": true,
+          "logical_asset": "posters-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/posters-spritesheet.webp",
+          "ref": "'/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "posters-spritesheet.webp",
+          "width": 640
+        }
+      ],
+      "frame_count": {
+        "columns": 4,
+        "rows": 8,
+        "total": 32
+      },
+      "key": "posters",
+      "live": true,
+      "logical_asset": "posters-spritesheet",
+      "logical_assets": [
+        "posters-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "serverroom": {
+      "anims": [
+        {
+          "end": null,
+          "key": "serverroom",
+          "source": "frontend/electron-standalone.html",
+          "start": 0
+        },
+        {
+          "end": 39,
+          "key": "serverroom",
+          "source": "frontend/game.js",
+          "start": 0
+        },
+        {
+          "end": null,
+          "key": "serverroom",
+          "source": "frontend/index.html",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 251,
+      "expected_frame_width": 180,
+      "expected_height": 251,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 7200,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": null,
+          "live": true,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": null,
+          "path": "frontend/serverroom-spritesheet.png",
+          "ref": "'/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "serverroom-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 40,
+            "rows": 1,
+            "total": 40
+          },
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": 251,
+          "live": true,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/serverroom-spritesheet.webp",
+          "ref": "'/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "serverroom-spritesheet.webp",
+          "width": 7200
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": null,
+          "live": false,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": null,
+          "path": "frontend/serverroom-spritesheet.png",
+          "ref": "'/static/serverroom-spritesheet' + getExt('serverroom-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "serverroom-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 40,
+            "rows": 1,
+            "total": 40
+          },
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": 251,
+          "live": false,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/serverroom-spritesheet.webp",
+          "ref": "'/static/serverroom-spritesheet' + getExt('serverroom-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "serverroom-spritesheet.webp",
+          "width": 7200
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": null,
+          "live": true,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": null,
+          "path": "frontend/serverroom-spritesheet.png",
+          "ref": "'/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "serverroom-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 40,
+            "rows": 1,
+            "total": 40
+          },
+          "frame_height": 251,
+          "frame_width": 180,
+          "height": 251,
+          "live": true,
+          "logical_asset": "serverroom-spritesheet",
+          "mode": "RGBA",
+          "path": "frontend/serverroom-spritesheet.webp",
+          "ref": "'/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "serverroom-spritesheet.webp",
+          "width": 7200
+        }
+      ],
+      "frame_count": {
+        "columns": 40,
+        "rows": 1,
+        "total": 40
+      },
+      "key": "serverroom",
+      "live": true,
+      "logical_asset": "serverroom-spritesheet",
+      "logical_assets": [
+        "serverroom-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "sofa_busy": {
+      "anims": [
+        {
+          "end": 47,
+          "key": "sofa_busy",
+          "source": "frontend/game.js",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 256,
+      "expected_frame_width": 256,
+      "expected_height": null,
+      "expected_source": "frontend/game.js",
+      "expected_width": null,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": false,
+          "logical_asset": "sofa-busy-spritesheet",
+          "mode": null,
+          "path": "frontend/sofa-busy-spritesheet.png",
+          "ref": "'/static/sofa-busy-spritesheet' + getExt('sofa-busy-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "sofa-busy-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": false,
+          "logical_asset": "sofa-busy-spritesheet",
+          "mode": null,
+          "path": "frontend/sofa-busy-spritesheet.webp",
+          "ref": "'/static/sofa-busy-spritesheet' + getExt('sofa-busy-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "sofa-busy-spritesheet.webp",
+          "width": null
+        }
+      ],
+      "frame_count": null,
+      "key": "sofa_busy",
+      "live": false,
+      "logical_asset": "sofa-busy-spritesheet",
+      "logical_assets": [
+        "sofa-busy-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js"
+      ]
+    },
+    "star_idle": {
+      "anims": [
+        {
+          "end": null,
+          "key": "star_idle",
+          "source": "frontend/electron-standalone.html",
+          "start": 0
+        },
+        {
+          "end": 29,
+          "key": "star_idle",
+          "source": "frontend/game.js",
+          "start": 0
+        },
+        {
+          "end": null,
+          "key": "star_idle",
+          "source": "frontend/index.html",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 256,
+      "expected_frame_width": 256,
+      "expected_height": 1536,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 2048,
+      "files": [
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 6,
+            "total": 48
+          },
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": 1536,
+          "live": true,
+          "logical_asset": "star-idle-v5",
+          "mode": "RGBA",
+          "path": "frontend/star-idle-v5.png",
+          "ref": "'/static/star-idle-v5.png?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "star-idle-v5.png",
+          "width": 2048
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": true,
+          "logical_asset": "star-idle-v5",
+          "mode": null,
+          "path": "frontend/star-idle-v5.webp",
+          "ref": "'/static/star-idle-v5.png?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "star-idle-v5.webp",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": null,
+          "live": false,
+          "logical_asset": "star-idle-spritesheet",
+          "mode": null,
+          "path": "frontend/star-idle-spritesheet.png",
+          "ref": "'/static/star-idle-spritesheet' + getExt('star-idle-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "star-idle-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 128,
+          "frame_width": 128,
+          "height": null,
+          "live": false,
+          "logical_asset": "star-idle-spritesheet",
+          "mode": null,
+          "path": "frontend/star-idle-spritesheet.webp",
+          "ref": "'/static/star-idle-spritesheet' + getExt('star-idle-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "star-idle-spritesheet.webp",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 6,
+            "total": 48
+          },
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": 1536,
+          "live": true,
+          "logical_asset": "star-idle-v5",
+          "mode": "RGBA",
+          "path": "frontend/star-idle-v5.png",
+          "ref": "'/static/star-idle-v5.png?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "star-idle-v5.png",
+          "width": 2048
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": true,
+          "logical_asset": "star-idle-v5",
+          "mode": null,
+          "path": "frontend/star-idle-v5.webp",
+          "ref": "'/static/star-idle-v5.png?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "star-idle-v5.webp",
+          "width": null
+        }
+      ],
+      "frame_count": {
+        "columns": 8,
+        "rows": 6,
+        "total": 48
+      },
+      "key": "star_idle",
+      "live": true,
+      "logical_asset": "star-idle-v5",
+      "logical_assets": [
+        "star-idle-spritesheet",
+        "star-idle-v5"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "star_researching": {
+      "anims": [
+        {
+          "end": 95,
+          "key": "star_researching",
+          "source": "frontend/game.js",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 105,
+      "expected_frame_width": 128,
+      "expected_height": null,
+      "expected_source": "frontend/game.js",
+      "expected_width": null,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 105,
+          "frame_width": 128,
+          "height": null,
+          "live": false,
+          "logical_asset": "star-researching-spritesheet",
+          "mode": null,
+          "path": "frontend/star-researching-spritesheet.png",
+          "ref": "'/static/star-researching-spritesheet' + getExt('star-researching-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "star-researching-spritesheet.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 105,
+          "frame_width": 128,
+          "height": null,
+          "live": false,
+          "logical_asset": "star-researching-spritesheet",
+          "mode": null,
+          "path": "frontend/star-researching-spritesheet.webp",
+          "ref": "'/static/star-researching-spritesheet' + getExt('star-researching-spritesheet.png')",
+          "source": "frontend/game.js",
+          "variant": "star-researching-spritesheet.webp",
+          "width": null
+        }
+      ],
+      "frame_count": null,
+      "key": "star_researching",
+      "live": false,
+      "logical_asset": "star-researching-spritesheet",
+      "logical_assets": [
+        "star-researching-spritesheet"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js"
+      ]
+    },
+    "star_working": {
+      "anims": [
+        {
+          "end": 37,
+          "key": "star_working",
+          "source": "frontend/electron-standalone.html",
+          "start": 0
+        },
+        {
+          "end": 191,
+          "key": "star_working",
+          "source": "frontend/game.js",
+          "start": 0
+        },
+        {
+          "end": 37,
+          "key": "star_working",
+          "source": "frontend/index.html",
+          "start": 0
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 300,
+      "expected_frame_width": 300,
+      "expected_height": 1500,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 2400,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 300,
+          "frame_width": 300,
+          "height": null,
+          "live": true,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/star-working-spritesheet-grid.png",
+          "ref": "'/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "star-working-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 5,
+            "total": 40
+          },
+          "frame_height": 300,
+          "frame_width": 300,
+          "height": 1500,
+          "live": true,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/star-working-spritesheet-grid.webp",
+          "ref": "'/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "star-working-spritesheet-grid.webp",
+          "width": 2400
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 144,
+          "frame_width": 230,
+          "height": null,
+          "live": false,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/star-working-spritesheet-grid.png",
+          "ref": "'/static/star-working-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "star-working-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "not_an_exact_multiple"
+          ],
+          "exists": true,
+          "frame_count": null,
+          "frame_height": 144,
+          "frame_width": 230,
+          "height": 1500,
+          "live": false,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/star-working-spritesheet-grid.webp",
+          "ref": "'/static/star-working-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "star-working-spritesheet-grid.webp",
+          "width": 2400
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 300,
+          "frame_width": 300,
+          "height": null,
+          "live": true,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/star-working-spritesheet-grid.png",
+          "ref": "'/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "star-working-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 8,
+            "rows": 5,
+            "total": 40
+          },
+          "frame_height": 300,
+          "frame_width": 300,
+          "height": 1500,
+          "live": true,
+          "logical_asset": "star-working-spritesheet-grid",
+          "mode": "RGBA",
+          "path": "frontend/star-working-spritesheet-grid.webp",
+          "ref": "'/static/star-working-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "star-working-spritesheet-grid.webp",
+          "width": 2400
+        }
+      ],
+      "frame_count": {
+        "columns": 8,
+        "rows": 5,
+        "total": 40
+      },
+      "key": "star_working",
+      "live": true,
+      "logical_asset": "star-working-spritesheet-grid",
+      "logical_assets": [
+        "star-working-spritesheet-grid"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    },
+    "sync_anim": {
+      "anims": [
+        {
+          "end": null,
+          "key": "sync_anim",
+          "source": "frontend/electron-standalone.html",
+          "start": 1
+        },
+        {
+          "end": 52,
+          "key": "sync_anim",
+          "source": "frontend/game.js",
+          "start": 1
+        },
+        {
+          "end": null,
+          "key": "sync_anim",
+          "source": "frontend/index.html",
+          "start": 1
+        }
+      ],
+      "dynamic_frame_size": false,
+      "expected_frame_height": 256,
+      "expected_frame_width": 256,
+      "expected_height": 1792,
+      "expected_source": "frontend/electron-standalone.html",
+      "expected_width": 1792,
+      "files": [
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": true,
+          "logical_asset": "sync-animation-v3-grid",
+          "mode": null,
+          "path": "frontend/sync-animation-v3-grid.png",
+          "ref": "'/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "sync-animation-v3-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 7,
+            "rows": 7,
+            "total": 49
+          },
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": 1792,
+          "live": true,
+          "logical_asset": "sync-animation-v3-grid",
+          "mode": "RGBA",
+          "path": "frontend/sync-animation-v3-grid.webp",
+          "ref": "'/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/electron-standalone.html",
+          "variant": "sync-animation-v3-grid.webp",
+          "width": 1792
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": false,
+          "logical_asset": "sync-animation-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/sync-animation-spritesheet-grid.png",
+          "ref": "'/static/sync-animation-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "sync-animation-spritesheet-grid.png",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": false,
+          "logical_asset": "sync-animation-spritesheet-grid",
+          "mode": null,
+          "path": "frontend/sync-animation-spritesheet-grid.webp",
+          "ref": "'/static/sync-animation-spritesheet-grid' + (supportsWebP ? '.webp' : '.png')",
+          "source": "frontend/game.js",
+          "variant": "sync-animation-spritesheet-grid.webp",
+          "width": null
+        },
+        {
+          "errors": [
+            "file_not_found"
+          ],
+          "exists": false,
+          "frame_count": null,
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": null,
+          "live": true,
+          "logical_asset": "sync-animation-v3-grid",
+          "mode": null,
+          "path": "frontend/sync-animation-v3-grid.png",
+          "ref": "'/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "sync-animation-v3-grid.png",
+          "width": null
+        },
+        {
+          "errors": [],
+          "exists": true,
+          "frame_count": {
+            "columns": 7,
+            "rows": 7,
+            "total": 49
+          },
+          "frame_height": 256,
+          "frame_width": 256,
+          "height": 1792,
+          "live": true,
+          "logical_asset": "sync-animation-v3-grid",
+          "mode": "RGBA",
+          "path": "frontend/sync-animation-v3-grid.webp",
+          "ref": "'/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}'",
+          "source": "frontend/index.html",
+          "variant": "sync-animation-v3-grid.webp",
+          "width": 1792
+        }
+      ],
+      "frame_count": {
+        "columns": 7,
+        "rows": 7,
+        "total": 49
+      },
+      "key": "sync_anim",
+      "live": true,
+      "logical_asset": "sync-animation-v3-grid",
+      "logical_assets": [
+        "sync-animation-spritesheet-grid",
+        "sync-animation-v3-grid"
+      ],
+      "placement": [],
+      "sources": [
+        "frontend/game.js",
+        "frontend/index.html",
+        "frontend/electron-standalone.html"
+      ]
+    }
+  },
+  "conflicts": [
+    {
+      "key": "coffee_machine",
+      "kind": "logical_asset",
+      "logical_asset": "coffee-machine-v3-grid",
+      "logical_assets": [
+        "coffee-machine-spritesheet",
+        "coffee-machine-v3-grid"
+      ],
+      "sources": [
+        "frontend/electron-standalone.html",
+        "frontend/game.js",
+        "frontend/index.html"
+      ]
+    },
+    {
+      "key": "error_bug",
+      "kind": "frame_size",
+      "logical_asset": "error-bug-spritesheet-grid",
+      "sources": [
+        {
+          "frame_height": 220,
+          "frame_width": 220,
+          "live": true,
+          "source": "frontend/electron-standalone.html"
+        },
+        {
+          "frame_height": 180,
+          "frame_width": 180,
+          "live": false,
+          "source": "frontend/game.js"
+        },
+        {
+          "frame_height": 220,
+          "frame_width": 220,
+          "live": true,
+          "source": "frontend/index.html"
+        }
+      ]
+    },
+    {
+      "key": "flowers",
+      "kind": "frame_size",
+      "logical_asset": "flowers-bloom-v2",
+      "sources": [
+        {
+          "frame_height": 128,
+          "frame_width": 128,
+          "live": true,
+          "source": "frontend/electron-standalone.html"
+        },
+        {
+          "frame_height": 65,
+          "frame_width": 65,
+          "live": false,
+          "source": "frontend/game.js"
+        },
+        {
+          "frame_height": 128,
+          "frame_width": 128,
+          "live": true,
+          "source": "frontend/index.html"
+        }
+      ]
+    },
+    {
+      "key": "flowers",
+      "kind": "logical_asset",
+      "logical_asset": "flowers-bloom-v2",
+      "logical_assets": [
+        "flowers-bloom-v2",
+        "flowers-spritesheet"
+      ],
+      "sources": [
+        "frontend/electron-standalone.html",
+        "frontend/game.js",
+        "frontend/index.html"
+      ]
+    },
+    {
+      "key": "star_idle",
+      "kind": "frame_size",
+      "logical_asset": "star-idle-v5",
+      "sources": [
+        {
+          "frame_height": 256,
+          "frame_width": 256,
+          "live": true,
+          "source": "frontend/electron-standalone.html"
+        },
+        {
+          "frame_height": 128,
+          "frame_width": 128,
+          "live": false,
+          "source": "frontend/game.js"
+        },
+        {
+          "frame_height": 256,
+          "frame_width": 256,
+          "live": true,
+          "source": "frontend/index.html"
+        }
+      ]
+    },
+    {
+      "key": "star_idle",
+      "kind": "logical_asset",
+      "logical_asset": "star-idle-v5",
+      "logical_assets": [
+        "star-idle-spritesheet",
+        "star-idle-v5"
+      ],
+      "sources": [
+        "frontend/electron-standalone.html",
+        "frontend/game.js",
+        "frontend/index.html"
+      ]
+    },
+    {
+      "key": "star_working",
+      "kind": "frame_size",
+      "logical_asset": "star-working-spritesheet-grid",
+      "sources": [
+        {
+          "frame_height": 300,
+          "frame_width": 300,
+          "live": true,
+          "source": "frontend/electron-standalone.html"
+        },
+        {
+          "frame_height": 144,
+          "frame_width": 230,
+          "live": false,
+          "source": "frontend/game.js"
+        },
+        {
+          "frame_height": 300,
+          "frame_width": 300,
+          "live": true,
+          "source": "frontend/index.html"
+        }
+      ]
+    },
+    {
+      "key": "sync_anim",
+      "kind": "logical_asset",
+      "logical_asset": "sync-animation-v3-grid",
+      "logical_assets": [
+        "sync-animation-spritesheet-grid",
+        "sync-animation-v3-grid"
+      ],
+      "sources": [
+        "frontend/electron-standalone.html",
+        "frontend/game.js",
+        "frontend/index.html"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "fatal": false,
+      "file": null,
+      "key": "error_bug",
+      "message": "animation uses frames 0..95 but the sheet only holds 72",
+      "source": "frontend/game.js",
+      "type": "animation_reads_past_the_sheet"
+    },
+    {
+      "fatal": false,
+      "file": "frontend/error-bug-spritesheet-grid.webp",
+      "key": "error_bug",
+      "message": "1760x1980 is not an exact multiple of frame 180x180 (9.778 x 11.000)",
+      "source": "frontend/game.js",
+      "type": "not_an_exact_multiple"
+    },
+    {
+      "fatal": false,
+      "file": null,
+      "key": "star_working",
+      "message": "animation uses frames 0..191 but the sheet only holds 40",
+      "source": "frontend/game.js",
+      "type": "animation_reads_past_the_sheet"
+    },
+    {
+      "fatal": false,
+      "file": "frontend/star-working-spritesheet-grid.webp",
+      "key": "star_working",
+      "message": "2400x1500 is not an exact multiple of frame 230x144 (10.435 x 10.417)",
+      "source": "frontend/game.js",
+      "type": "not_an_exact_multiple"
+    },
+    {
+      "fatal": false,
+      "file": null,
+      "key": "sync_anim",
+      "message": "animation uses frames 1..52 but the sheet only holds 49",
+      "source": "frontend/game.js",
+      "type": "animation_reads_past_the_sheet"
+    }
+  ],
+  "generator": "scripts/extract_asset_contract.py",
+  "placement": {
+    "asset-defaults.json": {
+      "flowers-bloom-v2.webp": {
+        "scale": 0.8,
+        "updated_at": "2026-03-03T01:32:18.211712",
+        "x": 310.0,
+        "y": 390.0
+      }
+    },
+    "asset-positions.json": {
+      "desk-v3.webp": {
+        "updated_at": "2026-03-02T15:58:27.228023",
+        "x": 218.0,
+        "y": 417.0
+      }
+    }
+  },
+  "schema_version": 1,
+  "sources": [
+    {
+      "file": "frontend/game.js",
+      "live": false,
+      "spritesheets": 12
+    },
+    {
+      "file": "frontend/index.html",
+      "live": true,
+      "spritesheets": 16
+    },
+    {
+      "file": "frontend/electron-standalone.html",
+      "live": true,
+      "spritesheets": 16
+    }
+  ],
+  "summary": {
+    "assets": 18,
+    "conflicts": 8,
+    "errors": 5,
+    "fatal_errors": 0,
+    "legacy_only_errors": 5,
+    "placement_entries": 2,
+    "spritesheet_declarations": 44
+  }
+}

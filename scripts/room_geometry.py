@@ -45,18 +45,27 @@ ROOM = {
     # pixel-art convention, and props are gated tightly to it rather than tolerated.
     "projection": "true isometric, 30 degrees (base slope 0.5774; Pharaoh/Zeus look)",
     "floor": {
-        "origin": {"x": 640, "y": 300},      # grid (0,0) on screen; the floor's far corner
+        "origin": {"x": 640, "y": 250},      # grid (0,0) on screen; the floor's far corner
         "tile_w": 96,
         "tile_h": 55,                         # 55/96 = 0.573 ~= tan(30 deg); see DECIDED above
-        "grid": {"x": 14, "y": 14},           # how many cells each way are drawn
+        # 12x12 keeps the floor diamond inside the canvas horizontally (x 64..1216) and puts the
+        # far corner at y=250 so a 250px wall rise reaches y=0 exactly. The NEAR corner falls off
+        # the bottom of the frame at y=910 - that is normal for a game camera showing part of a
+        # room, and unlike side clipping it is not an asymmetry.
+        "grid": {"x": 12, "y": 12},           # how many cells each way are drawn
         "colours": {"a": (76, 84, 104), "b": (68, 76, 94), "grout": (44, 52, 68)},
     },
     "wall": {
-        "seam_y": 300,                        # floor plane starts here; baseboard sits on it
-        "colour": (58, 70, 94),
-        "upper_colour": (48, 60, 82),
-        "baseboard": (38, 46, 62),
-        "height_px": 60,                      # thickness of darker band under the seam
+        # The room is enclosed by the TWO far wall planes, raised from the two far edges of the
+        # floor diamond. A flat horizontal band (the first version) is what made the composite
+        # read as "an asset blockout floating on a plane": with a declared lattice the walls are
+        # geometry, not a gradient.
+        "rise_px": 250,                        # wall height in screen pixels, purely vertical
+        "colour": (58, 70, 94),                # left-back plane
+        "colour2": (50, 61, 84),               # right-back plane (slightly darker = corner reads)
+        "baseboard": (34, 42, 58),
+        "baseboard_px": 14,
+        "void": (22, 26, 36),                  # outside the room, incl. above the walls
     },
 }
 
@@ -67,20 +76,35 @@ def grid_to_screen(gx, gy, f=None):
     return (o["x"] + (gx - gy) * tw / 2.0, o["y"] + (gx + gy) * th / 2.0)
 
 
+def wall_to_screen(gx, height, side="right", f=None):
+    """Screen position on a WALL PLANE - the second anchor type from ADR-065.
+
+    A wall-mounted object is not on the floor grid: it has a position ALONG the wall and a
+    height ABOVE the floor seam. Keeping this separate from grid_to_screen is what lets
+    wall decor and floor furniture stay consistent without pretending they share a plane.
+
+    side="right" -> the plane rising from the floor edge (0,0)->(gx_max,0)
+    side="left"  -> the plane rising from the floor edge (0,0)->(0,gy_max)
+    """
+    f = f or ROOM["floor"]
+    a = grid_to_screen(0, 0, f)
+    if side == "right":
+        b = grid_to_screen(f["grid"]["x"], 0, f)
+    else:
+        b = grid_to_screen(0, f["grid"]["y"], f)
+    t = gx / float(f["grid"]["x"] if side == "right" else f["grid"]["y"])
+    x = a[0] + (b[0] - a[0]) * t
+    y = a[1] + (b[1] - a[1]) * t - height
+    return (x, y)
+
+
 def draw_room(show_grid=False):
     W, H = ROOM["canvas"]["w"], ROOM["canvas"]["h"]
     w, f = ROOM["wall"], ROOM["floor"]
-    img = Image.new("RGB", (W, H), w["upper_colour"])
+    img = Image.new("RGB", (W, H), w["void"])
     d = ImageDraw.Draw(img)
 
-    # wall: subtle vertical gradient, then the baseboard band
-    for y in range(0, w["seam_y"]):
-        t = y / max(1, w["seam_y"])
-        c = tuple(int(w["upper_colour"][i] + (w["colour"][i] - w["upper_colour"][i]) * t) for i in range(3))
-        d.line([(0, y), (W, y)], fill=c)
-    d.rectangle([0, w["seam_y"] - w["height_px"], W, w["seam_y"]], fill=w["baseboard"])
-
-    # floor: alternating rhombi on the declared lattice
+    # --- floor: alternating rhombi on the declared lattice ---
     gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
     for gx in range(gx_max):
         for gy in range(gy_max):
@@ -88,6 +112,55 @@ def draw_room(show_grid=False):
                    grid_to_screen(gx + 1, gy + 1), grid_to_screen(gx, gy + 1)]
             col = f["colours"]["a"] if (gx + gy) % 2 == 0 else f["colours"]["b"]
             d.polygon(pts, fill=col, outline=f["colours"]["grout"] if show_grid else None)
+
+    # --- the two rising wall planes, drawn from the same lattice ---
+    rise = w["rise_px"]
+    corners = {
+        "far": grid_to_screen(0, 0),
+        "right": grid_to_screen(gx_max, 0),
+        "left": grid_to_screen(0, gy_max),
+    }
+    for side, colour in (("left", w["colour"]), ("right", w["colour2"])):
+        a = corners["far"]
+        b = corners["left"] if side == "left" else corners["right"]
+        quad = [a, b, (b[0], b[1] - rise), (a[0], a[1] - rise)]
+        d.polygon(quad, fill=colour)
+        # baseboard: a band sitting on the floor seam
+        bb = w["baseboard_px"]
+        band = [a, b, (b[0], b[1] - bb), (a[0], a[1] - bb)]
+        d.polygon(band, fill=w["baseboard"])
+        if show_grid:
+            d.line([a, (a[0], a[1] - rise)], fill=(120, 130, 150))
+            d.line([b, (b[0], b[1] - rise)], fill=(120, 130, 150))
+    if show_grid:
+        d.line([corners["far"], (corners["far"][0], corners["far"][1] - rise)], fill=(120, 130, 150))
+
+    # --- architectural cues. Without these the walls read as flat planes fading into the void
+    # (review: "no wall top, no corner, no material"). All derived from the same lattice. ---
+    def shade(col, f):
+        return tuple(max(0, min(255, int(c * f))) for c in col)
+
+    for side, colour in (("left", w["colour"]), ("right", w["colour2"])):
+        a = corners["far"]
+        b = corners["left"] if side == "left" else corners["right"]
+        top_a = (a[0], a[1] - rise)
+        top_b = (b[0], b[1] - rise)
+        # wall-top cap: a lighter band so the wall has thickness instead of fading out
+        d.line([top_a, top_b], fill=shade(colour, 1.45), width=5)
+        d.line([(top_a[0] + 3, top_a[1] + 6), (top_b[0] + 3, top_b[1] + 6)], fill=shade(colour, 0.8), width=2)
+        # panel joins every tile along the wall: gives the plane a material and a scale
+        n = f["grid"]["x"] if side == "right" else f["grid"]["y"]
+        for gi in range(1, n):
+            p0 = wall_to_screen(gi, 0, side)
+            d.line([(p0[0], p0[1] - 2), (p0[0], p0[1] - rise + 6)], fill=shade(colour, 0.86), width=2)
+        # ambient occlusion where the wall meets the floor: the seam needs weight or both the
+        # wall and the objects on the floor read as pasted on
+        d.line([a, b], fill=shade(w["baseboard"], 0.6), width=3)
+
+    # the inside corner: a vertical seam so the 90-degree join is legible
+    cx, cy = corners["far"]
+    d.line([(cx, cy - rise + 2), (cx, cy)], fill=shade(w["baseboard"], 0.5), width=4)
+    d.line([(cx + 2, cy - rise + 2), (cx + 2, cy)], fill=shade(w["colour"], 0.55), width=2)
     return img, d
 
 

@@ -4,17 +4,17 @@
       "w": 1280,
       "h": 720
     },
-    "projection": "true 2:1 isometric",
+    "projection": "true isometric, 30 degrees (base slope 0.5774; Pharaoh/Zeus look)",
     "floor": {
       "origin": {
         "x": 640,
-        "y": 300
+        "y": 250
       },
       "tile_w": 96,
-      "tile_h": 48,
+      "tile_h": 55,
       "grid": {
-        "x": 14,
-        "y": 14
+        "x": 12,
+        "y": 12
       },
       "colours": {
         "a": [
@@ -35,23 +35,28 @@
       }
     },
     "wall": {
-      "seam_y": 300,
+      "rise_px": 250,
       "colour": [
         58,
         70,
         94
       ],
-      "upper_colour": [
-        48,
-        60,
-        82
+      "colour2": [
+        50,
+        61,
+        84
       ],
       "baseboard": [
-        38,
-        46,
-        62
+        34,
+        42,
+        58
       ],
-      "height_px": 60
+      "baseboard_px": 14,
+      "void": [
+        22,
+        26,
+        36
+      ]
     }
   },
   "placed": [
@@ -63,7 +68,7 @@
       ],
       "anchor_px": [
         688,
-        492
+        470
       ],
       "size": [
         192,
@@ -79,7 +84,7 @@
       ],
       "anchor_px": [
         880,
-        540
+        525
       ],
       "size": [
         96,
@@ -95,7 +100,7 @@
       ],
       "anchor_px": [
         448,
-        516
+        498
       ],
       "size": [
         192,

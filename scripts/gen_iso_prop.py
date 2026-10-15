@@ -36,10 +36,12 @@ geo = importlib.util.module_from_spec(spec3)
 spec3.loader.exec_module(geo)
 
 PROJECTION = (
-    "drawn in TRUE 2:1 ISOMETRIC projection: the object's ground edges run at exactly "
-    "26.57 degrees, i.e. 2 pixels across for every 1 pixel down, and the tile it stands on "
-    "is a rhombus twice as wide as it is tall. Viewed from the same fixed isometric camera "
-    "as an isometric floor grid. Vertical edges stay perfectly vertical. "
+    "drawn in TRUE ISOMETRIC projection at 30 degrees like the classic isometric strategy games "
+    "Pharaoh and Zeus: ground edges run at 30 degrees from horizontal, i.e. about 0.577 pixels "
+    "down for every 1 pixel across (a 1.73 : 1 rhombus, NOT a 2:1 one), and the object stands on "
+    "a rhombic tile twice as wide as it is tall would be WRONG here. "
+    "Vertical edges stay perfectly vertical. Viewed from the same fixed 30-degree isometric "
+    "camera as an isometric floor grid. "
 )
 
 

@@ -38,11 +38,16 @@ OUT = REPO / "assets" / "experiments" / "geometry"
 # ---------------------------------------------------------------------------
 ROOM = {
     "canvas": {"w": 1280, "h": 720},
-    "projection": "true 2:1 isometric",
+    # DECIDED by the Supreme Leader, 2026-10-15: keep the 30-degree true isometric angle.
+    # Reason: the look of classic isometric strategy games (Pharaoh, Zeus) that he loves, and
+    # the single-desk composite rendered at this angle read as "so on point". Per ADR-061,
+    # operator taste wins on look -- so this is 30 degrees (tan 30 = 0.5774), NOT the 2:1
+    # pixel-art convention, and props are gated tightly to it rather than tolerated.
+    "projection": "true isometric, 30 degrees (base slope 0.5774; Pharaoh/Zeus look)",
     "floor": {
         "origin": {"x": 640, "y": 300},      # grid (0,0) on screen; the floor's far corner
         "tile_w": 96,
-        "tile_h": 48,                         # MUST be tile_w/2 for true 2:1
+        "tile_h": 55,                         # 55/96 = 0.573 ~= tan(30 deg); see DECIDED above
         "grid": {"x": 14, "y": 14},           # how many cells each way are drawn
         "colours": {"a": (76, 84, 104), "b": (68, 76, 94), "grout": (44, 52, 68)},
     },

@@ -1,0 +1,19 @@
+{
+  "agent_id": "andrzej",
+  "display_name": "Andrzej",
+  "projection": "true isometric as the generator reproduces it (measured base slope ~0.577 / 30deg)",
+  "palette": {
+    "shell": ["#44618a", "#303243"],
+    "floor": ["#5f91b9", "#465368"],
+    "warm": ["#c1a46b", "#e2d3b4", "#ac9968", "#ffea99"],
+    "accent": ["#a3be8c", "#88c0d0"]
+  },
+  "why": "Furniture is generated FOR this room in its declared projection (ADR-065). Upstream props cannot be reused: measured base slopes +0.003/-0.007 (upstream desk) and +1.043/-1.147 (upstream sofa) against a lattice needing ~0.577.",
+  "props": [
+    {"id": "desk", "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug", "grid": [3, 3], "tiles": 2.0},
+    {"id": "rack", "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable", "grid": [8, 2], "tiles": 1.4},
+    {"id": "chair", "subject": "an office chair with a worn seat cushion, seen from behind", "grid": [3, 5], "tiles": 1.0},
+    {"id": "spool", "subject": "a cable spool on a small wooden pallet with a few loose network cables", "grid": [6, 5], "tiles": 1.0},
+    {"id": "crate", "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top", "grid": [9, 6], "tiles": 1.0}
+  ]
+}

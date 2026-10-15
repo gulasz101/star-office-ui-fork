@@ -31,8 +31,11 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-DEFAULT_LATTICE = 0.5      # 2:1 pixel-art isometric
-TOLERANCE = 0.12
+DEFAULT_LATTICE = 0.577    # 30-degree true isometric (tan 30); DECIDED look, see room_geometry.ROOM
+TOLERANCE = 0.07           # TIGHT on purpose: a 2:1 prop (0.50) is 13% off a 0.577 floor and
+                           # reads wrong next to it, so it is rejected for re-roll rather than
+                           # averaged in. The generator returns either 0.50 or 0.577, so the
+                           # gate is what enforces one consistent look per room.
 
 
 def base_slopes(path, crop=None):

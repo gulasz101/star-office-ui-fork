@@ -260,14 +260,24 @@ class ExtractorFrameCountTest(unittest.TestCase):
         ]
         self.assertTrue(live, "star_working uses a literal generateFrameNumbers end")
         self.assertLess(max(a["end"] for a in live), entry["frame_count"]["total"])
-        # the stale legacy range (game.js asks for frames that are not on the
-        # sheet) must be reported, not silently contracted
-        over = [
-            e for e in self.contract["errors"]
-            if e["type"] == "animation_reads_past_the_sheet" and e["key"] == "star_working"
-        ]
-        self.assertTrue(over)
-        self.assertFalse(over[0]["fatal"], "game.js is not loaded by any shipped page")
+        # Every range is attributed to the source that declares it and to whether
+        # that source is authoritative, which is what lets an over-long range be
+        # graded (fatal conflict against a warning) instead of guessed.  The
+        # grading itself is proved in backend/tests/test_asset_contract_resolution.py
+        # against a synthetic tree; SOU-104 reconciled game.js, so this tree must
+        # now report no source reading past its sheet at all.
+        self.assertTrue(
+            {(a["source"], a["authoritative"]) for a in entry["anims"]}
+            >= {("frontend/index.html", True), ("frontend/game.js", False)},
+            "the legacy range must still be recorded, not dropped from the contract",
+        )
+        for bucket in ("errors", "conflicts", "drift"):
+            over = [
+                finding for finding in self.contract[bucket]
+                if finding.get("type") == "animation_reads_past_the_sheet"
+                or finding.get("kind") == "animation_reads_past_the_sheet"
+            ]
+            self.assertEqual(over, [], f"an animation reads past its sheet ({bucket})")
 
     def test_placement_entries_are_keyed_by_filename(self) -> None:
         placement = self.contract["placement"]
@@ -355,16 +365,29 @@ class FrameSizeConflictTest(unittest.TestCase):
     def setUp(self) -> None:
         self.extractor = load_script("extract_asset_contract")
         self.contract = self.extractor.extract(REPO_ROOT)
+        self.assets = self.contract["assets"]
 
-    def test_stale_legacy_source_is_recorded_as_a_conflict(self) -> None:
-        conflicts = {c["key"]: c for c in self.contract["conflicts"]}
-        self.assertIn("error_bug", conflicts)
-        sizes = {
-            (c["frame_width"], c["frame_height"])
-            for c in conflicts["error_bug"]["sources"]
+    def test_the_legacy_source_and_the_live_page_now_agree(self) -> None:
+        # SOU-98 recorded this as a conflict because frontend/game.js sliced
+        # error_bug at 180x180 while the live page sliced it at 220x220. SOU-104
+        # ruled the live page authoritative and realigned the legacy copy, so the
+        # tree must now agree on the geometry that the sheet on disk supports -
+        # with game.js still parsed, so agreement is not the result of ignoring it.
+        self.assertEqual(self.contract["conflicts"], [])
+        self.assertEqual(self.contract["drift"], [])
+        entry = self.assets["error_bug"]
+        declared = {
+            (f["source"], f["frame_width"], f["frame_height"])
+            for f in entry["files"] if f["exists"]
         }
-        self.assertIn((180, 180), sizes, "game.js still says 180x180")
-        self.assertIn((220, 220), sizes, "index.html says 220x220")
+        self.assertEqual({(width, height) for _, width, height in declared},
+                         {(220, 220)})
+        self.assertEqual(
+            {s for s, _, _ in declared},
+            {"frontend/index.html", "frontend/electron-standalone.html", "frontend/game.js"},
+        )
+        self.assertEqual((entry["expected_frame_width"], entry["expected_frame_height"]),
+                         (220, 220))
 
     def test_pixelize_refuses_a_candidate_whose_frame_size_differs_from_the_contract(self) -> None:
         workdir = tempfile.mkdtemp(prefix="sou98-conflict-")

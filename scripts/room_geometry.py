@@ -67,6 +67,16 @@ ROOM = {
         "baseboard_px": 14,
         "void": (22, 26, 36),                  # outside the room, incl. above the walls
     },
+    # LIGHT IS GEOMETRY, so it is declared here with everything else. Review of the first room:
+    # "identical soft blob shadows with no contact hardening, no consistent light direction, no
+    # cast shadows... props look pasted onto the floor". One declared vector removes all three
+    # problems at once, and every prop's shadow is then derived rather than guessed.
+    "light": {
+        "from": "front-upper-left",
+        "vector": {"dx": -0.55, "dy": 0.62},   # screen-space direction shadows are cast TOWARD
+        "contact": {"scale": 1.02, "alpha": 120},   # tight, dark, hugs the footprint
+        "cast": {"scale": 1.25, "length": 0.85, "alpha": 58},  # longer, softer, offset
+    },
 }
 
 

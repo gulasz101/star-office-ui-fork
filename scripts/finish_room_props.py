@@ -23,15 +23,24 @@ something this pass can fix silently.
 
 Usage: python scripts/finish_room_props.py [agent_id]
 """
+import importlib.util
 import json
 import sys
 from collections import deque
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 REPO = Path(__file__).resolve().parent.parent
 GEN = REPO / "assets" / "generated" / "rooms"
+
+# the declared room is the single source of geometry - load it at module level so the shadow
+# functions can read ROOM["light"] without re-importing per call
+_spec = importlib.util.spec_from_file_location("geo", REPO / "scripts" / "room_geometry.py")
+geo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(geo)
+ROOM = geo.ROOM
 
 
 def strip_bottom_plate(img, tol=26, min_share=0.55):
@@ -76,14 +85,50 @@ def strip_bottom_plate(img, tol=26, min_share=0.55):
     return img, removed > 0
 
 
-def shadow_layer(size, anchors, tile_w, tile_h, alpha=64):
-    """One ellipse per prop, with the lattice's aspect, under all props."""
+def footprint(img, band=0.10):
+    """Measure a prop's base footprint from its own alpha: (centre_x, width) of the bottom band.
+
+    Shadows sized from the SPRITE go wrong, because a sprite's canvas is mostly padding - the
+    first attempt used a fixed fraction of the sprite width and review called the result
+    "detached blobs". The footprint is what the object actually stands on, so measure it.
+    """
+    a = np.asarray(img.convert("RGBA"))[:, :, 3] > 128
+    ys, xs = np.nonzero(a)
+    if len(ys) == 0:
+        return None
+    y1 = ys.max()
+    y0 = int(y1 - max(2, (y1 - ys.min()) * band))
+    slab = a[y0:y1 + 1, :]
+    cols = np.nonzero(slab.any(axis=0))[0]
+    if len(cols) == 0:
+        return None
+    return ((cols.min() + cols.max()) / 2.0, float(cols.max() - cols.min() + 1), int(y1))
+
+
+def shadow_layer(size, items, tile_w, tile_h):
+    """Two-part shadow per prop, from the DECLARED light vector: a tight contact shadow that
+    hugs the measured footprint, plus a longer, softer cast shadow offset along the light.
+
+    Review of the first room named the absence of exactly this as the reason props read as
+    pasted on: "identical soft blob shadows with no contact hardening, no consistent light
+    direction, no cast shadows".
+    """
+    L = ROOM["light"]
+    v = L["vector"]
     layer = Image.new("RGBA", size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    for ax, ay, prop_w in anchors:
-        rx = prop_w * 0.58
-        ry = rx * (tile_h / tile_w)
-        d.ellipse([ax - rx, ay - ry, ax + rx, ay + ry], fill=(20, 24, 34, alpha))
+    for ax, ay, fp_w in items:
+        # contact: slightly larger than the footprint, dark, centred on it
+        rx = fp_w / 2.0 * L["contact"]["scale"]
+        ry = max(4.0, rx * (tile_h / tile_w))
+        d.ellipse([ax - rx, ay - ry, ax + rx, ay + ry],
+                  fill=(14, 17, 24, L["contact"]["alpha"]))
+        # cast: same footprint pushed along the light vector and stretched
+        ox, oy = v["dx"] * fp_w * L["cast"]["length"], v["dy"] * fp_w * L["cast"]["length"] * 0.5
+        crx = rx * L["cast"]["scale"]
+        cry = ry * L["cast"]["scale"]
+        d.ellipse([ax + ox - crx, ay + oy - cry, ax + ox + crx, ay + oy + cry],
+                  fill=(12, 15, 22, L["cast"]["alpha"]))
     return layer
 
 
@@ -110,9 +155,12 @@ def main():
             im.save(p)
             print(f"   {prop['id']:8s} base pad removed")
 
-    # 2. recomposite with contact shadows
+    # 2. recomposite with shadows. Props are anchored by their measured FOOTPRINT, not by their
+    # canvas: a sprite is mostly padding, so pasting at (ax - sprite_width/2, ay - sprite_height)
+    # puts the object wherever its padding happens to fall. The footprint is what stands on the
+    # grid cell, and the base row is what sits at the anchor's y.
     img, _ = geo.draw_room(show_grid=False)
-    anchors = []
+    items = []
     for prop in room["prop_anchors"]:
         p = out_dir / Path(prop["file"]).name
         sp = Image.open(p).convert("RGBA")
@@ -120,17 +168,25 @@ def main():
         s = min(want_w / sp.width, 1.0)
         if s != 1.0:
             sp = sp.resize((max(1, int(sp.width * s)), max(1, int(sp.height * s))), Image.NEAREST)
+        fp = footprint(sp)
+        fp_cx, fp_w, base_y = fp if fp else (sp.width / 2.0, sp.width * 0.6, sp.height)
         ax, ay = geo.grid_to_screen(prop["grid"][0] + 0.5, prop["grid"][1] + 0.5)
-        anchors.append((ax, ay, sp.width, sp))
+        items.append({"id": prop["id"], "sp": sp, "ax": ax, "ay": ay,
+                      "fp_cx": fp_cx, "fp_w": fp_w, "base_y": base_y})
 
     img = Image.alpha_composite(img.convert("RGBA"),
-                                shadow_layer(img.size, [(a[0], a[1], a[2]) for a in anchors], tw, th))
-    for ax, ay, _w, sp in anchors:
-        img.paste(sp, (int(ax - sp.width / 2), int(ay - sp.height)), sp)
+                                shadow_layer(img.size,
+                                             [(it["ax"], it["ay"], it["fp_w"]) for it in items],
+                                             tw, th))
+    for it in items:
+        img.paste(it["sp"], (int(it["ax"] - it["fp_cx"]), int(it["ay"] - it["base_y"])), it["sp"])
+        print(f"   {it['id']:9s} footprint {it['fp_w']:5.1f}px  base row {it['base_y']:4d}  "
+              f"anchor ({it['ax']:.0f},{it['ay']:.0f})")
 
     img.convert("RGB").save(GEN / agent / "room_preview.png")
     img.convert("RGB").save(REPO / "assets" / "experiments" / "geometry" / f"{agent}_room_shadowed.png")
-    print(f"== recomposited {agent}: {len(anchors)} props with contact shadows ==")
+    print(f"== recomposited {agent}: {len(items)} props, footprint-anchored, "
+          f"light from {ROOM['light']['from']} ==")
     print("FINISH_PROPS_DONE")
 
 

@@ -158,14 +158,26 @@ def upscale_nearest(img, factor):
 
 
 def write_manifest(path: Path, **extra):
+    """Write a sidecar manifest.
+
+    Required fields are enforced by the repo's `scripts/validate_generated_assets.py`
+    (SOU-98): every generated file must name its source, its model/LoRA provenance
+    and its palette size, or it cannot be swapped in. Defaults are supplied here so
+    no caller can forget them.
+    """
     payload = {
         "model": MODEL_ID,
         "lora": LORA_ID,
+        "lora_strength": 0.0,
         "steps": STEPS,
         "guidance": GUIDANCE,
+        "palette_colors": 24,
+        "source_file": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     payload.update(extra)
+    if payload["source_file"] is None:
+        payload["source_file"] = path.name.replace(".manifest.json", "").replace(".json", "")
     path.write_text(json.dumps(payload, indent=2) + "\n")
     return payload
 

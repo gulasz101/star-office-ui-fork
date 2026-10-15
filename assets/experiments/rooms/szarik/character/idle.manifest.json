@@ -16,5 +16,8 @@
     64,
     64
   ],
-  "frame_size": 64
+  "frame_size": 64,
+  "source_file": "idle",
+  "palette_colors": 24,
+  "asset_key": "guest_anim_2"
 }

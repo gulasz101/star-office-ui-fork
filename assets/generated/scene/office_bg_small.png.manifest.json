@@ -6,7 +6,7 @@
   "guidance": 1.0,
   "seed": 101,
   "prompt": "pixel art interior background for a 2D office game, top-down three-quarter oblique view, hi-bit 32-bit pixel art, crisp thin dark outlines, flat shading, no antialiasing, no blur. A blue-grey technology office room shell: dark slate blue-grey walls in #44618a and #303243 with a simple darker baseboard, and one single uniform blue-grey checkered tile floor in #5f91b9 with #465368 grout lines and #94c1e8 highlights, covering the whole lower part of the image with one consistent straight tile grid that never stops or changes pattern, no rugs, no snow, no stains, no dust, no dark patches, no decals, no baked furniture shadows. The wall runs along the top of the frame occupying the upper fifth, with wall-mounted decoration only: a grey metal shelf holding cable coils and small server parts, two blank framed pictures with no writing, a wall vent, a thin cable tray along the top, small glowing amber indicator lights, and warm wooden and cream objects on the shelf in #c1a46b, #e2d3b4, #ac9968 and #ffea99 so the room matches warm wooden furniture. The floor is completely empty and totally clear of objects - no desks, no tables, no chairs, no sofas, no benches, no plants, no boxes, no crates, no furniture of any kind standing on the floor anywhere in the image. Empty tiled floor everywhere. No characters, no people, no animals, no robots, no text, no numbers, no letters, no signs, no logos, no watermark, no user interface. Wide 16:9 scene, no border, no frame.",
-  "palette_colors": 26,
+  "palette_colors": 96,
   "asset_key": "office_bg_small",
   "kind": "room_shell",
   "source_file": "assets/generated/scene/office_bg_small.raw.png",
@@ -15,7 +15,7 @@
     1280,
     720
   ],
-  "created_at": "2026-10-15T14:00:36.028598+00:00",
+  "created_at": "2026-10-15T14:08:38.552237+00:00",
   "clear_zones": [
     {
       "id": "left_work_area",

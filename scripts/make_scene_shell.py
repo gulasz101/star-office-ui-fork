@@ -37,39 +37,68 @@ frg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(frg)
 
 DRY = "--dry-run" in sys.argv
+FROM_RAW = "--from-raw" in sys.argv   # re-post-process the existing raw; no GPU, no regeneration
 
 
-def zero_rgb_under_alpha(img: Image.Image) -> Image.Image:
-    """Set RGB to black wherever alpha is 0.
+def zero_rgb_under_alpha(img: Image.Image) -> int:
+    """Set RGB to black wherever alpha is 0; return how many pixels were fixed.
 
-    The keying step paints alpha=0 but keeps the magenta RGB underneath; a texture
-    filter in the browser samples those RGB values and fringes the sprite.
+    The keying step paints alpha=0 but keeps the magenta RGB underneath. Invisible on
+    an opaque canvas, but a browser's texture filter samples those RGB values and can
+    fringe the sprite magenta at the edges.
     """
     img = img.convert("RGBA")
     px = img.load()
     w, h = img.size
+    fixed = 0
     for y in range(h):
         for x in range(w):
             r, g, b, a = px[x, y]
             if a == 0 and (r or g or b):
                 px[x, y] = (0, 0, 0, 0)
-    return img
+                fixed += 1
+    return fixed
+
+
+def magenta_under_alpha(img: Image.Image) -> int:
+    """Count fully transparent pixels that still carry magenta-ish RGB."""
+    px = img.convert("RGBA").load()
+    w, h = img.size
+    n = 0
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0 and r > 100 and b > 100 and g < 120:
+                n += 1
+    return n
 
 
 def repair_sheets() -> list[str]:
-    """Fix magenta-under-alpha in every guest slot sheet we generated."""
+    """Fix magenta-under-alpha in every guest slot sheet we generated.
+
+    Two traps learned the hard way here:
+      * a byte-inequality check is the WRONG skip condition - these are lossy WebP, so a
+        decode/re-encode round trip is never byte-identical and every run would recompress
+        the art. Count the actual defect instead.
+      * saving the repaired sheet as lossy WebP REPOPULATES colour in transparent pixels,
+        so the fix must be written losslessly or it does not survive its own save.
+    """
     fixed = []
     for slot in (1, 2, 3, 4):
         p = FRONTEND / f"guest_anim_{slot}.webp"
         if not p.exists():
             continue
         im = Image.open(p).convert("RGBA")
-        before = im.copy()
-        im = zero_rgb_under_alpha(im)
-        if im.tobytes() != before.tobytes():
-            if not DRY:
-                im.save(p, quality=95)
-            fixed.append(str(p.relative_to(REPO)))
+        n = magenta_under_alpha(im)
+        if n == 0:
+            continue
+        if not DRY:
+            zero_rgb_under_alpha(im)
+            im.save(p, lossless=True, quality=100)
+            after = magenta_under_alpha(Image.open(p).convert("RGBA"))
+            fixed.append(f"{p.relative_to(REPO)} ({n} px, {after} left after save)")
+        else:
+            fixed.append(f"{p.relative_to(REPO)} ({n} px, dry-run)")
     return fixed
 
 
@@ -83,21 +112,27 @@ def main():
     print(f"   clear zones: {[z['id'] for z in profile['clear_zones']]}")
 
     if not DRY:
-        pipe, torch = frg.load_pipe()          # LoRA stays off (ADR-060 field result)
-        img = frg.generate(pipe, torch, profile["prompt"],
-                           profile["canvas"]["w"], profile["canvas"]["h"], seed=101)
-        img.save(raw_path)
-        print(f"   raw -> {raw_path.relative_to(REPO)}")
+        if FROM_RAW:
+            if not raw_path.exists():
+                raise SystemExit(f"--from-raw needs an existing {raw_path}")
+            img = Image.open(raw_path).convert("RGB")
+            print(f"   reusing raw -> {raw_path.relative_to(REPO)} (no generation)")
+        else:
+            pipe, torch = frg.load_pipe()      # LoRA stays off (ADR-060 field result)
+            img = frg.generate(pipe, torch, profile["prompt"],
+                               profile["canvas"]["w"], profile["canvas"]["h"], seed=101)
+            img.save(raw_path)
+            print(f"   raw -> {raw_path.relative_to(REPO)}")
 
         pp = profile["postprocess"]
         final = frg.pixelize(img, (profile["canvas"]["w"] // pp["scale"],
                                    profile["canvas"]["h"] // pp["scale"]),
                              colors=pp["colors"])
-        out_png = out_dir / "office_bg_small.png"
-        final.save(out_png)
         if pp["scale"] != 1:
             final = final.resize((profile["canvas"]["w"], profile["canvas"]["h"]), Image.NEAREST)
-        final = zero_rgb_under_alpha(final)
+        zero_rgb_under_alpha(final)      # in place; returns a count, do not rebind
+        out_png = out_dir / "office_bg_small.png"
+        final.save(out_png)
 
         # deployable replacement
         target = FRONTEND / "office_bg_small.webp"

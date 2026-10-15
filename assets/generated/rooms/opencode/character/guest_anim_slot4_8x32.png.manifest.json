@@ -1,0 +1,21 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "seed": 22,
+  "prompt": "pixel art sprite, a slim hooded character seated at a floating dark terminal, one bright cyan cursor glyph glowing on the screen, dark charcoal hoodie, thin antenna, calm posture, palette: #1b1f27, #2b3240, #4c566a, #88c0d0, #d8dee9, single character, centred, full body, feet at the bottom, facing the viewer, front three-quarter view, flat colours, crisp hard-edged pixels, no drop shadow, no checkerboard pattern, plain flat magenta background #FF00FF filling the frame, game asset, 32-bit pixel art",
+  "palette_colors": 20,
+  "asset_key": "guest_anim_4",
+  "agent_id": "opencode",
+  "personality_source": "INFERRED - no local description exists; derived from its role as a terminal coding agent",
+  "source_file": "assets/experiments/rooms/opencode/character/idle.png",
+  "output_file": "guest_anim_slot4_8x32.png",
+  "output_dims": [
+    128,
+    64
+  ],
+  "created_at": "2026-10-15T10:31:51.175870+00:00",
+  "note": "LoRA not applied: unusable through diffusers at documented strengths (ADR-060 field result). Crisp pixels come from the nearest-neighbour resample + palette quantisation step."
+}

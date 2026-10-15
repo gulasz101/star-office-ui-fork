@@ -1,0 +1,21 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "seed": 21,
+  "prompt": "pixel art sprite, a focused workshop robot with a single large glowing screen for a face showing green code lines, a tool belt of small wrenches and patch cables, sturdy shoulders, warm amber indicator light on the chest, palette: #2e3440, #3b4252, #a3be8c, #ebcb8b, #d08770, single character, centred, full body, feet at the bottom, facing the viewer, front three-quarter view, flat colours, crisp hard-edged pixels, no drop shadow, no checkerboard pattern, plain flat magenta background #FF00FF filling the frame, game asset, 32-bit pixel art",
+  "palette_colors": 20,
+  "asset_key": "guest_anim_3",
+  "agent_id": "openchamber",
+  "personality_source": "Itsaplan SOU agent record (real description)",
+  "source_file": "assets/experiments/rooms/openchamber/character/idle.png",
+  "output_file": "guest_anim_slot3_8x32.png",
+  "output_dims": [
+    128,
+    64
+  ],
+  "created_at": "2026-10-15T10:31:37.616899+00:00",
+  "note": "LoRA not applied: unusable through diffusers at documented strengths (ADR-060 field result). Crisp pixels come from the nearest-neighbour resample + palette quantisation step."
+}

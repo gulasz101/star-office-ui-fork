@@ -1,122 +1,740 @@
 {
-  "agent_id": "andrzej",
-  "display_name": "Andrzej",
+  "schema": 2,
+  "room_id": "andrzej",
+  "generated_by": "scripts/gen_iso_room.py (SOU-123, ADR-067 renderer v2)",
+  "source_profile": "profiles/rooms/andrzej_room.json",
   "canvas": {
     "w": 1280,
     "h": 720
   },
-  "projection": "true isometric as the generator reproduces it (measured base slope ~0.577 / 30deg)",
   "lattice": {
-    "origin": {
-      "x": 640,
-      "y": 250
-    },
+    "module": "scripts/iso_lattice.py",
+    "origin": [
+      640,
+      250
+    ],
     "tile_w": 96,
     "tile_h": 55,
     "slope": 0.5729166666666666,
-    "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)"
+    "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)",
+    "authority": "Phaser IsometricTileToWorldXY (src/tilemaps/components/IsometricTileToWorldXY.js, vendored 3.80.1)",
+    "rise_px": 250
   },
-  "wall_seam_y": 250,
-  "walls": {
-    "planes": [
-      "left-back",
-      "right-back"
-    ],
-    "rise_px": 250,
-    "baseboard_px": 14,
-    "seam": "the two far edges of the floor diamond (grid 0,0 -> gx_max,0 and 0,0 -> 0,gy_max)",
-    "anchor": "wall_to_screen(gx, height, side) = position ALONG a wall plus height ABOVE the seam; wall-mounted objects use this, not the floor grid (ADR-065)"
+  "map": "room.map.json",
+  "tileset": {
+    "image": "tiles/floor.png",
+    "firstgid": 1,
+    "count": 3,
+    "tile_w": 96,
+    "tile_h": 55,
+    "collision_image": "tiles/collision.png",
+    "collision_firstgid": 4
   },
-  "prop_anchors": [
+  "grid": {
+    "w": 12,
+    "h": 12,
+    "tile_m": 0.7
+  },
+  "rooms": [],
+  "props": [
     {
       "id": "desk",
-      "file": "props/desk.png",
       "grid": [
         3,
         3
       ],
-      "tiles": 2.107,
+      "tiles": 2.0,
       "real_m": 1.4,
-      "scale_note": "object measures 443px in a 640px canvas; 1.4 m at 100 px/m = 140px -> canvas 202px = 2.11 tiles (a desk; the sprite includes a monitor and a lamp)"
+      "footprint": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/desk.png"
     },
     {
       "id": "rack",
-      "file": "props/rack.png",
       "grid": [
         8,
         2
       ],
-      "tiles": 2.312,
-      "real_m": 0.6,
-      "scale_note": "object measures 173px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 222px = 2.31 tiles (a 19-inch server rack is 600 mm wide)"
+      "tiles": 1.4,
+      "real_m": 0.98,
+      "footprint": [
+        [
+          8,
+          2
+        ]
+      ],
+      "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/rack.png"
     },
     {
       "id": "chair",
-      "file": "props/chair.png",
       "grid": [
         3,
         5
       ],
-      "tiles": 0.797,
-      "real_m": 0.6,
-      "scale_note": "object measures 502px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 76px = 0.80 tiles (an office chair at its footprint)"
+      "tiles": 1.0,
+      "real_m": 0.7,
+      "footprint": [
+        [
+          3,
+          5
+        ]
+      ],
+      "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/chair.png"
     },
     {
       "id": "spool",
-      "file": "props/spool.png",
       "grid": [
         6,
         5
       ],
-      "tiles": 1.453,
-      "real_m": 0.8,
-      "scale_note": "object measures 367px in a 640px canvas; 0.8 m at 100 px/m = 80px -> canvas 140px = 1.45 tiles (a cable spool including its pallet)"
+      "tiles": 1.0,
+      "real_m": 0.7,
+      "footprint": [
+        [
+          6,
+          5
+        ]
+      ],
+      "subject": "a cable spool on a small wooden pallet with a few loose network cables",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/spool.png"
     },
     {
       "id": "crate",
-      "file": "props/crate.png",
       "grid": [
         9,
         6
       ],
-      "tiles": 1.22,
-      "real_m": 0.6,
-      "scale_note": "object measures 328px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 117px = 1.22 tiles (a shipping crate)"
+      "tiles": 1.0,
+      "real_m": 0.7,
+      "footprint": [
+        [
+          9,
+          6
+        ]
+      ],
+      "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/crate.png"
     },
     {
       "id": "bass",
-      "file": "props/bass.png",
       "grid": [
         10,
         4
       ],
-      "tiles": 0.952,
-      "real_m": 0.7,
-      "scale_note": "object measures 490px in a 640px canvas; 0.7 m at 100 px/m = 70px -> canvas 91px = 0.95 tiles (amp plus the leaning bass guitar)"
+      "tiles": 1.2,
+      "real_m": 0.84,
+      "footprint": [
+        [
+          10,
+          4
+        ]
+      ],
+      "subject": "a worn electric bass guitar leaning against a small amplifier, with a coiled cable on top of the amp",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/bass.png",
+      "personal": "bass guitar player"
     },
     {
       "id": "cat",
-      "file": "props/cat.png",
       "grid": [
         5,
         8
       ],
-      "tiles": 0.703,
-      "real_m": 0.5,
-      "scale_note": "object measures 474px in a 640px canvas; 0.5 m at 100 px/m = 50px -> canvas 68px = 0.70 tiles (a cat curled in a box)"
+      "tiles": 0.9,
+      "real_m": 0.63,
+      "footprint": [
+        [
+          5,
+          8
+        ]
+      ],
+      "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/cat.png",
+      "personal": "owns two cats",
+      "decor": true,
+      "note": "DECOR: admitted with its measurement recorded but exempt from the base-slope gate. A cat curled on the floor has no rhombic footprint and failed it repeatedly (0.426/-0.364 on the floor variant, 0.633-0.826 in a box). The gate protects furniture, where a projection mismatch is visible; the exemption is per prop and visible in the manifest and room.json rather than hidden by a loosened tolerance."
     },
     {
       "id": "jdm_van",
-      "file": "props/jdm_van.png",
       "grid": [
         2,
         8
       ],
-      "tiles": 5.682,
-      "real_m": 4.5,
-      "scale_note": "object measures 528px in a 640px canvas; 4.5 m at 100 px/m = 450px -> canvas 545px = 5.68 tiles (a Mazda MPV is ~4.5 m long - see the note it prints)"
+      "tiles": 1.6,
+      "real_m": 1.12,
+      "footprint": [
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          9
+        ]
+      ],
+      "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/jdm_van.png",
+      "personal": "30-year-old Mazda MPV"
     }
   ],
-  "rejected": [],
-  "preview": "room_preview.png"
+  "anchors": [
+    {
+      "id": "work.stand",
+      "zone": "work",
+      "kind": "work",
+      "facing": "ne",
+      "grid": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "ops.stand",
+      "zone": "ops",
+      "kind": "ops",
+      "facing": "ne",
+      "grid": [
+        7,
+        3
+      ]
+    },
+    {
+      "id": "build.stand",
+      "zone": "build",
+      "kind": "ops",
+      "facing": "se",
+      "grid": [
+        5,
+        11
+      ]
+    },
+    {
+      "id": "read.stand",
+      "zone": "read",
+      "kind": "read",
+      "facing": "sw",
+      "grid": [
+        7,
+        6
+      ]
+    },
+    {
+      "id": "wait.stand",
+      "zone": "wait",
+      "kind": "wait",
+      "facing": "sw",
+      "grid": [
+        8,
+        8
+      ]
+    },
+    {
+      "id": "rest.stand",
+      "zone": "rest",
+      "kind": "rest",
+      "facing": "sw",
+      "grid": [
+        10,
+        10
+      ]
+    },
+    {
+      "id": "entry.stand",
+      "zone": "entry",
+      "kind": "entry",
+      "facing": "se",
+      "grid": [
+        1,
+        9
+      ]
+    },
+    {
+      "id": "decor.stand",
+      "zone": "decor",
+      "kind": "decor",
+      "facing": "sw",
+      "grid": [
+        1,
+        11
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "work",
+      "label": "Work desk",
+      "kind": "work",
+      "facing": "ne",
+      "anchor": [
+        2,
+        4
+      ],
+      "rect": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "ops",
+      "label": "Server rack",
+      "kind": "ops",
+      "facing": "ne",
+      "anchor": [
+        7,
+        3
+      ],
+      "rect": [
+        5,
+        1,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "build",
+      "label": "Garage bay",
+      "kind": "ops",
+      "facing": "se",
+      "anchor": [
+        5,
+        11
+      ],
+      "rect": [
+        5,
+        9,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "read",
+      "label": "Reading nook",
+      "kind": "read",
+      "facing": "sw",
+      "anchor": [
+        7,
+        6
+      ],
+      "rect": [
+        6,
+        6,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wait",
+      "label": "Coffee corner",
+      "kind": "wait",
+      "facing": "sw",
+      "anchor": [
+        8,
+        8
+      ],
+      "rect": [
+        7,
+        7,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "rest",
+      "label": "Rest corner",
+      "kind": "rest",
+      "facing": "sw",
+      "anchor": [
+        10,
+        10
+      ],
+      "rect": [
+        9,
+        9,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "entry",
+      "label": "Door",
+      "kind": "entry",
+      "facing": "se",
+      "anchor": [
+        1,
+        9
+      ],
+      "rect": [
+        0,
+        8,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "decor",
+      "label": "Cat corner",
+      "kind": "decor",
+      "facing": "sw",
+      "anchor": [
+        1,
+        11
+      ],
+      "rect": [
+        0,
+        10,
+        3,
+        2
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "main",
+      "label": "Door",
+      "grid": [
+        0,
+        9
+      ],
+      "side": "north-west",
+      "room": "outside",
+      "uses": 2,
+      "walkable": true
+    },
+    {
+      "id": "cat-flap",
+      "label": "Cat flap",
+      "grid": [
+        0,
+        10
+      ],
+      "side": "north-west",
+      "room": "outside",
+      "uses": 1,
+      "walkable": true
+    }
+  ],
+  "walls": {
+    "image": "walls.png",
+    "origin": [
+      56.0,
+      -8
+    ],
+    "size": [
+      1168,
+      596
+    ],
+    "rise_px": 250,
+    "baseboard_px": 14,
+    "layers": [
+      "north-east plane",
+      "north-west plane",
+      "baseboard",
+      "wall-top cap",
+      "panel joins",
+      "seam AO",
+      "inside corner seam"
+    ]
+  },
+  "blocked": [
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      8,
+      2
+    ],
+    [
+      9,
+      6
+    ],
+    [
+      10,
+      4
+    ]
+  ],
+  "snap_findings": [
+    {
+      "id": "work",
+      "note": "rect [2, 2, 4, 5] -> [0, 2, 3, 5] (cleared blocked cells, kept anchor [2, 4] inside)",
+      "declared_anchor": [
+        3,
+        4
+      ],
+      "declared_rect": [
+        2,
+        2,
+        4,
+        5
+      ],
+      "anchor": [
+        2,
+        4
+      ],
+      "rect": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "ops",
+      "note": "rect [7, 1, 3, 3] -> [5, 1, 3, 3] (cleared blocked cells, kept anchor [7, 3] inside)",
+      "declared_anchor": [
+        7,
+        3
+      ],
+      "declared_rect": [
+        7,
+        1,
+        3,
+        3
+      ],
+      "anchor": [
+        7,
+        3
+      ],
+      "rect": [
+        5,
+        1,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "build",
+      "note": "anchor [5, 14] is outside the declared 12x12 floor (no garage wing yet), clamped to [5, 11]",
+      "declared_anchor": [
+        5,
+        14
+      ],
+      "declared_rect": [
+        5,
+        13,
+        3,
+        3
+      ],
+      "anchor": [
+        5,
+        11
+      ],
+      "rect": [
+        5,
+        9,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "build",
+      "note": "rect [5, 13, 3, 3] -> [5, 9, 3, 3] (cleared blocked cells, kept anchor [5, 11] inside)",
+      "declared_anchor": [
+        5,
+        14
+      ],
+      "declared_rect": [
+        5,
+        13,
+        3,
+        3
+      ],
+      "anchor": [
+        5,
+        11
+      ],
+      "rect": [
+        5,
+        9,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "read",
+      "note": "rect [6, 5, 4, 3] -> [6, 6, 3, 3] (cleared blocked cells, kept anchor [7, 6] inside)",
+      "declared_anchor": [
+        7,
+        6
+      ],
+      "declared_rect": [
+        6,
+        5,
+        4,
+        3
+      ],
+      "anchor": [
+        7,
+        6
+      ],
+      "rect": [
+        6,
+        6,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wait",
+      "note": "rect [7, 6, 4, 4] -> [7, 7, 4, 4] (cleared blocked cells, kept anchor [8, 8] inside)",
+      "declared_anchor": [
+        8,
+        8
+      ],
+      "declared_rect": [
+        7,
+        6,
+        4,
+        4
+      ],
+      "anchor": [
+        8,
+        8
+      ],
+      "rect": [
+        7,
+        7,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "decor",
+      "note": "anchor [1, 14] is outside the declared 12x12 floor (no garage wing yet), clamped to [1, 11]",
+      "declared_anchor": [
+        1,
+        14
+      ],
+      "declared_rect": [
+        0,
+        14,
+        3,
+        3
+      ],
+      "anchor": [
+        1,
+        11
+      ],
+      "rect": [
+        0,
+        10,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "decor",
+      "note": "rect [0, 14, 3, 3] -> [0, 10, 3, 2] (cleared blocked cells, kept anchor [1, 11] inside)",
+      "declared_anchor": [
+        1,
+        14
+      ],
+      "declared_rect": [
+        0,
+        14,
+        3,
+        3
+      ],
+      "anchor": [
+        1,
+        11
+      ],
+      "rect": [
+        0,
+        10,
+        3,
+        2
+      ]
+    }
+  ],
+  "art_manifest": {
+    "floor": "tiles/floor.png",
+    "collision": "tiles/collision.png",
+    "walls": "walls.png",
+    "provenance": "procedural raster from the declared lattice - no img2img and no Star-Office/LimeZu pixels (fork hard rules 1-2)"
+  }
 }

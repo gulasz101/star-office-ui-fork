@@ -343,7 +343,7 @@ class ConflictGateTest(unittest.TestCase):
                                          "start: 0, end: 3"))
         self._write(SNAPSHOT, self._load("frameWidth: 120, frameHeight: 120",
                                          "start: 0, end: 3"))
-        self._write(LEGACY, self._load("frameWidth: 180, frameHeight: 180",
+        self._write(LEGACY, self._load("frameWidth: 60, frameHeight: 60",
                                        "start: 0, end: 99"))
         proc = self._extract()
         self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)

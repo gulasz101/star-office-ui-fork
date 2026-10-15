@@ -1,0 +1,109 @@
+{
+  "room": {
+    "canvas": {
+      "w": 1280,
+      "h": 720
+    },
+    "projection": "true 2:1 isometric",
+    "floor": {
+      "origin": {
+        "x": 640,
+        "y": 300
+      },
+      "tile_w": 96,
+      "tile_h": 48,
+      "grid": {
+        "x": 14,
+        "y": 14
+      },
+      "colours": {
+        "a": [
+          76,
+          84,
+          104
+        ],
+        "b": [
+          68,
+          76,
+          94
+        ],
+        "grout": [
+          44,
+          52,
+          68
+        ]
+      }
+    },
+    "wall": {
+      "seam_y": 300,
+      "colour": [
+        58,
+        70,
+        94
+      ],
+      "upper_colour": [
+        48,
+        60,
+        82
+      ],
+      "baseboard": [
+        38,
+        46,
+        62
+      ],
+      "height_px": 60
+    }
+  },
+  "placed": [
+    {
+      "asset": "frontend/desk-v3.webp",
+      "grid": [
+        4,
+        3
+      ],
+      "anchor_px": [
+        688,
+        492
+      ],
+      "size": [
+        192,
+        148
+      ],
+      "scale": 0.696
+    },
+    {
+      "asset": "frontend/coffee-machine-v3-grid.webp",
+      "grid": [
+        7,
+        2
+      ],
+      "anchor_px": [
+        880,
+        540
+      ],
+      "size": [
+        96,
+        96
+      ],
+      "scale": 0.417
+    },
+    {
+      "asset": "frontend/sofa-idle-v3.png",
+      "grid": [
+        2,
+        6
+      ],
+      "anchor_px": [
+        448,
+        516
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "scale": 0.75
+    }
+  ],
+  "output": "room_composite.png",
+  "note": "Geometry declared, not generated. Anchors are arithmetic on the lattice."
+}

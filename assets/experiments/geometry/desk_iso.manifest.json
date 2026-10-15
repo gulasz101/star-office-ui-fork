@@ -1,0 +1,24 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "seed": 555,
+  "prompt": "pixel art game asset: a work desk with a CRT monitor, a desk lamp and a mug. drawn in TRUE 2:1 ISOMETRIC projection: the object's ground edges run at exactly 26.57 degrees, i.e. 2 pixels across for every 1 pixel down, and the tile it stands on is a rhombus twice as wide as it is tall. Viewed from the same fixed isometric camera as an isometric floor grid. Vertical edges stay perfectly vertical. Single object, centred, nothing else in frame, no furniture around it, no room, no floor grid drawn. Crisp thin dark outlines, flat cel shading, limited palette of dark blue-grey, warm wood browns and cream, no antialiasing, no blur, no drop shadow, no checkerboard pattern, plain flat magenta background #FF00FF filling the whole frame. 32-bit pixel art, game asset.",
+  "projection": "true 2:1 isometric",
+  "grid_anchor": [
+    4,
+    3
+  ],
+  "anchor_px": [
+    688,
+    492
+  ],
+  "output_size": [
+    192,
+    192
+  ],
+  "created_at": "2026-10-15T14:14:46.709837+00:00",
+  "note": "Generated IN the declared projection, unlike the upstream props (front-facing/oblique)."
+}

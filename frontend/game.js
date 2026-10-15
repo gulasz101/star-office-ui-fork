@@ -1,5 +1,19 @@
 // Star Office UI - main game logic
 // Depends on: layout.js (must be loaded before this file)
+//
+// ---------------------------------------------------------------------------
+// LEGACY / INERT COPY.  frontend/index.html is the renderer that ships:
+// backend/app.py serves index.html at / and that route never loads this file,
+// while electron-shell/main.js loads the index.html-derived snapshot
+// /electron-standalone.  Editing this file changes nothing on screen, and
+// editing it ALONE desynchronises the renderer model the asset contract is
+// built from.  So keep the load declarations and the anim frame ranges below in
+// agreement with index.html: scripts/extract_asset_contract.py reads this file
+// as the legacy renderer and reports any disagreement as `drift` - a warning,
+// made fatal by --strict - while any authoritative-vs-authoritative
+// disagreement is a `conflict` and fails the run outright.  See
+// docs/asset-contract.md for the full rule set.
+// ---------------------------------------------------------------------------
 
 // Detect whether the browser supports WebP
 let supportsWebP = false;
@@ -278,26 +292,26 @@ function preload() {
   });
 
   this.load.image('office_bg', '/static/office_bg_small' + (supportsWebP ? '.webp' : '.png') + '?v={{VERSION_TIMESTAMP}}');
-  this.load.spritesheet('star_idle', '/static/star-idle-spritesheet' + getExt('star-idle-spritesheet.png'), { frameWidth: 128, frameHeight: 128 });
+  this.load.spritesheet('star_idle', '/static/star-idle-v5' + getExt('star-idle-v5.png'), { frameWidth: 256, frameHeight: 256 });
   this.load.spritesheet('star_researching', '/static/star-researching-spritesheet' + getExt('star-researching-spritesheet.png'), { frameWidth: 128, frameHeight: 105 });
 
-  this.load.image('sofa_idle', '/static/sofa-idle' + getExt('sofa-idle.png'));
+  this.load.image('sofa_idle', '/static/sofa-idle-v3' + getExt('sofa-idle-v3.png'));
   this.load.spritesheet('sofa_busy', '/static/sofa-busy-spritesheet' + getExt('sofa-busy-spritesheet.png'), { frameWidth: 256, frameHeight: 256 });
 
   this.load.spritesheet('plants', '/static/plants-spritesheet' + getExt('plants-spritesheet.png'), { frameWidth: 160, frameHeight: 160 });
   this.load.spritesheet('posters', '/static/posters-spritesheet' + getExt('posters-spritesheet.png'), { frameWidth: 160, frameHeight: 160 });
-  this.load.spritesheet('coffee_machine', '/static/coffee-machine-spritesheet' + getExt('coffee-machine-spritesheet.png'), { frameWidth: 230, frameHeight: 230 });
+  this.load.spritesheet('coffee_machine', '/static/coffee-machine-v3-grid' + getExt('coffee-machine-v3-grid.png'), { frameWidth: 230, frameHeight: 230 });
   this.load.spritesheet('serverroom', '/static/serverroom-spritesheet' + getExt('serverroom-spritesheet.png'), { frameWidth: 180, frameHeight: 251 });
 
-  this.load.spritesheet('error_bug', '/static/error-bug-spritesheet-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 180, frameHeight: 180 });
+  this.load.spritesheet('error_bug', '/static/error-bug-spritesheet-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 220, frameHeight: 220 });
   this.load.spritesheet('cats', '/static/cats-spritesheet' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 160, frameHeight: 160 });
   this.load.image('desk', '/static/desk' + getExt('desk.png'));
-  this.load.spritesheet('star_working', '/static/star-working-spritesheet-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 230, frameHeight: 144 });
-  this.load.spritesheet('sync_anim', '/static/sync-animation-spritesheet-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 256, frameHeight: 256 });
+  this.load.spritesheet('star_working', '/static/star-working-spritesheet-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 300, frameHeight: 300 });
+  this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 256, frameHeight: 256 });
 
-  // New desk: forced PNG (transparent)
-  this.load.image('desk_v2', '/static/desk-v2.png');
-  this.load.spritesheet('flowers', '/static/flowers-spritesheet' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 65, frameHeight: 65 });
+  // Desk v2 slot: the live renderer serves desk-v3.webp here
+  this.load.image('desk_v2', '/static/desk-v3.webp');
+  this.load.spritesheet('flowers', '/static/flowers-bloom-v2' + (supportsWebP ? '.webp' : '.png'), { frameWidth: 128, frameHeight: 128 });
 }
 
 function create() {
@@ -323,7 +337,7 @@ function create() {
 
   this.anims.create({
     key: 'star_idle',
-    frames: this.anims.generateFrameNumbers('star_idle', { start: 0, end: 29 }),
+    frames: this.anims.generateFrameNumbers('star_idle', { start: 0, end: 47 }),
     frameRate: 12,
     repeat: -1
   });
@@ -407,7 +421,7 @@ function create() {
   // === Coffee machine (from LAYOUT) ===
   this.anims.create({
     key: 'coffee_machine',
-    frames: this.anims.generateFrameNumbers('coffee_machine', { start: 0, end: 95 }),
+    frames: this.anims.generateFrameNumbers('coffee_machine', { start: 0, end: 94 }),
     frameRate: 12.5,
     repeat: -1
   });
@@ -466,13 +480,13 @@ function create() {
   // === Star working at the desk (from LAYOUT) ===
   this.anims.create({
     key: 'star_working',
-    frames: this.anims.generateFrameNumbers('star_working', { start: 0, end: 191 }),
+    frames: this.anims.generateFrameNumbers('star_working', { start: 0, end: 37 }),
     frameRate: 12,
     repeat: -1
   });
   this.anims.create({
     key: 'error_bug',
-    frames: this.anims.generateFrameNumbers('error_bug', { start: 0, end: 95 }),
+    frames: this.anims.generateFrameNumbers('error_bug', { start: 0, end: 71 }),
     frameRate: 12,
     repeat: -1
   });
@@ -505,7 +519,7 @@ function create() {
   // === Sync animation (from LAYOUT) ===
   this.anims.create({
     key: 'sync_anim',
-    frames: this.anims.generateFrameNumbers('sync_anim', { start: 1, end: 52 }),
+    frames: this.anims.generateFrameNumbers('sync_anim', { start: 1, end: 47 }),
     frameRate: 12,
     repeat: -1
   });

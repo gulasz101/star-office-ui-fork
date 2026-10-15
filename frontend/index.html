@@ -3569,7 +3569,7 @@ function toggleBrokerPanel() {
             this.load.image('coffee_machine_shadow', '/static/coffee-machine-shadow-v1.png?v={{VERSION_TIMESTAMP}}');
             this.load.spritesheet('serverroom', '/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 180, frameHeight: 251 });
 
-            // Error / bug animation: 180x180, 96 frames (repacked grid)
+            // Error / bug animation: 220x220, 8 x 9 = 72 frames (repacked grid)
             this.load.spritesheet('error_bug', '/static/error-bug-spritesheet-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 220, frameHeight: 220 });
 
             // Runtime Gemini config (used by New Home / Broker generation)
@@ -3587,9 +3587,9 @@ function toggleBrokerPanel() {
             // Sync state animation (256x256, multi-frame): still shows frame 0, syncing loops from frame 1
             this.load.spritesheet('sync_anim', '/static/sync-animation-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 256, frameHeight: 256 });
 
-            // Desk v2 (webp only)
+            // Desk v2 slot, current art desk-v3.webp (webp only)
             this.load.image('desk_v2', '/static/desk-v3.webp?v={{VERSION_TIMESTAMP}}');
-            // Flower spritesheet (65x65, 16 frames)
+            // Flower spritesheet: 128x128 frames in a 4 x 4 grid (16 frames)
             this.load.spritesheet('flowers', '/static/flowers-bloom-v2.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: FLOWERS_FRAME_W, frameHeight: FLOWERS_FRAME_H });
 
             // Guest/Demo agent sprites
@@ -3821,7 +3821,7 @@ function toggleBrokerPanel() {
                 repeat: -1
             });
 
-            // Error / bug animation (96 frames)
+            // Error / bug animation (220x220, 8 x 9 = 72 frames)
             this.anims.create({
                 key: 'error_bug',
                 frames: this.anims.generateFrameNumbers('error_bug', { start: 0, end: 71 }),

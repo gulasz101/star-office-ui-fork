@@ -1,0 +1,14 @@
+{
+  "who": "Wojciech 'Wojtek' Gula (akadmin / Supreme Leader) - the operator this project is built for",
+  "why": "Room furniture and decor should carry his own touches, so the office reads as HIS, not as a generic asset pack. Per ADR-061, operator taste wins on look.",
+  "traits": [
+    {"id": "bass", "fact": "bass guitar player", "props": ["a worn electric bass on a stand", "a bass amp with a cable coiled on top", "a wall hook holding a strap"], "safe": true},
+    {"id": "homelab", "fact": "homelabber (this whole office is one)", "props": ["a small rack with blinking LEDs", "a patch panel with labelled cables", "a spool of network cable"], "safe": true},
+    {"id": "polish_warehouse", "fact": "Polish; builds warehouse software", "props": ["a packing-crate stack with stencil-ish marks and NO readable words", "a handheld barcode scanner", "a small pallet jack"], "safe": true, "note": "No Polish or any language text baked into art - readable third-party text is what we are removing elsewhere."},
+    {"id": "jdm_cars", "fact": "loves Japanese cars; owns a 30-year-old Mazda MPV; likes old Honda Civics", "props": ["a boxy 1990s Japanese minivan seen from the side as a wall poster, plain, no badges", "a small die-cast car on a shelf", "a tin of car wax"], "safe": true, "note": "NO manufacturer badges or logos. A recognisable-but-unbranded boxy van is fine; a Mazda/Honda mark is not."},
+    {"id": "cats", "fact": "owns two cats", "props": ["an orange tabby asleep in a box", "a black-and-white cat on a chair", "a scratch post"], "safe": true, "note": "Generate OUR OWN cats. The shipped cats spritesheet is LimeZu non-commercial art (ADR-060) and must not ship."},
+    {"id": "anime_games", "fact": "loves Dragon Ball and Pokemon", "props": ["an unbranded manga shelf with plain spines", "an orange-and-blue arcade cabinet with no logo or text", "a small CRT with a colourful abstract game paused on it"], "safe": false, "note": "The ENERGY only. Dragon Ball and Pokemon are third-party trademarks: no characters, no ball/creature silhouettes, no logos, no title text. This is the same rule that is removing the FRIENDS sign and the film posters."}
+  ],
+  "rule": "Every personal prop goes through the normal pipeline: generated in the room's declared 30-degree isometric projection, keyed, gated by check_prop_alignment, placed on a declared grid cell or wall anchor, with a manifest. Personal inclinations do not exempt a prop from the gate or the licence rule.",
+  "how_to_use": "add the wanted props to profiles/rooms/<agent>_room.json with a grid cell, then run scripts/gen_room_set.py"
+}

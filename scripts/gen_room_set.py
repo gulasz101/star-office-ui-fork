@@ -168,7 +168,15 @@ def main():
         "lattice": {"origin": geo.ROOM["floor"]["origin"], "tile_w": geo.ROOM["floor"]["tile_w"],
                     "tile_h": geo.ROOM["floor"]["tile_h"], "slope": lattice,
                     "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)"},
-        "wall_seam_y": geo.ROOM["wall"]["seam_y"],
+        "wall_seam_y": geo.ROOM["floor"]["origin"]["y"],   # the floor's far corner = the seam
+        "walls": {
+            "planes": ["left-back", "right-back"],
+            "rise_px": geo.ROOM["wall"]["rise_px"],
+            "baseboard_px": geo.ROOM["wall"]["baseboard_px"],
+            "seam": "the two far edges of the floor diamond (grid 0,0 -> gx_max,0 and 0,0 -> 0,gy_max)",
+            "anchor": "wall_to_screen(gx, height, side) = position ALONG a wall plus height ABOVE "
+                      "the seam; wall-mounted objects use this, not the floor grid (ADR-065)",
+        },
         "prop_anchors": [{"id": p["id"], "file": f"props/{p['id']}.png", "grid": p["grid"], "tiles": p["tiles"]} for p in placed],
         "rejected": rejected,
         "preview": preview.name,

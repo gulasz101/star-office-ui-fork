@@ -9,14 +9,24 @@
   "lattice": {
     "origin": {
       "x": 640,
-      "y": 300
+      "y": 250
     },
     "tile_w": 96,
     "tile_h": 55,
     "slope": 0.5729166666666666,
     "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)"
   },
-  "wall_seam_y": 300,
+  "wall_seam_y": 250,
+  "walls": {
+    "planes": [
+      "left-back",
+      "right-back"
+    ],
+    "rise_px": 250,
+    "baseboard_px": 14,
+    "seam": "the two far edges of the floor diamond (grid 0,0 -> gx_max,0 and 0,0 -> 0,gy_max)",
+    "anchor": "wall_to_screen(gx, height, side) = position ALONG a wall plus height ABOVE the seam; wall-mounted objects use this, not the floor grid (ADR-065)"
+  },
   "prop_anchors": [
     {
       "id": "desk",
@@ -62,6 +72,33 @@
         6
       ],
       "tiles": 1.0
+    },
+    {
+      "id": "bass",
+      "file": "props/bass.png",
+      "grid": [
+        10,
+        4
+      ],
+      "tiles": 1.2
+    },
+    {
+      "id": "cat",
+      "file": "props/cat.png",
+      "grid": [
+        5,
+        8
+      ],
+      "tiles": 0.7
+    },
+    {
+      "id": "jdm_van",
+      "file": "props/jdm_van.png",
+      "grid": [
+        2,
+        8
+      ],
+      "tiles": 1.6
     }
   ],
   "rejected": [],

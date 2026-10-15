@@ -109,18 +109,23 @@ def main():
         return 2
 
     failures = 0
+    checked = 0
+    skipped = 0
     print(f"== prop/base alignment gate (lattice slope {lattice:+.3f}, tolerance {TOLERANCE}) ==")
     for p in args:
         path = Path(p)
         if not path.exists():
             print(f"  {path.name:34s} MISSING")
             failures += 1
+            checked += 1
             continue
         # un-keyed generations still carry the magenta frame, so their "base" is the frame edge
         # (slope 0.000) and gating them reports nonsense. They are inputs, not deployable props.
         if ".raw." in path.name:
             print(f"  {path.name:34s} skipped (un-keyed generation, not a deployable prop)")
+            skipped += 1
             continue
+        checked += 1
         sl = base_slopes(path)
         if sl is None:
             print(f"  {path.name:34s} EMPTY (no opaque pixels)")
@@ -133,7 +138,8 @@ def main():
         if not ok:
             failures += 1
 
-    print(f"\n{len(args) - failures}/{len(args)} prop(s) sit on the lattice")
+    print(f"\n{checked - failures}/{checked} prop(s) sit on the lattice"
+          + (f" ({skipped} input file(s) skipped)" if skipped else ""))
     return 0 if failures == 0 else 1
 
 

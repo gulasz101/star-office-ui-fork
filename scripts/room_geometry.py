@@ -37,7 +37,18 @@ OUT = REPO / "assets" / "experiments" / "geometry"
 # every placement follows; nothing is tuned per-image.
 # ---------------------------------------------------------------------------
 ROOM = {
-    "canvas": {"w": 1280, "h": 720},
+    # WIDER AND TALLER THAN THE VIEWPORT ON PURPOSE. The Supreme Leader asked for a garage bay for his
+    # van rather than a van parked in an office ("give it a garage bay - extend the room"). The Office
+    # part keeps its screen position; the bay is added to the LEFT, which in this projection is the
+    # +gy direction (screen-down-left), so the grid grows from 12x12 to 12x18, the origin slides right
+    # by the bay's width, and the canvas grows to hold the whole floor.
+    #
+    # MEASURED, not guessed: the floor's near corner is at y = origin_y + (gx_max + gy_max) * tile_h/2
+    # = 250 + 30 * 27.5 = 1075, so a 720-tall canvas only ever showed the upper part of the room - the
+    # near corner was already off-frame at y=910 in the 12x12 room. That is fine for a pannable world
+    # (the game owns a 1280x720 viewport and MAP_W/MAP_H + camera.setBounds pan it), but the bay must
+    # be REACHABLE, so the canvas is now sized to the whole declared floor rather than cropped.
+    "canvas": {"w": 1568, "h": 1100},
     # DECIDED by the Supreme Leader, 2026-10-15: keep the 30-degree true isometric angle.
     # Reason: the look of classic isometric strategy games (Pharaoh, Zeus) that he loves, and
     # the single-desk composite rendered at this angle read as "so on point". Per ADR-061,
@@ -45,15 +56,25 @@ ROOM = {
     # pixel-art convention, and props are gated tightly to it rather than tolerated.
     "projection": "true isometric, 30 degrees (base slope 0.5774; Pharaoh/Zeus look)",
     "floor": {
-        "origin": {"x": 640, "y": 250},      # grid (0,0) on screen; the floor's far corner
+        "origin": {"x": 928, "y": 250},        # grid (0,0) on screen; the floor's far corner
         "tile_w": 96,
         "tile_h": 55,                         # 55/96 = 0.573 ~= tan(30 deg); see DECIDED above
-        # 12x12 keeps the floor diamond inside the canvas horizontally (x 64..1216) and puts the
-        # far corner at y=250 so a 250px wall rise reaches y=0 exactly. The NEAR corner falls off
-        # the bottom of the frame at y=910 - that is normal for a game camera showing part of a
-        # room, and unlike side clipping it is not an asymmetry.
-        "grid": {"x": 12, "y": 12},           # how many cells each way are drawn
+        # grid x = 12 (the office), grid y = 18 (12 office + a 6-wide garage bay toward the viewer's
+        # left). The far corner stays at y=250 so a 250px wall rise still reaches y=0 exactly, and the
+        # ORIGIN moved right by 6 tiles (6 * 96/2 = 288) so the office part did not shift on screen.
+        "grid": {"x": 12, "y": 18},            # how many cells each way are drawn
         "colours": {"a": (76, 84, 104), "b": (68, 76, 94), "grout": (44, 52, 68)},
+    },
+    # THE GARAGE BAY. Declared, not drawn by hand: which cells it covers, its own floor material,
+    # and the painted marking. A vehicle belongs on concrete in a marked bay with a door behind it -
+    # "certain things must match" (the operator's words) applies to a van as much as to a coffee
+    # machine needing a table.
+    "bay": {
+        "gx": (1, 10),                         # cell range along the office's depth axis
+        "gy": (12, 18),                        # the 6 columns added to the left
+        "colour": (64, 66, 72),                # concrete, deliberately greyer than the office floor
+        "marking": (188, 156, 66),             # painted hazard line
+        "door": {"colour": (96, 104, 120), "slat": (78, 86, 100)},   # roller door on the left wall
     },
     "wall": {
         # The room is enclosed by the TWO far wall planes, raised from the two far edges of the
@@ -116,11 +137,15 @@ def draw_room(show_grid=False):
 
     # --- floor: alternating rhombi on the declared lattice ---
     gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
+    bay = ROOM.get("bay")
     for gx in range(gx_max):
         for gy in range(gy_max):
             pts = [grid_to_screen(gx, gy), grid_to_screen(gx + 1, gy),
                    grid_to_screen(gx + 1, gy + 1), grid_to_screen(gx, gy + 1)]
             col = f["colours"]["a"] if (gx + gy) % 2 == 0 else f["colours"]["b"]
+            if (bay and bay["gy"][0] <= gy < bay["gy"][1]
+                    and bay["gx"][0] <= gx < bay["gx"][1]):
+                col = bay["colour"]          # concrete: a bay is not a tiled office floor
             d.polygon(pts, fill=col, outline=f["colours"]["grout"] if show_grid else None)
 
     # --- the two rising wall planes, drawn from the same lattice ---
@@ -171,6 +196,26 @@ def draw_room(show_grid=False):
     cx, cy = corners["far"]
     d.line([(cx, cy - rise + 2), (cx, cy)], fill=shade(w["baseboard"], 0.5), width=4)
     d.line([(cx + 2, cy - rise + 2), (cx + 2, cy)], fill=shade(w["colour"], 0.55), width=2)
+
+    # --- the garage bay: painted marking and the door the vehicle came through ---
+    if bay:
+        bx0, bx1 = bay["gx"]
+        by0, by1 = bay["gy"]
+        for (p, q) in (((bx0, by0), (bx1, by0)), ((bx1, by0), (bx1, by1)),
+                       ((bx1, by1), (bx0, by1)), ((bx0, by1), (bx0, by0))):
+            d.line([grid_to_screen(*p), grid_to_screen(*q)], fill=bay["marking"], width=3)
+        # roller door, filling the wall behind the bay from the seam upward. Without it the bay is a
+        # grey rectangle against a wall; with it the room says how the van got in.
+        door = bay["door"]
+        a = wall_to_screen(by0, 0, "left")
+        b = wall_to_screen(by1, 0, "left")
+        top = int(rise * 0.78)
+        d.polygon([a, b, (b[0], b[1] - top), (a[0], a[1] - top)], fill=door["colour"])
+        for i in range(1, 9):
+            yy = top / 9.0 * i
+            d.line([(a[0], a[1] - yy), (b[0], b[1] - yy)], fill=door["slat"], width=2)
+        d.line([a, b], fill=shade(door["colour"], 0.7), width=3)
+        d.line([(a[0], a[1] - top), (b[0], b[1] - top)], fill=shade(door["colour"], 0.7), width=3)
     return img, d
 
 

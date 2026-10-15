@@ -129,32 +129,30 @@ def wall_to_screen(gx, height, side="right", f=None):
     return (x, y)
 
 
-def draw_room(show_grid=False):
-    W, H = ROOM["canvas"]["w"], ROOM["canvas"]["h"]
-    w, f = ROOM["wall"], ROOM["floor"]
-    img = Image.new("RGB", (W, H), w["void"])
-    d = ImageDraw.Draw(img)
+def draw_wall_planes(d, f=None, w=None, corners=None, show_grid=False):
+    """The two rising wall planes + baseboard + architectural cues, drawn from
+    the declared lattice.
 
-    # --- floor: alternating rhombi on the declared lattice ---
-    gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
-    bay = ROOM.get("bay")
-    for gx in range(gx_max):
-        for gy in range(gy_max):
-            pts = [grid_to_screen(gx, gy), grid_to_screen(gx + 1, gy),
-                   grid_to_screen(gx + 1, gy + 1), grid_to_screen(gx, gy + 1)]
-            col = f["colours"]["a"] if (gx + gy) % 2 == 0 else f["colours"]["b"]
-            if (bay and bay["gy"][0] <= gy < bay["gy"][1]
-                    and bay["gx"][0] <= gx < bay["gx"][1]):
-                col = bay["colour"]          # concrete: a bay is not a tiled office floor
-            d.polygon(pts, fill=col, outline=f["colours"]["grout"] if show_grid else None)
+    Extracted verbatim from ``draw_room`` for SOU-123 (``scripts/gen_iso_room.py``
+    renders ``walls.png`` through this SAME code path, so the v1 preview and the
+    v2 tilemap cannot drift apart - reuse, not behaviour change; the --demo
+    composite is byte-identical, pinned by the pre/post shas in that issue).
 
-    # --- the two rising wall planes, drawn from the same lattice ---
+    ``corners`` may be precomputed from a TRANSLATED copy of the floor dict
+    (origin shifted by a caller-computed bbox offset); the drawing itself is
+    unchanged. Everything derives from the lattice: no pixel is tuned.
+    """
+    f = f or ROOM["floor"]
+    w = w or ROOM["wall"]
     rise = w["rise_px"]
-    corners = {
-        "far": grid_to_screen(0, 0),
-        "right": grid_to_screen(gx_max, 0),
-        "left": grid_to_screen(0, gy_max),
-    }
+    if corners is None:
+        gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
+        corners = {
+            "far": grid_to_screen(0, 0, f),
+            "right": grid_to_screen(gx_max, 0, f),
+            "left": grid_to_screen(0, gy_max, f),
+        }
+
     for side, colour in (("left", w["colour"]), ("right", w["colour2"])):
         a = corners["far"]
         b = corners["left"] if side == "left" else corners["right"]
@@ -186,7 +184,7 @@ def draw_room(show_grid=False):
         # panel joins every tile along the wall: gives the plane a material and a scale
         n = f["grid"]["x"] if side == "right" else f["grid"]["y"]
         for gi in range(1, n):
-            p0 = wall_to_screen(gi, 0, side)
+            p0 = wall_to_screen(gi, 0, side, f)
             d.line([(p0[0], p0[1] - 2), (p0[0], p0[1] - rise + 6)], fill=shade(colour, 0.86), width=2)
         # ambient occlusion where the wall meets the floor: the seam needs weight or both the
         # wall and the objects on the floor read as pasted on
@@ -197,8 +195,39 @@ def draw_room(show_grid=False):
     d.line([(cx, cy - rise + 2), (cx, cy)], fill=shade(w["baseboard"], 0.5), width=4)
     d.line([(cx + 2, cy - rise + 2), (cx + 2, cy)], fill=shade(w["colour"], 0.55), width=2)
 
+def draw_room(show_grid=False):
+    W, H = ROOM["canvas"]["w"], ROOM["canvas"]["h"]
+    w, f = ROOM["wall"], ROOM["floor"]
+    img = Image.new("RGB", (W, H), w["void"])
+    d = ImageDraw.Draw(img)
+
+    # --- floor: alternating rhombi on the declared lattice ---
+    gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
+    bay = ROOM.get("bay")
+    for gx in range(gx_max):
+        for gy in range(gy_max):
+            pts = [grid_to_screen(gx, gy), grid_to_screen(gx + 1, gy),
+                   grid_to_screen(gx + 1, gy + 1), grid_to_screen(gx, gy + 1)]
+            col = f["colours"]["a"] if (gx + gy) % 2 == 0 else f["colours"]["b"]
+            if (bay and bay["gy"][0] <= gy < bay["gy"][1]
+                    and bay["gx"][0] <= gx < bay["gx"][1]):
+                col = bay["colour"]          # concrete: a bay is not a tiled office floor
+            d.polygon(pts, fill=col, outline=f["colours"]["grout"] if show_grid else None)
+
+    # --- the two rising wall planes, drawn from the same lattice ---
+    # (the body lives in draw_wall_planes so gen_iso_room.py renders the exact
+    # same geometry into walls.png - reuse, no behaviour change)
+    draw_wall_planes(d, f, w, show_grid=show_grid)
+
     # --- the garage bay: painted marking and the door the vehicle came through ---
+    # (SOU-flux-art-pipeline geometry, kept verbatim; rise comes from the wall
+    # declaration since the plane body moved into draw_wall_planes)
     if bay:
+        rise = w["rise_px"]
+
+        def shade(col, k):
+            return tuple(max(0, min(255, int(c * k))) for c in col)
+
         bx0, bx1 = bay["gx"]
         by0, by1 = bay["gy"]
         for (p, q) in (((bx0, by0), (bx1, by0)), ((bx1, by0), (bx1, by1)),

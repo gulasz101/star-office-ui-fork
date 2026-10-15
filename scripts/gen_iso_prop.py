@@ -78,12 +78,22 @@ def key_magenta(img, tolerance=48):
         for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
             if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and close(px[nx, ny]):
                 seen[ny * w + nx] = 1; q.append((nx, ny))
-    # de-fringe: kill leftover magenta-ish haze
+    # de-fringe AND GROUND-MARKER REMOVAL in one pass. Whenever a ground tile is mentioned in the
+    # prompt the model draws a magenta CONTOUR around the object plus an isometric DIAMOND on the
+    # ground plane, and both survive a strict key. Confirmed by marking the detections and viewing
+    # a sprite at 2x: a 1-2px contour plus a ground rhombus, NOT shading (the object's own outline
+    # is near-black, a different colour).
+    #
+    # The discriminator is BLUE vs GREEN, not red vs green: magenta and pink have b >= g, while
+    # brown, tan and cream have b < g. Using (r-g) alone stripped 8650px off a warm-wood desk
+    # (#c08a60 has r-g=54). This lives HERE, in the one keying function, so a freshly generated
+    # prop is clean without a separate manual step - it previously lived only in rekey_props.py and
+    # fresh props kept shipping the contour.
     for y in range(h):
         for x in range(w):
             r, g, b, a = px[x, y]
-            if a > 0 and r > 140 and b > 110 and g < 120 and (r - g) > 40 and (b - g) > 20:
-                px[x, y] = (r, g, b, 0)
+            if a and (r - g) > 20 and (b - g) > 10 and g < 150:
+                px[x, y] = (0, 0, 0, 0)
     return img, key
 
 

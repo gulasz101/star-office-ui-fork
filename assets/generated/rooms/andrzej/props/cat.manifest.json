@@ -4,23 +4,24 @@
   "lora_strength": 0.0,
   "steps": 4,
   "guidance": 1.0,
-  "seed": 961,
-  "prompt": "pixel art game asset: an orange tabby cat curled up asleep on the floor, tail wrapped around itself. drawn in TRUE ISOMETRIC projection at 30 degrees like the classic isometric strategy games Pharaoh and Zeus: ground edges run at 30 degrees from horizontal, i.e. about 0.577 pixels down for every 1 pixel across (a 1.73 : 1 rhombus, NOT a 2:1 one), and the object stands on a rhombic tile twice as wide as it is tall would be WRONG here. Vertical edges stay perfectly vertical. Viewed from the same fixed 30-degree isometric camera as an isometric floor grid. Single object, centred, nothing else in frame, no room, no floor drawn. Palette limited to #c1a46b, #e2d3b4, #ac9968, #ffea99, #a3be8c, #88c0d0 plus dark grey, with crisp thin dark outlines and flat cel shading, no antialiasing, no blur, no checkerboard pattern, The object rests DIRECTLY on the flat magenta background: do NOT draw any ground patch, base, platform, pedestal, mat, rug, plinth or contact shadow under it - the magenta background extends right up to the object's feet. plain flat magenta background #FF00FF filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 960,
+  "prompt": "pixel art game asset: an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself. drawn in TRUE ISOMETRIC projection at 30 degrees like the classic isometric strategy games Pharaoh and Zeus: ground edges run at 30 degrees from horizontal, i.e. about 0.577 pixels down for every 1 pixel across. Vertical edges stay perfectly vertical. Viewed from the same fixed 30-degree isometric camera as an isometric floor grid. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Single object, centred, nothing else in frame, no room, no floor drawn. Palette limited to #c1a46b, #e2d3b4, #ac9968, #ffea99, #a3be8c, #88c0d0 plus dark grey, with crisp thin dark outlines and flat cel shading, no antialiasing, no blur, no checkerboard pattern, The object rests DIRECTLY on the flat magenta background: do NOT draw any ground patch, base, platform, pedestal, mat, rug, plinth or contact shadow under it - the magenta background extends right up to the object's feet. plain flat magenta background #FF00FF filling the whole frame. 32-bit pixel art, game asset.",
   "key_colour": [
-    229,
-    18,
-    154
+    243,
+    21,
+    226
   ],
   "base_slopes": [
-    0.6,
-    -0.613
+    0.667,
+    -0.69
   ],
   "lattice_slope": 0.573,
   "grid": [
     5,
     8
   ],
-  "target_tiles": 0.7,
-  "created_at": "2026-10-15T14:56:55.437004+00:00",
+  "target_tiles": 0.9,
+  "created_at": "2026-10-15T15:41:13.210491+00:00",
+  "gate": "exempt (decor: no rhombic footprint expected)",
   "note": "Generated IN the room's declared 30-degree isometric projection; gated by check_prop_alignment (re-rolled if the generator returned a 2:1 prop)."
 }

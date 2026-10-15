@@ -34,11 +34,13 @@
         3,
         3
       ],
-      "target_tiles": 2.0,
+      "target_tiles": 2.107,
       "base_slopes": [
         0.557,
         -0.59
-      ]
+      ],
+      "real_m": 1.4,
+      "scale_note": "object measures 443px in a 640px canvas; 1.4 m at 100 px/m = 140px -> canvas 202px = 2.11 tiles (a desk; the sprite includes a monitor and a lamp)"
     },
     {
       "id": "rack",
@@ -47,11 +49,13 @@
         8,
         2
       ],
-      "target_tiles": 1.4,
+      "target_tiles": 2.312,
       "base_slopes": [
         0.564,
         -0.615
-      ]
+      ],
+      "real_m": 0.6,
+      "scale_note": "object measures 173px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 222px = 2.31 tiles (a 19-inch server rack is 600 mm wide)"
     },
     {
       "id": "chair",
@@ -60,11 +64,13 @@
         3,
         5
       ],
-      "target_tiles": 1.0,
+      "target_tiles": 0.797,
       "base_slopes": [
         0.591,
         -0.622
-      ]
+      ],
+      "real_m": 0.6,
+      "scale_note": "object measures 502px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 76px = 0.80 tiles (an office chair at its footprint)"
     },
     {
       "id": "spool",
@@ -73,11 +79,13 @@
         6,
         5
       ],
-      "target_tiles": 1.0,
+      "target_tiles": 1.453,
       "base_slopes": [
         0.547,
         -0.561
-      ]
+      ],
+      "real_m": 0.8,
+      "scale_note": "object measures 367px in a 640px canvas; 0.8 m at 100 px/m = 80px -> canvas 140px = 1.45 tiles (a cable spool including its pallet)"
     },
     {
       "id": "crate",
@@ -86,11 +94,13 @@
         9,
         6
       ],
-      "target_tiles": 1.0,
+      "target_tiles": 1.22,
       "base_slopes": [
         0.619,
         -0.626
-      ]
+      ],
+      "real_m": 0.6,
+      "scale_note": "object measures 328px in a 640px canvas; 0.6 m at 100 px/m = 60px -> canvas 117px = 1.22 tiles (a shipping crate)"
     },
     {
       "id": "bass",
@@ -99,11 +109,13 @@
         10,
         4
       ],
-      "target_tiles": 1.2,
+      "target_tiles": 0.952,
       "base_slopes": [
         0.545,
         -0.571
-      ]
+      ],
+      "real_m": 0.7,
+      "scale_note": "object measures 490px in a 640px canvas; 0.7 m at 100 px/m = 70px -> canvas 91px = 0.95 tiles (amp plus the leaning bass guitar)"
     },
     {
       "id": "cat",
@@ -112,12 +124,14 @@
         5,
         8
       ],
-      "target_tiles": 0.9,
+      "target_tiles": 0.703,
       "base_slopes": [
         0.667,
         -0.69
       ],
-      "gate": "exempt (decor: no rhombic footprint expected)"
+      "gate": "exempt (decor: no rhombic footprint expected)",
+      "real_m": 0.5,
+      "scale_note": "object measures 474px in a 640px canvas; 0.5 m at 100 px/m = 50px -> canvas 68px = 0.70 tiles (a cat curled in a box)"
     },
     {
       "id": "jdm_van",
@@ -126,11 +140,13 @@
         2,
         8
       ],
-      "target_tiles": 1.6,
+      "target_tiles": 5.682,
       "base_slopes": [
         0.586,
         -0.593
-      ]
+      ],
+      "real_m": 4.5,
+      "scale_note": "object measures 528px in a 640px canvas; 4.5 m at 100 px/m = 450px -> canvas 545px = 5.68 tiles (a Mazda MPV is ~4.5 m long - see the note it prints)"
     }
   ]
 }

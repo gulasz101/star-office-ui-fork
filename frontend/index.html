@@ -3724,8 +3724,19 @@ function toggleBrokerPanel() {
             // nothing renders twice (AC5); the upstream code itself is kept
             // intact for the fallback path. error_bug / star_working /
             // sync_anim are STATE fixtures, not furniture - never in this list.
-            const UPSTREAM_FURNITURE_KEYS = ['plants', 'cats', 'coffee_machine',
-                'coffee_machine_shadow', 'serverroom', 'desk_v2', 'flowers',
+            // Static asset version, substituted server-side at serve time. Exposed so dynamically
+            // built URLs (the room pack's prop art) can be cache-busted the same way the loader's
+            // own <script> URLs are - see placeProps().
+            window.STATIC_VERSION = '{{VERSION_TIMESTAMP}}';
+
+            // coffee_machine / coffee_machine_shadow deliberately NOT suppressed: that sheet is OUR
+            // generated art (96-frame brewing loop) and it draws the machine ON ITS TABLE - object and
+            // support in one coherent sprite, which is exactly what a room needs ("a coffee machine
+            // must stand on something"). Review of the assembled room asked for precisely that. Only
+            // the LimeZu sheets (plants, cats) and the upstream furniture the pack replaces stay
+            // suppressed.
+            const UPSTREAM_FURNITURE_KEYS = ['plants', 'cats',
+                'serverroom', 'desk_v2', 'flowers',
                 'sofa_idle', 'sofa_shadow', 'star_idle'];
 
             const state = {
@@ -3805,11 +3816,15 @@ function toggleBrokerPanel() {
                 if (!anchors || !anchors.length) { fallback('room has no usable anchors'); return; }
                 const scene = state.scene;
                 const pending = [];
+                // Cache-bust the prop art. Measured: without this, prop URLs are stable and /static is
+                // served `Cache-Control: immutable`, so a browser keeps the FIRST prop image it ever
+                // fetched - regenerated art would never reach a client. (Caught while testing: after
+                // halving the served prop files the browser still reported the old 640x640 textures.)
+                const v = (window.STATIC_VERSION || (entry && entry.version) || '1');
                 anchors.forEach(a => {
                     const key = 'room:' + roomKey + ':' + a.id;
-                    const url = '/static/' + entry.props + String(a.file).split('/').pop();
+                    const url = '/static/' + entry.props + String(a.file).split('/').pop() + '?v=' + v;
                     pending.push({ a: a, key: key, url: url });
-                    if (!scene.textures.exists(key)) scene.load.image(key, url);
                 });
                 const finish = () => {
                     const floor = room.floor;
@@ -3844,15 +3859,36 @@ function toggleBrokerPanel() {
                     state.roomSource = entry.room;
                     suppressGate();
                 };
-                if (scene.load.isLoading()) {
-                    scene.load.once('complete', () => {
-                        scene.load.once('complete', finish);
-                        scene.load.start();
-                    });
-                } else {
-                    scene.load.once('complete', finish);
-                    scene.load.start();
-                }
+                // Load prop art with plain DOM images + TextureManager.addImage, and DO NOT touch
+                // scene.load. Measured, not theorised: with the pack active the canvas rendered 87%
+                // pure black (0,0,0) and none of the shell's floor colours appeared anywhere, while
+                // renaming index.json away brought the whole room back - so the ACTIVE path was
+                // blanking the background, and the only thing it did that the fallback does not was
+                // start the LoaderPlugin a second time from loadRoom() after the scene was already
+                // created (scene.load.image() + scene.load.start()). Keeping the loader out of it
+                // removes that interaction completely, and a DOM Image needs no loader queue at all.
+                const queue = pending.slice();
+                const step = () => {
+                    const p = queue.shift();
+                    if (!p) { finish(); return; }
+                    if (scene.textures.exists(p.key)) { step(); return; }
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            scene.textures.addImage(p.key, img);
+                        } catch (e) {
+                            console.warn('RoomPack: addImage failed for', p.key, e);
+                        }
+                        step();
+                    };
+                    img.onerror = () => {
+                        // one bad prop must never abort the room (AC7)
+                        console.warn('RoomPack: prop image failed', p.url);
+                        step();
+                    };
+                    img.src = p.url;
+                };
+                step();
             }
 
             function loadRoom(entry, roomKey) {

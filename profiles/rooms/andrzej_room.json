@@ -3,21 +3,112 @@
   "display_name": "Andrzej",
   "projection": "true isometric as the generator reproduces it (measured base slope ~0.577 / 30deg)",
   "palette": {
-    "shell": ["#44618a", "#303243"],
-    "floor": ["#5f91b9", "#465368"],
-    "warm": ["#c1a46b", "#e2d3b4", "#ac9968", "#ffea99"],
-    "accent": ["#a3be8c", "#88c0d0"]
+    "shell": [
+      "#44618a",
+      "#303243"
+    ],
+    "floor": [
+      "#5f91b9",
+      "#465368"
+    ],
+    "warm": [
+      "#c1a46b",
+      "#e2d3b4",
+      "#ac9968",
+      "#ffea99"
+    ],
+    "accent": [
+      "#a3be8c",
+      "#88c0d0"
+    ]
   },
   "why": "Furniture is generated FOR this room in its declared projection (ADR-065). Upstream props cannot be reused: measured base slopes +0.003/-0.007 (upstream desk) and +1.043/-1.147 (upstream sofa) against a lattice needing ~0.577.",
   "props": [
-    {"id": "desk", "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug", "grid": [3, 3], "tiles": 2.0},
-    {"id": "rack", "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable", "grid": [8, 2], "tiles": 1.4},
-    {"id": "chair", "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor", "grid": [3, 5], "tiles": 1.0},
-    {"id": "spool", "subject": "a cable spool on a small wooden pallet with a few loose network cables", "grid": [6, 5], "tiles": 1.0},
-    {"id": "crate", "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top", "grid": [9, 6], "tiles": 1.0},
-    {"id": "bass", "subject": "a worn electric bass guitar leaning against a small amplifier, with a coiled cable on top of the amp", "grid": [10, 4], "tiles": 1.2, "personal": "bass guitar player"},
-    {"id": "cat", "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself", "grid": [5, 8], "tiles": 0.9, "personal": "owns two cats", "decor": true, "note": "DECOR: admitted with its measurement recorded but exempt from the base-slope gate. A cat curled on the floor has no rhombic footprint and failed it repeatedly (0.426/-0.364 on the floor variant, 0.633-0.826 in a box). The gate protects furniture, where a projection mismatch is visible; the exemption is per prop and visible in the manifest and room.json rather than hidden by a loosened tolerance."},
-    {"id": "jdm_van", "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo", "grid": [2, 8], "tiles": 1.6, "personal": "30-year-old Mazda MPV"}
+    {
+      "id": "desk",
+      "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug",
+      "grid": [
+        3,
+        3
+      ],
+      "tiles": 2.107,
+      "real_m": 1.4
+    },
+    {
+      "id": "rack",
+      "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable",
+      "grid": [
+        8,
+        2
+      ],
+      "tiles": 2.312,
+      "real_m": 0.6
+    },
+    {
+      "id": "chair",
+      "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor",
+      "grid": [
+        3,
+        5
+      ],
+      "tiles": 0.797,
+      "real_m": 0.6
+    },
+    {
+      "id": "spool",
+      "subject": "a cable spool on a small wooden pallet with a few loose network cables",
+      "grid": [
+        6,
+        5
+      ],
+      "tiles": 1.453,
+      "real_m": 0.8
+    },
+    {
+      "id": "crate",
+      "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top",
+      "grid": [
+        9,
+        6
+      ],
+      "tiles": 1.22,
+      "real_m": 0.6
+    },
+    {
+      "id": "bass",
+      "subject": "a worn electric bass guitar leaning against a small amplifier, with a coiled cable on top of the amp",
+      "grid": [
+        10,
+        4
+      ],
+      "tiles": 0.952,
+      "personal": "bass guitar player",
+      "real_m": 0.7
+    },
+    {
+      "id": "cat",
+      "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself",
+      "grid": [
+        5,
+        8
+      ],
+      "tiles": 0.703,
+      "personal": "owns two cats",
+      "decor": true,
+      "note": "DECOR: admitted with its measurement recorded but exempt from the base-slope gate. A cat curled on the floor has no rhombic footprint and failed it repeatedly (0.426/-0.364 on the floor variant, 0.633-0.826 in a box). The gate protects furniture, where a projection mismatch is visible; the exemption is per prop and visible in the manifest and room.json rather than hidden by a loosened tolerance.",
+      "real_m": 0.5
+    },
+    {
+      "id": "jdm_van",
+      "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo",
+      "grid": [
+        2,
+        8
+      ],
+      "tiles": 5.682,
+      "personal": "30-year-old Mazda MPV",
+      "real_m": 4.5
+    }
   ],
   "personal_note": "The three props marked personal come from profiles/operator_taste.json. They go through the normal pipeline - in-projection generation, keying, the alignment gate, declared anchors - and the licence rule is unchanged: no anime or vehicle MARKS (ADR-061 invariant 10)."
 }

@@ -3426,6 +3426,14 @@ function toggleBrokerPanel() {
                     // Whatever the backend returns, demo=1 must keep the local demo visitors visible
                     guestAgents = Array.isArray(data) ? data : [];
 
+                    // SOU-115: the office's OWN agent identity selects its room
+                    // (index.rooms[<agentId>]). Pure data: a second agent's room
+                    // activates with zero renderer edits (AC6).
+                    try {
+                        const officeMain = (guestAgents || []).find(a => a && a.isMain);
+                        if (officeMain && officeMain.agentId) RoomPack.setOfficeAgent(officeMain.agentId);
+                    } catch (e) { /* room pack is additive; never break the roster */ }
+
                     // New-guest detection: fire Star's welcome bubble (real guests only, never demos)
                     try {
                         const merged = getMergedVisitors();
@@ -3612,6 +3620,280 @@ function toggleBrokerPanel() {
             // without one keeps the hash-picked guest art. No agent is special-cased here.
             this.load.image('agent_avatar_szarik', '/static/agent_avatar_szarik.png?v={{VERSION_TIMESTAMP}}');
         }
+
+        /* ROOM_PACK_LOADER_START */
+        /* SOU-115: render the GENERATED room pack in the office.
+         *
+         * GEOMETRY IS DECLARED, NOT DERIVED (ADR-065). Every position comes
+         * from the room's OWN floor.origin and tile vectors, with the same
+         * arithmetic as scripts/room_geometry.py:
+         *
+         *     screen(gx, gy) = (origin.x + (gx - gy) * tile_w / 2,
+         *                       origin.y + (gx + gy) * tile_h / 2)
+         *
+         * A prop's anchor is grid_to_screen(gx + 0.5, gy + 0.5) - the centre
+         * of its cell. The sprite is scaled to target_tiles * tile_w wide
+         * (aspect kept, never upscaled, integer truncation - exactly the
+         * semantics of scripts/finish_room_props.py) and placed so its
+         * MEASURED alpha footprint centre lands on the cell centre and its
+         * base row sits at the anchor y. Scaling is nearest-neighbour: the
+         * game runs with pixelArt: true, and the footprint canvas disables
+         * smoothing for the same effect while measuring.
+         *
+         * The loader is data-driven only: index.json + room.json select and
+         * place everything, no agent ids and no tile sizes are ever hardcoded
+         * here (AC6: another agent's room = data, zero renderer edits). If the
+         * index is missing, empty, or names no room for the current office,
+         * the scene behaves exactly as today: the upstream placements in
+         * create() stay visible (AC1). Fields this renderer does not use
+         * (decor, gate, base_slopes) are tolerated, never fatal (AC7).
+         */
+        window.RoomPack = (function () {
+
+            // --- Pure geometry, parity-tested against scripts/room_geometry.py ---
+
+            function gridToScreen(floor, gx, gy) {
+                return {
+                    x: floor.origin.x + (gx - gy) * floor.tile_w / 2.0,
+                    y: floor.origin.y + (gx + gy) * floor.tile_h / 2.0
+                };
+            }
+
+            function propPlan(tileW, srcW, srcH, targetTiles) {
+                const s = Math.min(tileW * targetTiles / srcW, 1.0);
+                return {
+                    displayW: Math.max(1, Math.trunc(srcW * s)),
+                    displayH: Math.max(1, Math.trunc(srcH * s)),
+                    scale: s
+                };
+            }
+
+            function pickOfficeRoom(index, officeAgentId) {
+                if (!index || !index.rooms || !officeAgentId) return null;
+                const entry = index.rooms[officeAgentId];
+                return (entry && entry.room && entry.props) ? entry : null;
+            }
+
+            function parseRoom(room) {
+                if (!room || !room.floor || !room.floor.origin
+                    || !room.floor.tile_w || !room.floor.tile_h) return null;
+                const anchors = Array.isArray(room.prop_anchors) ? room.prop_anchors : [];
+                return anchors
+                    .filter(a => a && a.file && Array.isArray(a.grid) && a.grid.length === 2)
+                    .map(a => ({
+                        id: String(a.id != null ? a.id : a.file),
+                        file: a.file,
+                        grid: a.grid,
+                        targetTiles: (typeof a.target_tiles === 'number') ? a.target_tiles : 1
+                        // a.decor / a.gate / a.base_slopes: tolerated, unused (AC7)
+                    }));
+            }
+
+            // Texture keys of the hardcoded upstream placements in create().
+            // While a generated room is ACTIVE these sprites stay hidden so
+            // nothing renders twice (AC5); the upstream code itself is kept
+            // intact for the fallback path. error_bug / star_working /
+            // sync_anim are STATE fixtures, not furniture - never in this list.
+            const UPSTREAM_FURNITURE_KEYS = ['plants', 'cats', 'coffee_machine',
+                'coffee_machine_shadow', 'serverroom', 'desk_v2', 'flowers',
+                'sofa_idle', 'sofa_shadow', 'star_idle'];
+
+            const state = {
+                status: 'pending',   // pending -> active | fallback
+                officeAgentId: null,
+                roomSource: null,    // 'index' | 'room' stage that produced the state
+                props: [],           // per-prop diagnostics for debug/tests
+                sprites: {},
+                scene: null
+            };
+
+            let index = null;
+            let appliedKey = null;
+
+            function measureFootprint(srcImage, w, h) {
+                // Same rule as scripts/finish_room_props.py footprint():
+                // alpha > 128, bottom 10% band (min 2 rows), centre column span.
+                const c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                const ctx = c.getContext('2d', { willReadFrequently: true });
+                ctx.imageSmoothingEnabled = false; // nearest-neighbour, like pixelArt
+                ctx.drawImage(srcImage, 0, 0, w, h);
+                const d = ctx.getImageData(0, 0, w, h).data;
+                let ysMin = -1, ysMax = -1;
+                const px = [];
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        if (d[(y * w + x) * 4 + 3] > 128) {
+                            if (ysMin < 0) ysMin = y;
+                            ysMax = y;
+                            px.push(x, y);
+                        }
+                    }
+                }
+                if (ysMin < 0) return null;
+                const y0 = Math.max(0, Math.trunc(ysMax - Math.max(2, (ysMax - ysMin) * 0.10)));
+                let cmin = w - 1, cmax = 0;
+                for (let i = 0; i < px.length; i += 2) {
+                    if (px[i + 1] >= y0) {
+                        if (px[i] < cmin) cmin = px[i];
+                        if (px[i] > cmax) cmax = px[i];
+                    }
+                }
+                return { cx: (cmin + cmax) / 2.0, w: cmax - cmin + 1, baseY: ysMax };
+            }
+
+            function suppressGate() {
+                if (state.status !== 'active' || !state.scene) return;
+                const list = state.scene.children.list;
+                for (let i = 0; i < list.length; i++) {
+                    const o = list[i];
+                    if (o && o.visible && o.texture
+                        && UPSTREAM_FURNITURE_KEYS.indexOf(o.texture.key) !== -1) {
+                        o.setVisible(false);
+                    }
+                }
+            }
+
+            function fallback(reason) {
+                if (state.status === 'active') return;
+                state.status = 'fallback';
+                state.roomSource = reason;
+            }
+
+            function destroyRoomSprites() {
+                Object.keys(state.sprites).forEach(k => {
+                    const s = state.sprites[k];
+                    if (s && s.destroy) s.destroy();
+                });
+                state.sprites = {};
+                state.props = [];
+            }
+
+            function placeProps(entry, room) {
+                const anchors = parseRoom(room);
+                if (!anchors || !anchors.length) { fallback('room has no usable anchors'); return; }
+                const scene = state.scene;
+                const pending = [];
+                anchors.forEach(a => {
+                    const key = 'room:' + state.officeAgentId + ':' + a.id;
+                    const url = '/static/' + entry.props + String(a.file).split('/').pop();
+                    pending.push({ a: a, key: key, url: url });
+                    if (!scene.textures.exists(key)) scene.load.image(key, url);
+                });
+                const finish = () => {
+                    const floor = room.floor;
+                    pending.forEach(p => {
+                        const tex = scene.textures.get(p.key);
+                        if (!tex || tex.key === '__MISSING') {
+                            console.warn('RoomPack: prop texture missing', p.url);
+                            return;
+                        }
+                        const src = tex.getSourceImage();
+                        const srcW = src.naturalWidth || src.width;
+                        const srcH = src.naturalHeight || src.height;
+                        const plan = propPlan(floor.tile_w, srcW, srcH, p.a.targetTiles);
+                        const fp = measureFootprint(src, plan.displayW, plan.displayH)
+                            || { cx: plan.displayW / 2.0, w: plan.displayW * 0.6, baseY: plan.displayH };
+                        const anchor = gridToScreen(floor, p.a.grid[0] + 0.5, p.a.grid[1] + 0.5);
+                        const sprite = scene.add.image(0, 0, p.key)
+                            .setOrigin(0, 0)
+                            .setDisplaySize(plan.displayW, plan.displayH);
+                        sprite.setPosition(anchor.x - fp.cx, anchor.y - fp.baseY);
+                        sprite.setDepth(anchor.y); // AC4: props depth-sort against characters
+                        state.sprites[p.a.id] = sprite;
+                        state.props.push({
+                            id: p.a.id, url: p.url, grid: p.a.grid,
+                            anchor: [anchor.x, anchor.y],
+                            displayW: plan.displayW, displayH: plan.displayH,
+                            footprint: [fp.cx, fp.w, fp.baseY],
+                            depth: sprite.depth
+                        });
+                    });
+                    state.status = 'active';
+                    state.roomSource = entry.room;
+                    suppressGate();
+                };
+                if (scene.load.isLoading) {
+                    scene.load.once('complete', () => scene.load.once('complete', finish));
+                } else {
+                    scene.load.once('complete', finish);
+                    scene.load.start();
+                }
+            }
+
+            function loadRoom(entry) {
+                fetch('/static/' + entry.room, { cache: 'no-store' })
+                    .then(r => (r && r.ok) ? r.json() : null)
+                    .then(room => {
+                        if (!room) { fallback('room.json unavailable'); return; }
+                        appliedKey = state.officeAgentId;
+                        placeProps(entry, room);
+                    })
+                    .catch(() => fallback('room.json fetch failed'));
+            }
+
+            function tryApply() {
+                if (!state.scene || !index) return;
+                if (state.officeAgentId === null) return; // not known yet -> today's behaviour
+                const entry = pickOfficeRoom(index, state.officeAgentId);
+                if (!entry) {
+                    if (state.status === 'active' && appliedKey !== state.officeAgentId) {
+                        destroyRoomSprites();
+                        state.status = 'pending';
+                    }
+                    fallback('index names no room for this office');
+                    return;
+                }
+                if (appliedKey === state.officeAgentId
+                    && (state.status === 'active' || state.roomSource === 'loading')) return;
+                if (state.status === 'active') destroyRoomSprites();
+                state.status = 'pending';
+                state.roomSource = 'loading';
+                loadRoom(entry);
+            }
+
+            function setOfficeAgent(agentId) {
+                if (!agentId) return;
+                const id = String(agentId);
+                if (state.officeAgentId === id && (state.status === 'active' || state.status === 'fallback')) return;
+                state.officeAgentId = id;
+                if (id !== appliedKey && state.status === 'active') {
+                    destroyRoomSprites();
+                    appliedKey = null;
+                    state.status = 'pending';
+                }
+                tryApply();
+            }
+
+            function attach(scene) {
+                state.scene = scene;
+                scene.events.on('postupdate', suppressGate);
+                fetch('/static/rooms/index.json', { cache: 'no-store' })
+                    .then(r => (r && r.ok) ? r.json() : null)
+                    .then(data => {
+                        index = data;
+                        tryApply();
+                        if (state.status === 'pending' && !state.officeAgentId) {
+                            state.roomSource = null; // waiting for the office id from /agents
+                        }
+                    })
+                    .catch(() => { index = null; fallback('index.json fetch failed'); });
+            }
+
+            return {
+                attach: attach,
+                setOfficeAgent: setOfficeAgent,
+                gridToScreen: gridToScreen,
+                propPlan: propPlan,
+                pickOfficeRoom: pickOfficeRoom,
+                parseRoom: parseRoom,
+                measureFootprint: measureFootprint,
+                UPSTREAM_FURNITURE_KEYS: UPSTREAM_FURNITURE_KEYS,
+                state: state
+            };
+        })();
+        window.__roomPack = window.RoomPack.state;
+        /* ROOM_PACK_LOADER_END */
 
         function create() {
             game = this;
@@ -3871,6 +4153,11 @@ function toggleBrokerPanel() {
 
             // Debug: expose star sprite too (for path calibration / visuals)
             window.starSprite = star;
+
+            // SOU-115: load the generated room pack for this office alongside the
+            // scene. Data-driven; any miss leaves the upstream furniture above
+            // exactly as today (AC1). Geometry placement: ADR-065.
+            RoomPack.attach(this);
 
             statusText = document.getElementById('status-text');
             placeOverlayAndStatusAtCanvasBottomLeft();

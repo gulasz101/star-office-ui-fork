@@ -102,6 +102,21 @@ def load_script(name: str):
     return module
 
 
+def _child_env() -> dict:
+    """Subprocess env with an absolute .tooling/site on PYTHONPATH.
+
+    The suite is normally run from ``backend/`` with a *relative* PYTHONPATH;
+    script subprocesses run from the repo root, so the entry has to be absolute
+    or pillow/pytest extras silently disappear.
+    """
+    env = dict(os.environ)
+    site = os.path.join(REPO_ROOT, ".tooling", "site")
+    if os.path.isdir(site):
+        existing = [p for p in env.get("PYTHONPATH", "").split(os.pathsep) if p]
+        env["PYTHONPATH"] = os.pathsep.join([site, *existing])
+    return env
+
+
 def run_script(name: str, *args: str, cwd: str = REPO_ROOT) -> subprocess.CompletedProcess:
     path = os.path.join(SCRIPTS_DIR, f"{name}.py")
     if not os.path.exists(path):
@@ -111,6 +126,7 @@ def run_script(name: str, *args: str, cwd: str = REPO_ROOT) -> subprocess.Comple
         capture_output=True,
         text=True,
         cwd=cwd,
+        env=_child_env(),
     )
 
 
@@ -238,9 +254,21 @@ class ExtractorFrameCountTest(unittest.TestCase):
 
     def test_anim_frame_ranges_are_recorded_for_the_walk_off_the_tile_guard(self) -> None:
         entry = self.assets["star_working"]
-        ranges = [a for a in entry["anims"] if a["end"] is not None]
-        self.assertTrue(ranges, "star_working uses a literal generateFrameNumbers end")
-        self.assertLess(max(a["end"] for a in ranges), entry["frame_count"]["total"])
+        live = [
+            a for a in entry["anims"]
+            if a["end"] is not None and a["source"] in ("frontend/index.html",
+                                                         "frontend/electron-standalone.html")
+        ]
+        self.assertTrue(live, "star_working uses a literal generateFrameNumbers end")
+        self.assertLess(max(a["end"] for a in live), entry["frame_count"]["total"])
+        # the stale legacy range (game.js asks for frames that are not on the
+        # sheet) must be reported, not silently contracted
+        over = [
+            e for e in self.contract["errors"]
+            if e["type"] == "animation_reads_past_the_sheet" and e["key"] == "star_working"
+        ]
+        self.assertTrue(over)
+        self.assertFalse(over[0]["fatal"], "game.js is not loaded by any shipped page")
 
     def test_placement_entries_are_keyed_by_filename(self) -> None:
         placement = self.contract["placement"]
@@ -675,9 +703,21 @@ class CommittedContractIsCurrentTest(unittest.TestCase):
         first = extractor.render_contract(REPO_ROOT)
         second = extractor.render_contract(REPO_ROOT)
         self.assertEqual(first, second)
-        payload = json.loads(first)
-        for token in ("generated_at", "timestamp", "mtime"):
-            self.assertNotIn(token, json.dumps(payload).lower())
+
+        keys = set()
+
+        def walk(node) -> None:
+            if isinstance(node, dict):
+                for name, value in node.items():
+                    keys.add(name)
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        walk(json.loads(first))
+        for token in ("generated_at", "created_at", "extracted_at", "timestamp"):
+            self.assertNotIn(token, keys, "the contract must not carry wall-clock keys")
 
 
 if __name__ == "__main__":

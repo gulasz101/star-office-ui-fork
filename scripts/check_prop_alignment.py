@@ -116,6 +116,11 @@ def main():
             print(f"  {path.name:34s} MISSING")
             failures += 1
             continue
+        # un-keyed generations still carry the magenta frame, so their "base" is the frame edge
+        # (slope 0.000) and gating them reports nonsense. They are inputs, not deployable props.
+        if ".raw." in path.name:
+            print(f"  {path.name:34s} skipped (un-keyed generation, not a deployable prop)")
+            continue
         sl = base_slopes(path)
         if sl is None:
             print(f"  {path.name:34s} EMPTY (no opaque pixels)")

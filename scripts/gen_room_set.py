@@ -67,13 +67,28 @@ def main():
         done_man = out_dir / f"{prop['id']}.manifest.json"
         if done_png.exists() and done_man.exists() and "--force" not in sys.argv:
             prev = json.loads(done_man.read_text())
-            sl = prev.get("base_slopes") or []
-            if len(sl) == 2 and all(abs(abs(s) - lattice) <= cpa.TOLERANCE for s in sl):
+            claimed = prev.get("base_slopes") or []
+            # Measure the ARTIFACT, never the manifest. A manifest is a cache, not evidence: a
+            # later FAILED attempt overwrites the .png but cannot write a new manifest, so a
+            # stale pair can sit on disk claiming slopes the image no longer has. Measured
+            # 2026-10-15: the chair's manifest claimed [0.581, -0.586] while the PNG on disk
+            # measured -0.215/+0.392, and trusting the manifest put a wrong-projection prop into
+            # the room as a false green - in this pipeline's own reuse path.
+            measured = cpa.base_slopes(done_png)
+            ok = (measured is not None
+                  and all(abs(abs(s) - lattice) <= cpa.TOLERANCE for s in measured))
+            if ok:
+                if claimed and [round(x, 3) for x in measured] != [round(x, 3) for x in claimed]:
+                    print(f"   {prop['id']:8s} manifest claimed {claimed}, image measures "
+                          f"{[round(x, 3) for x in measured]} - using the measurement")
                 placed.append({"id": prop["id"], "grid": prop["grid"], "tiles": prop["tiles"],
-                               "base_slopes": sl})
-                print(f"   {prop['id']:8s} reused, still on the {lattice:.3f} lattice {sl}")
+                               "base_slopes": [round(x, 3) for x in measured]})
+                print(f"   {prop['id']:8s} reused, measured on the {lattice:.3f} lattice "
+                      f"{[round(x, 3) for x in measured]}")
                 continue
-            print(f"   {prop['id']:8s} on disk but FAILS the {lattice:.3f} gate {sl} -> re-rolling")
+            print(f"   {prop['id']:8s} on disk but measures "
+                  f"{[round(x, 3) for x in measured] if measured else None} "
+                  f"vs {lattice:.3f} -> regenerating")
 
         prompt = (
             f"pixel art game asset: {prop['subject']}. {gip.PROJECTION}"
@@ -113,6 +128,17 @@ def main():
             rejected.append({"id": prop["id"],
                              "reason": f"no attempt within {cpa.TOLERANCE} of {lattice:.3f} "
                                        f"in {max_attempts} tries"})
+            # Park the failed attempt and clear any manifest for it. Leaving them in place is
+            # how a rejected prop came back as a false green: the PNG was overwritten by a
+            # failed attempt while an older manifest kept claiming lattice-compliant slopes.
+            park = out_dir / "rejected"
+            park.mkdir(exist_ok=True)
+            for f in (out_dir / f"{prop['id']}.png", out_dir / f"{prop['id']}.raw.png"):
+                if f.exists():
+                    f.rename(park / f.name)
+            (out_dir / f"{prop['id']}.manifest.json").unlink(missing_ok=True)
+            print(f"   {prop['id']:8s} REJECTED after {max_attempts} attempts "
+                  f"(failed attempt parked in props/rejected/, stale manifest cleared)")
             continue
         left, right, key, seed = accepted
 

@@ -10,6 +10,14 @@ LAYERING (the contract the office renderer is built on)
   Flask serves ``frontend/`` at ``/static``, so a published room answers at
   ``/static/rooms/...``. Do not hand-edit ``frontend/rooms/**`` and do not point
   a generator at it; regenerate with this script instead.
+* ``schema`` says which contract a source pack speaks. ``1`` (or absent) is the
+  v1 pixel/lattice contract below and is publishable. ``2`` is the grid-native
+  descriptor ``scripts/gen_iso_room.py`` emits for renderer v2 (SOU-123), which
+  the v1 served contract cannot express: the whole point of v2 is that the app
+  derives pixels from the lattice, and ``index.html`` is not touched until
+  SOU-128. A schema-2 pack is therefore SKIPPED here, and whatever its agent
+  already has in the served tree is carried over byte-identically - v1 keeps
+  serving until SOU-128 replaces the renderer (SOU-123 Ruling 1).
 
 SERVED CONTRACT
 ---------------
@@ -50,12 +58,60 @@ SERVED = REPO / "frontend" / "rooms"
 PASSTHROUGH = ("agent_id", "display_name", "canvas", "projection", "wall_seam_y")
 
 
+def pack_schema(agent_dir: Path) -> int:
+    """Declared schema of a generated pack (``1``/absent = the v1 pixel+lattice
+    contract the served tree speaks, ``2`` = the grid-native v2 descriptor of
+    SOU-123).  Unreadable packs are treated as v1 so the publisher never
+    silently drops a room it does not understand."""
+    room = agent_dir / "room.json"
+    if not room.exists():
+        return 0
+    try:
+        return int(json.loads(room.read_text()).get("schema", 1))
+    except (ValueError, TypeError, OSError):
+        return 1
+
+
 def discover_agents(explicit=None):
+    """Generated packs this publisher may serve: schema 1 only.
+
+    WHY the filter exists (SOU-123 Ruling 1): ``assets/generated/rooms/<agent>/
+    room.json`` may now be a schema-2 v2 descriptor whose whole point is that
+    the app derives pixels from the lattice. The v1 served contract cannot
+    express it and ``frontend/index.html`` is untouched until SOU-128, so a v2
+    pack is skipped here and its existing served entry is carried over
+    byte-identically by ``_existing_entries()``.
+    """
     if explicit:
-        return list(explicit)
+        candidates = list(explicit)
+    elif not GEN.is_dir():
+        return []
+    else:
+        candidates = sorted(p.name for p in GEN.iterdir() if (p / "room.json").exists())
+    return [a for a in candidates if pack_schema(GEN / a) == 1]
+
+
+def v2_agents():
+    """Packs that are published elsewhere (renderer v2), listed for reporting."""
     if not GEN.is_dir():
         return []
-    return sorted(p.name for p in GEN.iterdir() if (p / "room.json").exists())
+    return sorted(p.name for p in GEN.iterdir() if pack_schema(p) == 2)
+
+
+def _existing_entries() -> dict:
+    """The served ``index.json`` entries as they stand, in file order.
+
+    Re-publishing must not disturb a room this run does not produce, so the
+    index is rebuilt from these and then overwritten agent by agent - a
+    byte-identical result whenever the served tree is already in sync.
+    """
+    idx = SERVED / "index.json"
+    if not idx.exists():
+        return {}
+    try:
+        return dict(json.loads(idx.read_text()).get("rooms", {}))
+    except (ValueError, OSError):
+        return {}
 
 
 def normalize_room(src: dict) -> dict:
@@ -145,13 +201,16 @@ def main(argv):
     args = [a for a in argv if not a.startswith("--")]
     check = "--check" in argv
     agents = discover_agents(args or None)
-    if not agents:
+    v2 = v2_agents()
+    if not agents and not v2:
         print("publish_room: no generated room packs found; nothing to publish")
         return 0
 
     if check:
         # Verify the served tree matches what publishing would produce today.
-        expected_index = {"rooms": {}}
+        # A schema-2 pack has no v1 contract to recompute, so its existing
+        # served entry is expected as-is (it may not be rewritten by anyone).
+        expected_index = {"rooms": _existing_entries()}
         for agent in agents:
             room = json.loads((GEN / agent / "room.json").read_text())
             expected_index["rooms"][agent] = {
@@ -180,11 +239,15 @@ def main(argv):
         return 0
 
     SERVED.mkdir(parents=True, exist_ok=True)
-    entries = {}
+    entries = _existing_entries()
     for agent in agents:
         entries[agent] = publish_agent(agent)
         print(f"   published {agent}: {entries[agent]['prop_count']} props -> "
               f"/static/rooms/{agent}/")
+    for agent in v2:
+        kept = "carried over" if agent in entries else "not published"
+        print(f"   skipped {agent}: schema 2 (renderer v2) has no v1 served "
+              f"contract until SOU-128 - entry {kept}")
     build_index(entries)
     print(f"publish_room: /static/rooms/index.json lists {len(entries)} room(s)")
     return 0

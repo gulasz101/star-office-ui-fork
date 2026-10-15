@@ -152,23 +152,22 @@ def stripe_image(size=(512, 512), blocks: int = 8) -> "Image.Image":
     return image
 
 
-def noisy_image(size=(512, 512), colors: int = 40) -> "Image.Image":
-    """A synthetic raw generation: many colours, alpha on one half."""
+def noisy_image(size=(512, 512), colors: int = 80, grid: int = 10) -> "Image.Image":
+    """A synthetic raw generation: many flat colours, alpha on the left half.
+
+    The blocks tile the canvas exactly (integer partition, no seam of base
+    pixels at the right and bottom edges), so a test can assert on the very
+    last column and get a real answer.
+    """
     image = Image.new("RGBA", size, (0, 0, 0, 0))
-    palette = [
-        ((i * 37) % 256, (i * 73) % 256, (i * 11) % 256, 255) for i in range(colors)
-    ]
-    step = max(1, size[0] // 10)
-    for y0 in range(0, size[1], step):
-        for x0 in range(0, size[0], step):
-            colour = palette[(x0 // step + y0 // step) % colors]
-            for y in range(y0, min(y0 + step, size[1])):
-                for x in range(x0, min(x0 + step, size[0])):
-                    if x < size[0] // 2:
-                        # left half: fully transparent, so alpha loss is visible
-                        image.putpixel((x, y), (colour[0], colour[1], colour[2], 0))
-                    else:
-                        image.putpixel((x, y), colour)
+    palette = [((i * 37) % 256, (i * 73) % 256, (i * 11) % 256) for i in range(colors)]
+    for by in range(grid):
+        for bx in range(grid):
+            red, green, blue = palette[(bx * grid + by) % colors]
+            alpha = 0 if bx < grid // 2 else 255
+            for y in range(size[1] * by // grid, size[1] * (by + 1) // grid):
+                for x in range(size[0] * bx // grid, size[0] * (bx + 1) // grid):
+                    image.putpixel((x, y), (red, green, blue, alpha))
     return image
 
 
@@ -495,12 +494,15 @@ class PixelizeConformanceTest(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
         with Image.open(out) as image:
-            colours = image.convert("RGBA").getcolors(maxcolors=1 << 20) or []
-        # The source is 40 flat colours over 4 transparent, so a dithered quantise
-        # would invent intermediate colours beyond the flat source set.
-        self.assertLessEqual(len(colours), 41)
+            rgba = image.convert("RGBA")
+            right = rgba.size[0] - 12
+            # One flat block of the opaque half. A dithered quantise speckles
+            # neighbours through it; a hard palette swap never does.
+            block = {rgba.getpixel((x, y)) for y in range(8, 12) for x in range(right, right + 4)}
+        self.assertEqual(len(block), 1, f"dithering invented colours inside a flat block: {sorted(block)}")
         manifest = json.load(open(out + ".manifest.json", encoding="utf-8"))
         self.assertEqual(manifest["dither"], "NONE")
+        self.assertEqual(manifest["resample"], "NEAREST")
 
     def test_a_target_that_is_not_an_exact_multiple_refuses_to_write(self) -> None:
         out = os.path.join(self.workdir, "pack", "coffee-machine-v3-grid.webp")

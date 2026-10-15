@@ -38,10 +38,15 @@ spec3.loader.exec_module(geo)
 PROJECTION = (
     "drawn in TRUE ISOMETRIC projection at 30 degrees like the classic isometric strategy games "
     "Pharaoh and Zeus: ground edges run at 30 degrees from horizontal, i.e. about 0.577 pixels "
-    "down for every 1 pixel across (a 1.73 : 1 rhombus, NOT a 2:1 one), and the object stands on "
-    "a rhombic tile twice as wide as it is tall would be WRONG here. "
+    "down for every 1 pixel across. "
     "Vertical edges stay perfectly vertical. Viewed from the same fixed 30-degree isometric "
     "camera as an isometric floor grid. "
+    # Do NOT describe the ground tile here. The previous wording said "the tile it stands on is a
+    # rhombus twice as wide as it is tall would be WRONG here" and the model took it literally:
+    # it painted an isometric diamond outline on the ground plane plus a magenta contour around
+    # the object, both of which survived keying and shipped into the room. Measured on the van:
+    # 4273 such pixels forming a thin silhouette contour AND a ground rhombus.
+    "Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. "
 )
 
 

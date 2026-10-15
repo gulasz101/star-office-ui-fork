@@ -16,7 +16,7 @@
     {"id": "spool", "subject": "a cable spool on a small wooden pallet with a few loose network cables", "grid": [6, 5], "tiles": 1.0},
     {"id": "crate", "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top", "grid": [9, 6], "tiles": 1.0},
     {"id": "bass", "subject": "a worn electric bass guitar leaning against a small amplifier, with a coiled cable on top of the amp", "grid": [10, 4], "tiles": 1.2, "personal": "bass guitar player"},
-    {"id": "cat", "subject": "an orange tabby cat curled up asleep on the floor, tail wrapped around itself", "grid": [5, 8], "tiles": 0.7, "personal": "owns two cats"},
+    {"id": "cat", "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself", "grid": [5, 8], "tiles": 0.9, "personal": "owns two cats", "note": "The box is deliberate: the alignment gate measures a ROMBIC BASE FOOTPRINT, and a cat curled directly on the floor has none - it failed the gate on repeated attempts (0.426/-0.364). A box gives the prop a real footprint and is what cats actually do. Two earlier attempts also lost body edge to the boundary de-fringe."},
     {"id": "jdm_van", "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo", "grid": [2, 8], "tiles": 1.6, "personal": "30-year-old Mazda MPV"}
   ],
   "personal_note": "The three props marked personal come from profiles/operator_taste.json. They go through the normal pipeline - in-projection generation, keying, the alignment gate, declared anchors - and the licence rule is unchanged: no anime or vehicle MARKS (ADR-061 invariant 10)."

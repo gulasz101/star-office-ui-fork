@@ -83,6 +83,16 @@ def main():
             n_edge = int(edge.sum())
             a[edge] = (0, 0, 0, 0)
 
+        # GROUND-MARKER REMOVAL. The model responds to any mention of a ground tile by painting an
+        # isometric diamond on the ground plane plus a magenta contour around the object. Confirmed
+        # by marking the detections and viewing the sprite at 2x: a 1-2px contour following the
+        # whole silhouette AND a ground rhombus, NOT shading - the object's own outline is
+        # near-black, a different colour entirely. Removed globally rather than at the boundary,
+        # because the rhombus extends well BEYOND the object, and verified prop by prop after.
+        ground_marker = (a[:, :, 3] > 128) & (g < 90) & ((r - g) > 20) & ((b - g) > 10)
+        n_marker = int(ground_marker.sum())
+        a[ground_marker] = (0, 0, 0, 0)
+
         Image.fromarray(a).save(out)
         slopes = cpa.base_slopes(out)
         verdict = "?"
@@ -90,7 +100,8 @@ def main():
             ok = all(abs(abs(s) - 0.573) <= cpa.TOLERANCE for s in slopes)
             verdict = "ON LATTICE" if ok else "OFF -> prop needs regeneration"
         print(f"  {prop_id:9s} re-keyed (key {key[:3]})  under-alpha {n_under:7d}  "
-              f"contour {n_edge:5d}  opaque {100*(a[:,:,3]>128).mean():4.1f}%  {verdict}")
+              f"contour {n_edge:5d}  ground-marker {n_marker:5d}  "
+              f"opaque {100*(a[:,:,3]>128).mean():4.1f}%  {verdict}")
     print("REKEY_DONE")
 
 

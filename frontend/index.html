@@ -3431,7 +3431,7 @@ function toggleBrokerPanel() {
                     // activates with zero renderer edits (AC6).
                     try {
                         const officeMain = (guestAgents || []).find(a => a && a.isMain);
-                        if (officeMain && officeMain.agentId) RoomPack.setOfficeAgent(officeMain.agentId);
+                        if (officeMain) RoomPack.setOfficeAgent([officeMain.agentId, officeMain.name]);
                     } catch (e) { /* room pack is additive; never break the roster */ }
 
                     // New-guest detection: fire Star's welcome bubble (real guests only, never demos)
@@ -3674,6 +3674,18 @@ function toggleBrokerPanel() {
                 return (entry && entry.room && entry.props) ? entry : null;
             }
 
+            // Office identity arrives as CANDIDATES (the /agents main row:
+            // external agentId first, display name second). All matching is by
+            // value against index data - no agent is ever named in this code.
+            function pickOfficeRooms(index, candidates) {
+                const list = Array.isArray(candidates) ? candidates : [candidates];
+                for (let i = 0; i < list.length; i++) {
+                    const entry = pickOfficeRoom(index, list[i]);
+                    if (entry) return [String(list[i]), entry];
+                }
+                return null;
+            }
+
             function parseRoom(room) {
                 if (!room || !room.floor || !room.floor.origin
                     || !room.floor.tile_w || !room.floor.tile_h) return null;
@@ -3700,8 +3712,9 @@ function toggleBrokerPanel() {
 
             const state = {
                 status: 'pending',   // pending -> active | fallback
-                officeAgentId: null,
-                roomSource: null,    // 'index' | 'room' stage that produced the state
+                officeAgentId: null,       // the index key actually applied (or primary candidate)
+                officeCandidates: [],      // [agentId, name] from /agents - values, never literals
+                roomSource: null,
                 props: [],           // per-prop diagnostics for debug/tests
                 sprites: {},
                 scene: null
@@ -3769,13 +3782,13 @@ function toggleBrokerPanel() {
                 state.props = [];
             }
 
-            function placeProps(entry, room) {
+            function placeProps(entry, room, roomKey) {
                 const anchors = parseRoom(room);
                 if (!anchors || !anchors.length) { fallback('room has no usable anchors'); return; }
                 const scene = state.scene;
                 const pending = [];
                 anchors.forEach(a => {
-                    const key = 'room:' + state.officeAgentId + ':' + a.id;
+                    const key = 'room:' + roomKey + ':' + a.id;
                     const url = '/static/' + entry.props + String(a.file).split('/').pop();
                     pending.push({ a: a, key: key, url: url });
                     if (!scene.textures.exists(key)) scene.load.image(key, url);
@@ -3813,64 +3826,89 @@ function toggleBrokerPanel() {
                     state.roomSource = entry.room;
                     suppressGate();
                 };
-                if (scene.load.isLoading) {
-                    scene.load.once('complete', () => scene.load.once('complete', finish));
+                if (scene.load.isLoading()) {
+                    scene.load.once('complete', () => {
+                        scene.load.once('complete', finish);
+                        scene.load.start();
+                    });
                 } else {
                     scene.load.once('complete', finish);
                     scene.load.start();
                 }
             }
 
-            function loadRoom(entry) {
+            function loadRoom(entry, roomKey) {
                 fetch('/static/' + entry.room, { cache: 'no-store' })
                     .then(r => (r && r.ok) ? r.json() : null)
                     .then(room => {
                         if (!room) { fallback('room.json unavailable'); return; }
-                        appliedKey = state.officeAgentId;
-                        placeProps(entry, room);
+                        placeProps(entry, room, roomKey);
                     })
                     .catch(() => fallback('room.json fetch failed'));
             }
 
             function tryApply() {
                 if (!state.scene || !index) return;
-                if (state.officeAgentId === null) return; // not known yet -> today's behaviour
-                const entry = pickOfficeRoom(index, state.officeAgentId);
-                if (!entry) {
-                    if (state.status === 'active' && appliedKey !== state.officeAgentId) {
+                const list = state.officeCandidates || [];
+                if (!list.length) return; // office identity not known yet -> today's behaviour
+                const chosen = pickOfficeRooms(index, list);
+                if (!chosen) {
+                    state.officeAgentId = list[0];
+                    if (state.status === 'active' && list.indexOf(appliedKey) === -1) {
                         destroyRoomSprites();
+                        appliedKey = null;
                         state.status = 'pending';
                     }
                     fallback('index names no room for this office');
                     return;
                 }
-                if (appliedKey === state.officeAgentId
-                    && (state.status === 'active' || state.roomSource === 'loading')) return;
+                const key = chosen[0];
+                const entry = chosen[1];
+                state.officeAgentId = key; // survive the /agents re-polls that follow
+                const applyKey = key + '\u0000' + entry.room;
+                if (appliedKey === applyKey) return; // resolved already or in flight; polls must not re-fetch
                 if (state.status === 'active') destroyRoomSprites();
                 state.status = 'pending';
                 state.roomSource = 'loading';
-                loadRoom(entry);
+                appliedKey = applyKey;
+                loadRoom(entry, key);
             }
 
-            function setOfficeAgent(agentId) {
-                if (!agentId) return;
-                const id = String(agentId);
-                if (state.officeAgentId === id && (state.status === 'active' || state.status === 'fallback')) return;
-                state.officeAgentId = id;
-                if (id !== appliedKey && state.status === 'active') {
-                    destroyRoomSprites();
-                    appliedKey = null;
-                    state.status = 'pending';
+            let lastCandidateKey = null;
+
+            function setOfficeAgent(candidates) {
+                const list = (Array.isArray(candidates) ? candidates : [candidates])
+                    .filter(Boolean).map(String);
+                if (!list.length) return;
+                const candKey = list.join('\u0000');
+                if (candKey === lastCandidateKey
+                    && (state.status === 'active' || state.status === 'fallback')) {
+                    return; // same office, already resolved: the /agents poll must not re-fetch
                 }
+                lastCandidateKey = candKey;
+                state.officeCandidates = list;
+                state.officeAgentId = list[0];
                 tryApply();
             }
 
             function attach(scene) {
                 state.scene = scene;
-                scene.events.on('postupdate', suppressGate);
+                // 'prerender' fires after every update/timer callback of the
+                // frame and immediately before the scene is drawn, so the gate
+                // always has the last word: the upstream state logic re-shows
+                // its own sprites during update() and would otherwise win one
+                // frame of visibility.
+                scene.events.on('prerender', suppressGate);
                 fetch('/static/rooms/index.json', { cache: 'no-store' })
                     .then(r => (r && r.ok) ? r.json() : null)
                     .then(data => {
+                        if (!data) {
+                            // HTTP 404/500: the pack is not there, so today's
+                            // scene stands, unchanged (AC1).
+                            index = null;
+                            fallback('index.json unavailable');
+                            return;
+                        }
                         index = data;
                         tryApply();
                         if (state.status === 'pending' && !state.officeAgentId) {
@@ -3886,6 +3924,7 @@ function toggleBrokerPanel() {
                 gridToScreen: gridToScreen,
                 propPlan: propPlan,
                 pickOfficeRoom: pickOfficeRoom,
+                pickOfficeRooms: pickOfficeRooms,
                 parseRoom: parseRoom,
                 measureFootprint: measureFootprint,
                 UPSTREAM_FURNITURE_KEYS: UPSTREAM_FURNITURE_KEYS,

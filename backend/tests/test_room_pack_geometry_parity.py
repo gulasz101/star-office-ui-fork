@@ -60,6 +60,10 @@ for (const p of input.plans) {
 for (const k of input.picks) {
     out.picks.push(RP.pickOfficeRoom(k.index, k.officeAgentId));
 }
+for (const k of (input.picksMulti || [])) {
+    const r = RP.pickOfficeRooms(k.index, k.candidates);
+    (out.picksMulti = out.picksMulti || []).push(r ? { id: r[0], entry: r[1] } : null);
+}
 try { out.parsed = RP.parseRoom(input.decorRoom); } catch (e) { out.parseError = String(e); }
 console.log(JSON.stringify(out));
 """
@@ -211,6 +215,31 @@ class LoaderParityTests(unittest.TestCase):
         self.assertEqual(len(out["parsed"]), 1)
         self.assertEqual(out["parsed"][0]["id"], "a")
 
+    def test_office_candidates_pick_the_named_room_without_renderer_edits(self):
+        """AC6 / office identity: candidates = [agentId, name] from the SAME
+        shipped loader. The backend externalises the main agent as id 'star'
+        with a configurable display name, so an index keyed by either value is
+        reachable with zero renderer edits; a second agent's room activates the
+        same way."""
+        a_entry = {"room": "rooms/alpha/room.json", "props": "rooms/alpha/props/", "prop_count": 1}
+        b_entry = {"room": "rooms/second/room.json", "props": "rooms/second/props/", "prop_count": 2}
+        index = {"rooms": {"alpha": a_entry, "second": b_entry}}
+        out = self._run_node({
+            "anchors": [], "plans": [], "picks": [],
+            "decorRoom": {"prop_anchors": []},
+            "picksMulti": [
+                {"index": index, "candidates": ["nope", "second"]},
+                {"index": index, "candidates": ["alpha", "second"]},
+                {"index": index, "candidates": ["nope"]},
+                {"index": None, "candidates": ["alpha"]},
+            ],
+        })
+        got = out["picksMulti"]
+        self.assertEqual(got[0], {"id": "second", "entry": b_entry})
+        self.assertEqual(got[1], {"id": "alpha", "entry": a_entry})
+        self.assertIsNone(got[2], "no candidate present in index -> fallback")
+        self.assertIsNone(got[3], "no index -> fallback")
+
     def test_loader_contains_no_agent_literals_and_no_hardcoded_tile_sizes(self):
         """AC6/AC3: the shipped renderer must not contain agent ids or 96/55."""
         self.assertIsNotNone(self.block, "loader block missing")
@@ -226,6 +255,46 @@ class LoaderParityTests(unittest.TestCase):
         """Issue evidence requirement: loader code carries the ADR-065 geometry comment."""
         self.assertIsNotNone(self.block, "loader block missing")
         self.assertIn("ADR-065", self.block)
+
+    # AC1 / AC5: the upstream furniture list must survive untouched behind the
+    # fallback. These are the create() placements as they exist upstream; the
+    # loader may only hide them at runtime, never edit, wrap or delete them.
+    UPSTREAM_PLACEMENTS = [
+        "const sofaShadow = this.add.image(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_shadow')",
+        "sofa = this.add.sprite(IDLE_SOFA_ANCHOR.x, IDLE_SOFA_ANCHOR.y, 'sofa_idle')",
+        "star = game.physics.add.sprite(areas.breakroom.x, areas.breakroom.y, 'star_idle')",
+        "const plant = game.add.sprite(565, 178, 'plants', randomPlantFrame)",
+        "const plant2 = game.add.sprite(230, 185, 'plants', plant2Frame)",
+        "const plant3 = game.add.sprite(977, 496, 'plants', plant3Frame)",
+        "const cat = game.add.sprite(94, 557, 'cats', randomCatFrame)",
+        "const coffeeMachineShadow = this.add.image(659, 397, 'coffee_machine_shadow')",
+        "const coffeeMachine = this.add.sprite(659, 397, 'coffee_machine')",
+        "serverroom = this.add.sprite(1021, 142, 'serverroom', 0)",
+        "const desk = this.add.image(218, 417, 'desk_v2')",
+        "const flower = this.add.sprite(310, 390, 'flowers', randomFlowerFrame)",
+    ]
+
+    def test_ac1_ac5_upstream_placements_are_untouched_and_unconditional(self):
+        with open(INDEX_HTML, encoding="utf-8") as fh:
+            html = fh.read()
+        outside = BLOCK_RE.sub("", html)  # everything except the loader block
+        for line in self.UPSTREAM_PLACEMENTS:
+            self.assertIn(line, outside,
+                          "upstream furniture placement was edited or moved into the "
+                          "loader block; AC5 requires the list to stay intact")
+        for line in self.UPSTREAM_PLACEMENTS:
+            self.assertNotIn("RoomPack", line)
+        # The only way the pack can affect the upstream scene is the per-frame
+        # gate inside the block: exactly two references may exist outside it
+        # (the create() hook and the /agents hook), so the fallback needs no
+        # extra code path and today's behaviour is the default one.
+        refs = re.findall(r"RoomPack\.\w+", outside)
+        self.assertEqual(sorted(refs),
+                         sorted(["RoomPack.attach", "RoomPack.setOfficeAgent"]),
+                         "the loader may only hook in, never rewrite create()")
+        self.assertIn("RoomPack.attach(this)", html, "loader must be wired into the scene")
+        self.assertIn("RoomPack.setOfficeAgent([officeMain.agentId, officeMain.name])", html,
+                      "office identity must reach the loader as candidates from /agents")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,27 @@
+{
+  "asset_key": "office_bg_small",
+  "kind": "room_shell",
+  "canvas": {"w": 1280, "h": 720},
+  "camera": "top-down 3/4 oblique, same as the engine's sprite layer",
+  "why": [
+    "The engine places its own furniture sprites at FIXED coordinates in index.html:",
+    "  desk_v2 (218,417), coffee_machine (659,397), serverroom (1021,142), posters (252,66), sofa (IDLE_SOFA_ANCHOR)",
+    "So the backdrop must supply the ROOM SHELL ONLY and leave those zones as clear floor.",
+    "The previous generation painted desks/racks into the backdrop, duplicating the engine's",
+    "furniture and pushing the agent avatars 'into' a painted desk."
+  ],
+  "palette": {
+    "shell_walls": ["#44618a", "#303243", "#4b5a6e"],
+    "shell_floor": ["#5f91b9", "#465368", "#94c1e8"],
+    "warm_accents": ["#c1a46b", "#e2d3b4", "#ac9968", "#ffea99"],
+    "note": "Cool blue-grey shell + warm wood/cream accents. This is measured from the ORIGINAL backdrop (wall #44618a) and from the sprite layer's own dominant colours (lamp #ffea99, wood #c1a46b, cream #e2d3b4) - the two layers must share one world palette."
+  },
+  "clear_zones": [
+    {"id": "left_work_area", "x": 60, "y": 300, "w": 320, "h": 240, "reason": "desk_v2 is placed at (218,417)"},
+    {"id": "centre_lounge", "x": 520, "y": 300, "w": 280, "h": 200, "reason": "coffee_machine at (659,397) + sofa"},
+    {"id": "right_error_area", "x": 880, "y": 60, "w": 300, "h": 220, "reason": "serverroom sprite at (1021,142)"},
+    {"id": "left_wall_poster", "x": 150, "y": 20, "w": 220, "h": 110, "reason": "posters sprite at (252,66)"}
+  ],
+  "prompt": "pixel art interior background for a 2D office game, top-down three-quarter oblique view, hi-bit 32-bit pixel art, crisp thin dark outlines, flat shading, no antialiasing, no blur. A blue-grey technology office room shell: dark slate blue-grey walls in #44618a and #303243 with a simple darker baseboard, and one single uniform blue-grey checkered tile floor in #5f91b9 with #465368 grout lines and #94c1e8 highlights, covering the whole lower part of the image with one consistent straight tile grid that never stops or changes pattern, no rugs, no snow, no stains, no dust, no dark patches, no decals, no baked furniture shadows. The wall runs along the top of the frame occupying the upper fifth, with wall-mounted decoration only: a grey metal shelf holding cable coils and small server parts, two blank framed pictures with no writing, a wall vent, a thin cable tray along the top, small glowing amber indicator lights, and warm wooden and cream objects on the shelf in #c1a46b, #e2d3b4, #ac9968 and #ffea99 so the room matches warm wooden furniture. The floor is completely empty and totally clear of objects - no desks, no tables, no chairs, no sofas, no benches, no plants, no boxes, no crates, no furniture of any kind standing on the floor anywhere in the image. Empty tiled floor everywhere. No characters, no people, no animals, no robots, no text, no numbers, no letters, no signs, no logos, no watermark, no user interface. Wide 16:9 scene, no border, no frame.",
+  "postprocess": {"colors": 26, "scale": 1, "note": "generate at 1280x720 and keep 1:1 (the sprite layer is hi-bit, so a 2x upscaled backdrop would double the pixel size and read as a different game)"}
+}

@@ -1,0 +1,69 @@
+{
+  "agent_id": "andrzej",
+  "display_name": "Andrzej",
+  "canvas": {
+    "w": 1280,
+    "h": 720
+  },
+  "projection": "true isometric as the generator reproduces it (measured base slope ~0.577 / 30deg)",
+  "lattice": {
+    "origin": {
+      "x": 640,
+      "y": 300
+    },
+    "tile_w": 96,
+    "tile_h": 55,
+    "slope": 0.5729166666666666,
+    "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)"
+  },
+  "wall_seam_y": 300,
+  "prop_anchors": [
+    {
+      "id": "desk",
+      "file": "props/desk.png",
+      "grid": [
+        3,
+        3
+      ],
+      "tiles": 2.0
+    },
+    {
+      "id": "rack",
+      "file": "props/rack.png",
+      "grid": [
+        8,
+        2
+      ],
+      "tiles": 1.4
+    },
+    {
+      "id": "chair",
+      "file": "props/chair.png",
+      "grid": [
+        3,
+        5
+      ],
+      "tiles": 1.0
+    },
+    {
+      "id": "spool",
+      "file": "props/spool.png",
+      "grid": [
+        6,
+        5
+      ],
+      "tiles": 1.0
+    },
+    {
+      "id": "crate",
+      "file": "props/crate.png",
+      "grid": [
+        9,
+        6
+      ],
+      "tiles": 1.0
+    }
+  ],
+  "rejected": [],
+  "preview": "room_preview.png"
+}

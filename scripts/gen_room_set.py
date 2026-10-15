@@ -79,7 +79,10 @@ def main():
             f"pixel art game asset: {prop['subject']}. {gip.PROJECTION}"
             "Single object, centred, nothing else in frame, no room, no floor drawn. "
             f"Palette limited to {palette} plus dark grey, with crisp thin dark outlines and "
-            "flat cel shading, no antialiasing, no blur, no drop shadow, no checkerboard pattern, "
+            "flat cel shading, no antialiasing, no blur, no checkerboard pattern, "
+            "The object rests DIRECTLY on the flat magenta background: do NOT draw any ground "
+            "patch, base, platform, pedestal, mat, rug, plinth or contact shadow under it - the "
+            "magenta background extends right up to the object's feet. "
             "plain flat magenta background #FF00FF filling the whole frame. 32-bit pixel art, game asset."
         )
 

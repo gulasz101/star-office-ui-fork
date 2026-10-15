@@ -3564,7 +3564,13 @@ function toggleBrokerPanel() {
 
             // Decor
             this.load.spritesheet('plants', '/static/plants-spritesheet.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 160, frameHeight: 160 });
-            this.load.spritesheet('posters', '/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 160, frameHeight: 160 });
+            // POSTERS DROPPED (operator decision, 2026-10-15). posters-spritesheet.webp is 32/32
+            // frames of real film/TV posters with readable titles (FRIENDS, Star Wars, The Matrix,
+            // Jurassic Park, ... - inventoried frame by frame). Rather than generate ~20 original
+            // posters to replace them, the operator chose to drop the feature: it is pure
+            // decoration, nothing he would want to maintain, and dropping it removes the whole
+            // third-party-IP surface at zero cost. Do NOT re-enable this sheet.
+            // this.load.spritesheet('posters', '/static/posters-spritesheet.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 160, frameHeight: 160 });
             this.load.spritesheet('coffee_machine', '/static/coffee-machine-v3-grid.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 230, frameHeight: 230 });
             this.load.image('coffee_machine_shadow', '/static/coffee-machine-shadow-v1.png?v={{VERSION_TIMESTAMP}}');
             this.load.spritesheet('serverroom', '/static/serverroom-spritesheet.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 180, frameHeight: 251 });
@@ -3740,20 +3746,10 @@ function toggleBrokerPanel() {
                 window.plantSprite3.setFrame(next);
             });
 
-            // Random poster at (252,66) (random frame from spritesheet)
-            const postersFrameCount = (this.textures.get('posters')?.frameTotal || 1) - 1;
-            const randomPosterFrame = Math.floor(Math.random() * Math.max(1, postersFrameCount));
-            const poster = game.add.sprite(252, 66, 'posters', randomPosterFrame).setOrigin(0.5);
-            poster.setDepth(4);
-            poster.setInteractive({ useHandCursor: true });
-            // Expose to global for click handler
-            window.posterSprite = poster;
-            window.posterFrameCount = postersFrameCount;
-            
-            poster.on('pointerdown', () => {
-                const next = Math.floor(Math.random() * window.posterFrameCount);
-                window.posterSprite.setFrame(next);
-            });
+            // POSTER SPRITE REMOVED (operator decision, 2026-10-15 - see the load block above).
+            // The sheet was 32/32 third-party film/TV posters; the feature is dropped, not
+            // regenerated. Nothing may place a 'posters' sprite: the texture is no longer loaded,
+            // so a leftover reference here would render nothing or throw.
 
             // Random cat at (94,557)
             const catsFrameCount = (this.textures.get('cats')?.frameTotal || 1) - 1;

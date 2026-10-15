@@ -1,0 +1,20 @@
+{
+  "agent_id": "andrzej",
+  "display_name": "Andrzej",
+  "personality_source": "hermes profile ~/.hermes/profiles/andrzej/SOUL.md (homelab manager: builds, secures and operates the self-hosted homelab) + Itsaplan SOU agent record",
+  "room_brief": "the homelab engineer's workshop: two dark rack cabinets with rows of small glowing amber and green status lights, a bundle of neat cable trays running along the wall, a workbench with labelled drawers, a rack-mounted switch with patch cables, one tall steel tool cabinet, a small stool, server-room floor tiles, muted steel and dark wood",
+  "character_brief": "a sturdy bearded engineer character in a dark green work shirt and rolled sleeves, holding a small network cable, compact body, visible face",
+  "poses": {
+    "idle": "standing still, arms relaxed at the sides, slight bob",
+    "work": "crouched forward working on a cable with both hands, focused"
+  },
+  "palette": [
+    "#2e3440",
+    "#3b4252",
+    "#4c566a",
+    "#d08770",
+    "#ebcb8b",
+    "#a3be8c"
+  ],
+  "accent": "amber status lights on muted steel"
+}

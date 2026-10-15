@@ -1,0 +1,22 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "steps": 4,
+  "guidance": 1.0,
+  "created_at": "2026-10-15T10:04:48.708469+00:00",
+  "agent_id": "andrzej",
+  "display_name": "Andrzej",
+  "personality_source": "hermes profile ~/.hermes/profiles/andrzej/SOUL.md (homelab manager: builds, secures and operates the self-hosted homelab) + Itsaplan SOU agent record",
+  "prompt": "cozy 16-bit pixel art mountain lodge interior, the homelab engineer's workshop: two dark rack cabinets with rows of small glowing amber and green status lights, a bundle of neat cable trays running along the wall, a workbench with labelled drawers, a rack-mounted switch with patch cables, one tall steel tool cabinet, a small stool, server-room floor tiles, muted steel and dark wood, palette: #2e3440, #3b4252, #4c566a, #d08770, #ebcb8b, #a3be8c, three-quarter oblique orthographic view, walls and floor visible, empty room, no characters, no people, flat colours, clean pixel edges, no text, no letters, no words, no signage, no logo, no watermark, no user interface",
+  "seed": 11,
+  "lora_strength": 0.0,
+  "resolution": "640x360",
+  "upscale": 2,
+  "canvas": "1280x720",
+  "palette_colors": 24,
+  "output_file": "background.png",
+  "output_dims": [
+    1280,
+    720
+  ]
+}

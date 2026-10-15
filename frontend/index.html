@@ -3599,6 +3599,12 @@ function toggleBrokerPanel() {
             this.load.spritesheet('guest_anim_4', '/static/guest_anim_4.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_5', '/static/guest_anim_5.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('guest_anim_6', '/static/guest_anim_6.webp?v={{VERSION_TIMESTAMP}}', { frameWidth: 32, frameHeight: 32 });
+
+            // Generated agent avatars (FLUX.2-klein-4B, Apache-2.0 — see ADR-060/061).
+            // The renderer treats `agent.avatar` as a texture KEY, so an agent opts into
+            // its own generated art by declaring that key in its state payload; anything
+            // without one keeps the hash-picked guest art. No agent is special-cased here.
+            this.load.image('agent_avatar_szarik', '/static/agent_avatar_szarik.png?v={{VERSION_TIMESTAMP}}');
         }
 
         function create() {

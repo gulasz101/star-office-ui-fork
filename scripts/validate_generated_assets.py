@@ -128,10 +128,21 @@ def read_manifest(manifest_path: str) -> dict:
 def resolve_asset(
     file_path: str, manifest: dict | None, by_name: dict, contract: dict
 ) -> tuple[str | None, str]:
-    """Which contract asset is this file? ``asset_key`` wins over the name."""
+    """Which contract asset is this file? ``asset_key`` wins over the name.
+
+    A pack manifest writes ``asset_key`` as the name the generator was told to
+    draw (``office_bg_small`` for the office background), which is the logical
+    asset, not the Phaser key the renderer loads (``office_bg``).  Resolving
+    only against ``contract["assets"]`` made a correct background pack look like
+    it belonged to nothing (SOU-104 AC6), so a key that is not an asset falls
+    back to the contract's name index before the filename is consulted.
+    """
     key = (manifest or {}).get("asset_key")
-    if isinstance(key, str) and key in (contract.get("assets") or {}):
-        return key, "manifest asset_key"
+    if isinstance(key, str) and key:
+        if key in (contract.get("assets") or {}):
+            return key, "manifest asset_key"
+        if key in by_name:
+            return by_name[key], "manifest asset_key"
     stem = os.path.splitext(os.path.basename(file_path))[0]
     if stem in by_name:
         return by_name[stem], "filename"
@@ -139,10 +150,22 @@ def resolve_asset(
 
 
 def frame_size_of(manifest: dict | None, asset: dict) -> tuple[int | None, int | None, str]:
-    """Frame size to check against: the manifest's, else the contract's."""
+    """Frame size to check against: the manifest's, else the contract's.
+
+    A ``load.image`` asset has no frame grid at all, so its only legal frame is
+    the whole file: treating it as a 1 x 1 grid keeps the multiple-of-frame and
+    frame-count checks meaningful without inventing a tile size the renderer
+    never declares (SOU-104 AC5).
+    """
     frame = (manifest or {}).get("frame_size")
     if isinstance(frame, list) and len(frame) == 2:
         return int(frame[0]), int(frame[1]), "manifest frame_size"
+    if asset.get("kind") == "image":
+        return (
+            asset.get("expected_width"),
+            asset.get("expected_height"),
+            "contract image size (1 x 1)",
+        )
     return (
         asset.get("expected_frame_width"),
         asset.get("expected_frame_height"),

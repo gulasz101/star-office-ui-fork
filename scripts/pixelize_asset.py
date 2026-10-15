@@ -88,9 +88,24 @@ def load_contract(path: str) -> dict:
 
 def contract_asset(contract: dict, key: str) -> dict:
     assets = contract.get("assets", {})
-    if key not in assets:
-        raise Refusal(f"asset '{key}' is not in the contract ({len(assets)} assets on file)")
-    return assets[key]
+    if key in assets:
+        return assets[key]
+    # Pack manifests and generator invocations name the logical asset
+    # (`office_bg_small`) rather than the Phaser key (`office_bg`); resolve that
+    # through the contract instead of refusing, the same way
+    # scripts/validate_generated_assets.py does (SOU-104 AC5/AC6).
+    for asset_key, entry in assets.items():
+        names = {entry.get("logical_asset"), asset_key}
+        names.update(entry.get("logical_assets") or [])
+        for file_entry in entry.get("files") or []:
+            names.add(file_entry.get("variant"))
+            names.add(file_entry.get("logical_asset"))
+        for name in names:
+            if not name:
+                continue
+            if key in (name, os.path.splitext(name)[0]):
+                return entry
+    raise Refusal(f"asset '{key}' is not in the contract ({len(assets)} assets on file)")
 
 
 def parse_size(text: str):
@@ -154,22 +169,45 @@ def resolve_targets(args, contract: dict | None):
         if asset_key:
             asset = contract_asset(contract, asset_key)
         if asset is not None:
-            contract_frame = (
-                asset.get("expected_frame_width"),
-                asset.get("expected_frame_height"),
-            )
-            if None in contract_frame:
-                raise Refusal(
-                    f"asset '{asset_key}' has no frame size in the contract; pass "
-                    f"--frame-width/--frame-height explicitly"
+            if asset.get("kind") == "image":
+                # A `load.image` asset (backgrounds, shadows, the desk) is one
+                # picture with no frame grid, so its only legal "frame" is the
+                # whole file.  Refusing for lack of a frame size made the
+                # contract unusable for exactly the assets that most need it
+                # (SOU-104 AC5); anything else stays a 1 x 1 grid.
+                contract_frame = (
+                    asset.get("expected_width"),
+                    asset.get("expected_height"),
                 )
-            if frame[0] is not None and frame != contract_frame:
-                raise Refusal(
-                    f"frame size {frame[0]}x{frame[1]} differs from the contract for "
-                    f"'{asset_key}' ({contract_frame[0]}x{contract_frame[1]}): the renderer "
-                    f"slices this key at the contract size, so the sheet would be mis-sliced"
+                if None in contract_frame:
+                    raise Refusal(
+                        f"asset '{asset_key}' has no size in the contract; pass "
+                        f"--frame-width/--frame-height explicitly"
+                    )
+                if frame[0] is not None and frame != contract_frame:
+                    raise Refusal(
+                        f"frame size {frame[0]}x{frame[1]} differs from the contract for "
+                        f"'{asset_key}' ({contract_frame[0]}x{contract_frame[1]}): this is "
+                        f"a single-image asset, the renderer never slices it"
+                    )
+                frame = contract_frame
+            else:
+                contract_frame = (
+                    asset.get("expected_frame_width"),
+                    asset.get("expected_frame_height"),
                 )
-            frame = contract_frame
+                if None in contract_frame:
+                    raise Refusal(
+                        f"asset '{asset_key}' has no frame size in the contract; pass "
+                        f"--frame-width/--frame-height explicitly"
+                    )
+                if frame[0] is not None and frame != contract_frame:
+                    raise Refusal(
+                        f"frame size {frame[0]}x{frame[1]} differs from the contract for "
+                        f"'{asset_key}' ({contract_frame[0]}x{contract_frame[1]}): the renderer "
+                        f"slices this key at the contract size, so the sheet would be mis-sliced"
+                    )
+                frame = contract_frame
     if None in frame:
         raise Refusal("frame size is unknown: pass --contract/--asset or --frame-width/--frame-height")
 

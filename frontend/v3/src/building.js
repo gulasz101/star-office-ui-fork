@@ -46,11 +46,11 @@ export class Building {
     return new Phaser.Geom.Rectangle(x0, -TILE / 2, x1 - x0, (FRONT_Y + 3) * TILE);
   }
 
-  // everything worth scrolling to, forest included
+  // everything worth scrolling to: the whole snow field drawn around the building
   get worldBounds() {
-    const b = this.bounds;
-    const m = 10 * TILE;
-    return new Phaser.Geom.Rectangle(b.x - m, b.y - 6 * TILE, b.width + 2 * m, (SPAWN_Y + 8) * TILE + 6 * TILE);
+    const x0 = (this.world.x0 - FOREST_MARGIN) * TILE;
+    const x1 = (this.world.x1 + 1 + FOREST_MARGIN) * TILE;
+    return new Phaser.Geom.Rectangle(x0, -FOREST_MARGIN * TILE, x1 - x0, (SPAWN_Y + FOREST_MARGIN * 2) * TILE);
   }
 
   drawShell() {

@@ -1,6 +1,7 @@
 import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
+import { CameraRig } from './camera.js';
 import { ROOM_TYPES, PROP_ART } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
@@ -47,13 +48,12 @@ class OfficeScene extends Phaser.Scene {
     this.building = new Building(this);
     for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 
-    this.fitCamera();
-    this.scale.on('resize', () => this.fitCamera());
+    this.rig = new CameraRig(this, this.building);
 
     const toggleDebug = () => {
       for (const o of this.building.offices.values()) o.toggleDebug();
     };
-    this.input.keyboard.on('keydown-D', toggleDebug);
+    this.input.keyboard.on('keydown-G', toggleDebug);
     if (params.get('debug') === '1') toggleDebug();
 
     // handle for the browser console and for tests
@@ -74,7 +74,6 @@ class OfficeScene extends Phaser.Scene {
   office(agent) {
     if (!this.building.offices.has(agent)) {
       this.building.addOffice(agent);
-      this.fitCamera();
     }
     return this.building.offices.get(agent);
   }
@@ -128,18 +127,6 @@ class OfficeScene extends Phaser.Scene {
     };
     next();
     this.time.addEvent({ delay: 4500, loop: true, callback: next });
-  }
-
-  // Largest integer zoom that fits the whole building with a small margin.
-  fitCamera() {
-    const cam = this.cameras.main;
-    const b = this.building.bounds;
-    const margin = TILE / 4;
-    const zx = Math.floor(this.scale.width / (b.width + margin * 2));
-    const zy = Math.floor(this.scale.height / (b.height + margin * 2));
-    const zoom = Math.max(1, Math.min(zx, zy));
-    cam.setZoom(zoom);
-    cam.centerOn(b.centerX, b.centerY);
   }
 }
 

@@ -15,10 +15,19 @@
 # app refuse to boot while those are weak, which is the behaviour we want.
 
 # uv as a static binary, the pattern astral-sh documents (docs/guides/docker.md):
-# COPY --from= gets uv onto PATH without apt or pip bootstrap in the deps image.
-FROM ghcr.io/astral-sh/uv:0.13 AS uv
+# this stage only *holds* the binary; the deps stage below has to copy it in.
+# Pinned to the exact patch release 0.13.1, which is the same uv the CI job
+# installs, and verified against the registry: the linux/amd64 manifest of
+# ghcr.io/astral-sh/uv:0.13.1 resolves and its layer carries /uv and /uvx at the
+# filesystem root. scripts/validate_dockerfile.py now fails if either half of
+# this pair goes missing again (the 186e3a0 defect: `RUN uv sync` -> 127).
+FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
 
 FROM python:3.13-slim AS deps
+
+# The line that was missing at 186e3a0: without it `uv` is not on PATH in this
+# stage and the build dies before it can install anything.
+COPY --from=uv /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \

@@ -10,6 +10,11 @@ export const IGNORED_AGENTS = new Set(['Star']);
 // they keep their room, asleep with the lights off if they've been idle (SOU-197).
 export const ACTIVE_WINDOW_MS = 24 * 60 * 60_000;
 
+// Background work (SOU-211): helpers in the room, never a reason to move the character.
+export const BACKGROUND_TYPES = new Set(['background_start', 'background_end']);
+// On page load, a start older than this without an end is assumed lost.
+export const BACKGROUND_OPEN_MS = 3 * 60 * 60_000;
+
 const ts = (e) => Date.parse(e.created_at) || 0;
 const byTime = (a, b) => ts(a) - ts(b) || a.id - b.id;
 
@@ -18,6 +23,17 @@ export class FeedState {
     this.seen = new Set();
     this.cursor = null; // newest created_at seen, sent back as ?since= (inclusive)
     this.agents = new Map(); // name -> { lastAt, last: {zone,activity,bubble} }
+    this.bgQueue = []; // background events not yet taken by the renderer, oldest first
+  }
+
+  /**
+   * Background work since the last call, oldest first:
+   * [{ agent, op: 'start'|'end', task: {id, kind, label, status?, exit_code?}, at }].
+   */
+  takeBackground() {
+    const out = this.bgQueue;
+    this.bgQueue = [];
+    return out;
   }
 
   /**
@@ -31,12 +47,16 @@ export class FeedState {
   ingest(events, { initial = false, now = Date.now() } = {}) {
     const fresh = (events || []).filter((e) => e && e.agent && !this.seen.has(e.id)).sort(byTime);
     const latest = new Map();
+    const bg = [];
     for (const e of fresh) {
       // ignored agents still advance the cursor, or the since-floor would stall on them
       this.seen.add(e.id);
       if (!this.cursor || ts(e) > Date.parse(this.cursor)) this.cursor = e.created_at;
-      if (!IGNORED_AGENTS.has(e.agent)) latest.set(e.agent, e);
+      if (IGNORED_AGENTS.has(e.agent)) continue;
+      if (BACKGROUND_TYPES.has(e.event_type)) bg.push(e);
+      else latest.set(e.agent, e);
     }
+    this._queueBackground(bg, initial, now);
     if (this.seen.size > 5000) this.seen = new Set([...this.seen].slice(-2000));
 
     const out = [];
@@ -48,6 +68,33 @@ export class FeedState {
       out.push({ agent, target, at });
     }
     return out;
+  }
+
+  _queueBackground(events, initial, now) {
+    const items = [];
+    for (const e of events) {
+      const p = e.payload && typeof e.payload === 'object' ? e.payload : {};
+      const id = typeof p.task_id === 'string' ? p.task_id : '';
+      if (!id) continue;
+      const task = {
+        id, kind: p.kind === 'agent' ? 'agent' : 'shell',
+        label: typeof p.label === 'string' ? p.label.slice(0, 28) : '',
+        status: p.status, exit_code: p.exit_code,
+      };
+      items.push({ agent: e.agent, op: e.event_type === 'background_start' ? 'start' : 'end', task, at: ts(e) });
+    }
+    if (initial) {
+      // page load: only what is still running, no replay of finished helpers
+      const open = new Map();
+      for (const it of items) {
+        const key = `${it.agent}\u0000${it.task.id}`;
+        if (it.op === 'start' && now - it.at < BACKGROUND_OPEN_MS) open.set(key, it);
+        else open.delete(key);
+      }
+      this.bgQueue.push(...open.values());
+    } else {
+      this.bgQueue.push(...items);
+    }
   }
 
   /**

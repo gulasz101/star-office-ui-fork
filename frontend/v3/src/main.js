@@ -80,6 +80,8 @@ class OfficeScene extends Phaser.Scene {
       building: this.building,
       offices: () => [...this.building.offices.keys()],
       // office.agent('claude-code').do({ zone: 'build', activity: 'building', bubble: '$ docker build' })
+      // office.bg('claude-code', 'start', { id: 't1', kind: 'shell', label: 'sleep' })
+      bg: (id, op, task) => this.applyBackground([{ agent: id, op, task, at: Date.now() }]),
       agent: (id) => {
         const o = this.building.offices.get(id) || [...this.building.offices.values()][0];
         return o && o.character;
@@ -108,6 +110,15 @@ class OfficeScene extends Phaser.Scene {
     this.caption();
   }
 
+  // background work (SOU-211): helpers in the agent's room, the character stays put
+  applyBackground(items) {
+    for (const { agent, op, task, at } of items) {
+      const o = this.office(agent, !at || Date.now() - at < 120_000);
+      if (op === 'start') o.helpers.start(task);
+      else o.helpers.end(task);
+    }
+  }
+
   // the empty and the all-asleep states say so instead of showing a silent screen
   caption() {
     const el = document.getElementById('caption');
@@ -134,6 +145,7 @@ class OfficeScene extends Phaser.Scene {
         const res = await fetch(`/events/recent?${q}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         this.apply(this.feed.ingest(await res.json(), { initial: first }));
+        this.applyBackground(this.feed.takeBackground());
         first = false;
         const n = this.building.offices.size;
         hud(n ? `live · ${n} agent${n > 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}` : 'live · waiting for the first agent event…');

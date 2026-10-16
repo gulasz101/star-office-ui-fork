@@ -26,6 +26,16 @@ const el = (tag, cls, text) => {
   return n;
 };
 
+// background_start/_end read as "▶ $ sleep" / "✓ Explore" (labels are reporter-sanitised)
+function background(e) {
+  if (e.event_type !== 'background_start' && e.event_type !== 'background_end') return null;
+  const p = e.payload && typeof e.payload === 'object' ? e.payload : {};
+  const what = `${p.kind === 'agent' ? '' : '$ '}${typeof p.label === 'string' ? p.label.slice(0, 24) : 'task'}`;
+  if (e.event_type === 'background_start') return { bubble: `▶ ${what}` };
+  const failed = p.status === 'error' || p.exit_code > 0;
+  return { bubble: `${failed ? '✗' : '✓'} ${what}` };
+}
+
 export class RoomCard {
   constructor() {
     this.root = document.getElementById('card');
@@ -76,9 +86,16 @@ export class RoomCard {
     now.append(el('span', 'card-label', 'now '), el('span', '', [st.activity, st.bubble].filter(Boolean).join(' · ') || 'arriving'));
     root.append(now);
     if (this.events.length) root.append(el('div', 'card-seen', `last seen ${ago(this.events[0].created_at)}`));
+    const bg = o.helpers ? o.helpers.list() : [];
+    if (bg.length) {
+      const box = el('div', 'card-bg');
+      box.append(el('span', 'card-label', `background (${bg.length}) `));
+      box.append(el('span', '', bg.map((t) => `${t.kind === 'agent' ? '◆' : '$'} ${t.label || t.kind} ${ago(new Date(t.startedAt).toISOString()).replace(' ago', '')}`).join(' · ')));
+      root.append(box);
+    }
     const list = el('ol', 'card-events');
     for (const e of this.events) {
-      const t = mapEvent(e);
+      const t = background(e) || mapEvent(e);
       const li = el('li');
       li.append(el('span', 'card-time', time(e.created_at)), el('span', 'card-type', e.event_type), el('span', 'card-what', t.bubble || t.activity));
       list.append(li);

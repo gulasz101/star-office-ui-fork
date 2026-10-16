@@ -4,12 +4,11 @@ This directory wraps `Star-Office-UI` into a desktop app (transparent window) an
 
 ## Dev run
 
-First prepare the Python environment at the repo root:
+The repo's Python environment is managed by uv (SOU-170). From the repo root:
 
 ```bash
-cd /Users/wangzhaohan/Documents/GitHub/Star-Office-UI
-uv venv .venv
-uv pip install -r backend/requirements.txt --python .venv/bin/python
+uv sync                       # pyproject.toml + uv.lock -> .venv
+uv run python backend/app.py  # or: bash backend/run.sh
 ```
 
 Then start Tauri:
@@ -22,7 +21,7 @@ npm run dev
 
 ## Backend auto-start logic
 
-- Preferred: `../.venv/bin/python backend/app.py`
+- Preferred: `uv run python backend/app.py` from the repo root (or `bash backend/run.sh`, which wraps exactly that)
 - First fallback: `python3 backend/app.py`
 - Second fallback: `python backend/app.py`
 

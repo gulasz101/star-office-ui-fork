@@ -24,29 +24,31 @@ Any agent that can run shell commands and HTTP requests can set this up. Send it
 ```text
 Deploy Star Office UI for me:
 1. git clone https://github.com/gulasz101/star-office-ui-fork && cd star-office-ui-fork
-2. python3 -m pip install -r backend/requirements.txt   (Python 3.10+)
-3. cd backend && python3 app.py    # serves http://127.0.0.1:19000
-4. Then push your own status to it: POST /events — see the Agent Integration section of README.
+2. curl -LsSf https://astral.sh/uv/install.sh | sh   (uv — Python 3.10+ on PATH is enough)
+3. uv sync        # installs the locked environment from pyproject.toml + uv.lock
+4. uv run python backend/app.py    # serves http://127.0.0.1:19000
+5. Then push your own status to it: POST /events — see the Agent Integration section of README.
 ```
 
 Your agent will clone, install, start the backend, and register itself on the board with its very first event.
 
 ### Option 2: 30-second manual setup
 
-> **Requires Python 3.10+** (the codebase uses `X | Y` union type syntax, which is not supported on 3.9 or earlier)
+> **Requires [uv](https://docs.astral.sh/uv/) and Python 3.10+** (the codebase uses
+> `X | Y` union type syntax, which is not supported on 3.9 or earlier). One-time uv
+> install: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ```bash
 # 1) Clone the repo
 git clone https://github.com/gulasz101/star-office-ui-fork.git
 cd star-office-ui-fork
 
-# 2) Install dependencies (Python 3.10+ required)
-python3 -m pip install -r backend/requirements.txt
+# 2) Install dependencies — pyproject.toml + uv.lock are the single source of truth
+uv sync
 
 # 3) Start the backend — the event database initializes automatically
 #    (SQLite by default; set DATABASE_URL=postgresql+psycopg2://... to use Postgres)
-cd backend
-python3 app.py
+uv run python backend/app.py
 ```
 
 Open **http://127.0.0.1:19000** and push a status change:
@@ -99,7 +101,7 @@ You can still deploy and use it:
 
 ```bash
 cd star-office-ui-fork
-python3 -m pip install -r backend/requirements.txt
+uv sync
 ```
 
 ### 2) Choose your database (optional)
@@ -109,8 +111,7 @@ No state files to copy: the backend stores agent state and events in a database.
 ### 3) Start the backend
 
 ```bash
-cd backend
-python3 app.py
+uv run python backend/app.py    # or: bash backend/run.sh  (autoloads .env if present)
 ```
 
 Open `http://127.0.0.1:19000`
@@ -392,8 +393,8 @@ star-office-ui-fork/
 │   ├── db.py           # SQLite/Postgres event adapter (fork Phase 1)
 │   ├── schemas/event_v1.json  # the POST /events contract
 │   ├── migrations/     # Alembic schema
-│   ├── requirements.txt
-│   └── run.sh
+│   └── run.sh          # uv run launcher (autoloads .env)
+├── pyproject.toml      # the single dependency source (with uv.lock) — SOU-170
 ├── frontend/           # Frontend pages & assets
 │   ├── index.html
 │   ├── join.html

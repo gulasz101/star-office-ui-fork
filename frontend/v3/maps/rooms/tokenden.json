@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 20,
+ "nextobjectid": 21,
  "properties": [
   {
    "name": "room",
@@ -634,11 +634,11 @@
    "objects": [
     {
      "id": 1,
-     "name": "rack",
+     "name": "token_server",
      "type": "",
      "x": 64,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -652,24 +652,6 @@
     },
     {
      "id": 2,
-     "name": "rack",
-     "type": "",
-     "x": 96,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 3,
      "name": "rack",
      "type": "",
      "x": 128,
@@ -687,8 +669,26 @@
      ]
     },
     {
+     "id": 3,
+     "name": "red_lanterns",
+     "type": "",
+     "x": 224,
+     "y": 32,
+     "width": 64,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
      "id": 4,
-     "name": "desk",
+     "name": "abacus_desk",
      "type": "",
      "x": 224,
      "y": 96,
@@ -742,24 +742,42 @@
     },
     {
      "id": 7,
-     "name": "rug",
+     "name": "lucky_cat",
      "type": "",
-     "x": 192,
-     "y": 224,
-     "width": 96,
-     "height": 64,
+     "x": 448,
+     "y": 128,
+     "width": 32,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [
       {
        "name": "collides",
        "type": "bool",
-       "value": false
+       "value": true
       }
      ]
     },
     {
      "id": 8,
+     "name": "tea_table",
+     "type": "",
+     "x": 224,
+     "y": 224,
+     "width": 64,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 9,
      "name": "couch",
      "type": "",
      "x": 320,
@@ -777,7 +795,7 @@
      ]
     },
     {
-     "id": 9,
+     "id": 10,
      "name": "coffee",
      "type": "",
      "x": 32,
@@ -795,8 +813,8 @@
      ]
     },
     {
-     "id": 10,
-     "name": "crate",
+     "id": 11,
+     "name": "token_stacks",
      "type": "",
      "x": 416,
      "y": 192,
@@ -813,8 +831,8 @@
      ]
     },
     {
-     "id": 11,
-     "name": "crate",
+     "id": 12,
+     "name": "token_stacks",
      "type": "",
      "x": 448,
      "y": 192,
@@ -831,8 +849,8 @@
      ]
     },
     {
-     "id": 12,
-     "name": "crate",
+     "id": 13,
+     "name": "token_stacks",
      "type": "",
      "x": 448,
      "y": 224,
@@ -861,7 +879,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 13,
+     "id": 14,
      "name": "work",
      "type": "",
      "x": 240,
@@ -880,7 +898,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 15,
      "name": "ops",
      "type": "",
      "x": 112,
@@ -899,7 +917,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 16,
      "name": "read",
      "type": "",
      "x": 368,
@@ -918,7 +936,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 17,
      "name": "wait",
      "type": "",
      "x": 80,
@@ -937,7 +955,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 18,
      "name": "rest",
      "type": "",
      "x": 368,
@@ -961,7 +979,7 @@
      ]
     },
     {
-     "id": 18,
+     "id": 19,
      "name": "build",
      "type": "",
      "x": 400,
@@ -980,7 +998,7 @@
      ]
     },
     {
-     "id": 19,
+     "id": 20,
      "name": "entry",
      "type": "",
      "x": 208,

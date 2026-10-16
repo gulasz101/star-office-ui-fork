@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 18,
+ "nextobjectid": 22,
  "properties": [
   {
    "name": "room",
@@ -652,7 +652,25 @@
     },
     {
      "id": 2,
-     "name": "desk",
+     "name": "framed_certs",
+     "type": "",
+     "x": 128,
+     "y": 32,
+     "width": 64,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 3,
+     "name": "advisor_desk",
      "type": "",
      "x": 192,
      "y": 96,
@@ -669,7 +687,7 @@
      ]
     },
     {
-     "id": 3,
+     "id": 4,
      "name": "chair",
      "type": "",
      "x": 192,
@@ -687,7 +705,25 @@
      ]
     },
     {
-     "id": 4,
+     "id": 5,
+     "name": "whiteboard",
+     "type": "",
+     "x": 288,
+     "y": 64,
+     "width": 64,
+     "height": 64,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 6,
      "name": "rack",
      "type": "",
      "x": 416,
@@ -705,7 +741,61 @@
      ]
     },
     {
-     "id": 5,
+     "id": 7,
+     "name": "ring_light",
+     "type": "",
+     "x": 352,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "name": "coat_stand",
+     "type": "",
+     "x": 128,
+     "y": 96,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "name": "ficus",
+     "type": "",
+     "x": 448,
+     "y": 128,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 10,
      "name": "rug",
      "type": "",
      "x": 160,
@@ -723,7 +813,7 @@
      ]
     },
     {
-     "id": 6,
+     "id": 11,
      "name": "couch",
      "type": "",
      "x": 352,
@@ -741,7 +831,7 @@
      ]
     },
     {
-     "id": 7,
+     "id": 12,
      "name": "coffee",
      "type": "",
      "x": 32,
@@ -759,7 +849,7 @@
      ]
     },
     {
-     "id": 8,
+     "id": 13,
      "name": "crate",
      "type": "",
      "x": 448,
@@ -777,29 +867,11 @@
      ]
     },
     {
-     "id": 9,
+     "id": 14,
      "name": "crate",
      "type": "",
      "x": 448,
      "y": 224,
-     "width": 32,
-     "height": 32,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 10,
-     "name": "bass",
-     "type": "",
-     "x": 320,
-     "y": 96,
      "width": 32,
      "height": 32,
      "rotation": 0,
@@ -825,7 +897,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 11,
+     "id": 15,
      "name": "work",
      "type": "",
      "x": 208,
@@ -844,7 +916,7 @@
      ]
     },
     {
-     "id": 12,
+     "id": 16,
      "name": "ops",
      "type": "",
      "x": 432,
@@ -863,7 +935,7 @@
      ]
     },
     {
-     "id": 13,
+     "id": 17,
      "name": "read",
      "type": "",
      "x": 48,
@@ -882,7 +954,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 18,
      "name": "wait",
      "type": "",
      "x": 80,
@@ -901,7 +973,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 19,
      "name": "rest",
      "type": "",
      "x": 400,
@@ -925,7 +997,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 20,
      "name": "build",
      "type": "",
      "x": 432,
@@ -944,7 +1016,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 21,
      "name": "entry",
      "type": "",
      "x": 208,

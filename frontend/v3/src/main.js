@@ -2,6 +2,9 @@ import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
 
+export const ART_SET = 'office-01';
+const PROP_NAMES = ['desk', 'chair', 'rack', 'bookshelf', 'coffee', 'rug', 'couch', 'bass', 'amp', 'cat', 'van', 'spool', 'crate'];
+
 // Default: live. Offices appear as agents show up in GET /events/recent.
 // ?agents=a,b pins offices instead (no feed); ?demo=1 cycles zones on the pinned offices.
 const params = new URLSearchParams(location.search);
@@ -22,6 +25,15 @@ class OfficeScene extends Phaser.Scene {
   preload() {
     this.load.tilemapTiledJSON('office-01', 'maps/office-01.json');
     this.load.image('tiles-placeholder', 'assets/placeholder/tiles.png');
+    // Generated art (SOU-158 contract). Any file that's missing falls back to its placeholder,
+    // so a partial art drop renders fine. ?art=0 forces placeholders for comparison.
+    if (params.get('art') !== '0') {
+      const base = `assets/${ART_SET}`;
+      this.load.image(`tiles-${ART_SET}`, `${base}/tiles.png`);
+      for (const p of PROP_NAMES) this.load.image(`prop-${ART_SET}-${p}`, `${base}/props/${p}.png`);
+      this.load.spritesheet(`sheet-${ART_SET}`, `${base}/character/${ART_SET}.png`, { frameWidth: 32, frameHeight: 48 });
+      this.load.on('loaderror', (file) => console.info(`[v3] art fallback: ${file.key} not found`));
+    }
   }
 
   create() {

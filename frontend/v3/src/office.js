@@ -24,7 +24,9 @@ export class OfficeModule {
     this.oy = originY * TILE;
 
     this.map = scene.make.tilemap({ key: mapKey });
-    const tileset = this.map.addTilesetImage('placeholder', 'tiles-placeholder');
+    // tileset slots are fixed by the map; the generated set keeps the same order (SOU-158)
+    const tilesKey = scene.textures.exists('tiles-office-01') ? 'tiles-office-01' : 'tiles-placeholder';
+    const tileset = this.map.addTilesetImage('placeholder', tilesKey);
     this.floor = this.map.createLayer('floor', tileset, this.ox, this.oy);
     this.walls = this.map.createLayer('walls', tileset, this.ox, this.oy);
     this.floor.setDepth(-1000);
@@ -58,7 +60,8 @@ export class OfficeModule {
     const layer = this.map.getObjectLayer('props');
     const props = [];
     for (const o of layer ? layer.objects : []) {
-      const key = ensurePropTexture(this.scene, o.name, o.width, o.height);
+      const art = `prop-office-01-${o.name}`;
+      const key = this.scene.textures.exists(art) ? art : ensurePropTexture(this.scene, o.name, o.width, o.height);
       // anchor = bottom-centre of the footprint, so the art can be taller than its footprint
       const x = this.ox + o.x + o.width / 2;
       const y = this.oy + o.y + o.height;
@@ -76,7 +79,10 @@ export class OfficeModule {
   }
 
   _createCharacter(color) {
-    const sheetKey = ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
+    // one generated character for M1; per-agent characters come with M2 (SOU-161)
+    const sheetKey = this.scene.textures.exists('sheet-office-01')
+      ? 'sheet-office-01'
+      : ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
     return new AgentCharacter(this, {
       agentId: this.agentId, sheetKey, start: this.zones.entry || { tx: 1, ty: 1 },
     });

@@ -7,6 +7,11 @@ const ZOOMS = [0.25, 0.5, 1, 1.5, 2, 2.5, 3, 4];
 const FLY_MS = 550;
 const KEY_PAN = 0.6; // screen px per ms
 const DRAG_SLOP = 5;
+const PINCH_RATE = 0.01; // zoom factor per pinch delta unit
+const PINCH_SNAP_MS = 220; // settle on a crisp zoom step after the pinch stops
+const NOTCH = 100; // accumulated mouse-wheel delta per zoom step
+
+const nearestZoom = (z) => ZOOMS.reduce((best, s) => (Math.abs(Math.log(s / z)) < Math.abs(Math.log(best / z)) ? s : best));
 
 export class CameraRig {
   constructor(scene, building) {
@@ -34,7 +39,7 @@ export class CameraRig {
       this.drag = null;
       if (d && !d.moved) this.click(p);
     });
-    scene.input.on('wheel', (p, _over, _dx, dy) => this.zoomStep(dy > 0 ? -1 : 1, p.x, p.y));
+    scene.input.on('wheel', (p, _over, dx, dy) => this.wheel(p, dx, dy));
 
     const kb = scene.input.keyboard;
     kb.on('keydown-ESC', () => this.overview());
@@ -128,12 +133,45 @@ export class CameraRig {
     this.focus(list[(i + 1) % list.length]);
   }
 
+  /**
+   * Wheel input comes from three very different devices (SOU-215):
+   *   - touchpad pinch: the browser sends wheel + ctrlKey with small deltas -> smooth zoom at
+   *     the cursor, snapped to the nearest crisp step when the gesture stops
+   *   - touchpad two-finger scroll: small, often fractional, often with deltaX -> pan
+   *   - mouse wheel: whole notches (|deltaY| >= 50, no deltaX, or line mode) -> one zoom
+   *     step per notch, accumulated so a fast flick doesn't skip three levels
+   */
+  wheel(p, dx, dy) {
+    const e = p.event || {};
+    if (e.ctrlKey) {
+      this.zoomAt(this.cam.zoom * Math.exp(-dy * PINCH_RATE), p.x, p.y);
+      clearTimeout(this.snapTimer);
+      this.snapTimer = setTimeout(() => this.zoomAt(nearestZoom(this.cam.zoom), p.x, p.y), PINCH_SNAP_MS);
+      return;
+    }
+    const notch = e.deltaMode === 1 || (dx === 0 && Math.abs(dy) >= 50 && Number.isInteger(dy));
+    if (notch) {
+      this.wheelAcc = (this.wheelAcc || 0) + dy;
+      if (Math.abs(this.wheelAcc) >= NOTCH) {
+        this.zoomStep(this.wheelAcc > 0 ? -1 : 1, p.x, p.y);
+        this.wheelAcc = 0;
+      }
+      return;
+    }
+    this.mode = 'free';
+    this.cam.setScroll(this.cam.scrollX + dx / this.cam.zoom, this.cam.scrollY + dy / this.cam.zoom);
+  }
+
   zoomStep(dir, sx = this.scale.width / 2, sy = this.scale.height / 2) {
+    const cur = this.cam.zoom;
+    const next = dir > 0 ? ZOOMS.find((z) => z > cur + 1e-6) : [...ZOOMS].reverse().find((z) => z < cur - 1e-6);
+    if (next !== undefined) this.zoomAt(next, sx, sy);
+  }
+
+  // set the zoom, keeping the world point under (sx, sy) where it is
+  zoomAt(zoom, sx = this.scale.width / 2, sy = this.scale.height / 2) {
     const cam = this.cam;
-    const cur = cam.zoom;
-    let next = dir > 0 ? ZOOMS.find((z) => z > cur + 1e-6) : [...ZOOMS].reverse().find((z) => z < cur - 1e-6);
-    if (next === undefined) return;
-    // keep the world point under the cursor where it is
+    const next = Math.min(ZOOMS[ZOOMS.length - 1], Math.max(ZOOMS[0], zoom));
     const before = cam.getWorldPoint(sx, sy);
     cam.setZoom(next);
     cam.preRender();

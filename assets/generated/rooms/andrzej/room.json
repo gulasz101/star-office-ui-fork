@@ -66,7 +66,17 @@
       "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug",
       "variant": "se",
       "flip_x": false,
-      "asset": "props/desk.png"
+      "asset": "props/desk.png",
+      "art_bbox": [
+        102,
+        105,
+        545,
+        537
+      ],
+      "image": [
+        640,
+        640
+      ]
     },
     {
       "id": "rack",
@@ -97,7 +107,17 @@
       "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable",
       "variant": "se",
       "flip_x": false,
-      "asset": "props/rack.png"
+      "asset": "props/rack.png",
+      "art_bbox": [
+        232,
+        89,
+        405,
+        537
+      ],
+      "image": [
+        640,
+        640
+      ]
     },
     {
       "id": "chair",
@@ -116,7 +136,17 @@
       "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor",
       "variant": "se",
       "flip_x": false,
-      "asset": "props/chair.png"
+      "asset": "props/chair.png",
+      "art_bbox": [
+        72,
+        106,
+        574,
+        522
+      ],
+      "image": [
+        640,
+        640
+      ]
     },
     {
       "id": "spool",
@@ -135,7 +165,17 @@
       "subject": "a cable spool on a small wooden pallet with a few loose network cables",
       "variant": "se",
       "flip_x": false,
-      "asset": "props/spool.png"
+      "asset": "props/spool.png",
+      "art_bbox": [
+        137,
+        139,
+        504,
+        496
+      ],
+      "image": [
+        640,
+        640
+      ]
     },
     {
       "id": "crate",
@@ -154,7 +194,17 @@
       "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top",
       "variant": "se",
       "flip_x": false,
-      "asset": "props/crate.png"
+      "asset": "props/crate.png",
+      "art_bbox": [
+        158,
+        149,
+        486,
+        477
+      ],
+      "image": [
+        640,
+        640
+      ]
     },
     {
       "id": "bass",
@@ -174,6 +224,16 @@
       "variant": "se",
       "flip_x": false,
       "asset": "props/bass.png",
+      "art_bbox": [
+        80,
+        63,
+        570,
+        595
+      ],
+      "image": [
+        640,
+        640
+      ],
       "personal": "bass guitar player"
     },
     {
@@ -194,6 +254,16 @@
       "variant": "se",
       "flip_x": false,
       "asset": "props/cat.png",
+      "art_bbox": [
+        84,
+        100,
+        558,
+        526
+      ],
+      "image": [
+        640,
+        640
+      ],
       "personal": "owns two cats",
       "decor": true,
       "note": "DECOR: admitted with its measurement recorded but exempt from the base-slope gate. A cat curled on the floor has no rhombic footprint and failed it repeatedly (0.426/-0.364 on the floor variant, 0.633-0.826 in a box). The gate protects furniture, where a projection mismatch is visible; the exemption is per prop and visible in the manifest and room.json rather than hidden by a loosened tolerance."
@@ -356,6 +426,16 @@
       "variant": "se",
       "flip_x": false,
       "asset": "props/jdm_van.png",
+      "art_bbox": [
+        56,
+        138,
+        584,
+        517
+      ],
+      "image": [
+        640,
+        640
+      ],
       "personal": "30-year-old Mazda MPV"
     }
   ],

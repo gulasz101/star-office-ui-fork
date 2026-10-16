@@ -23,7 +23,11 @@ TRANSLATION, not a re-derivation:
 What it writes (into ``--out``)
 -------------------------------
     room.map.json        Tiled 1.10 isometric map: floor + collision layers
-    room.json            schema-2 descriptor: grid cells, tile counts, metres
+    room.json            schema-2 descriptor: grid cells, tile counts, metres;
+                         per prop also the measured grounding data (SOU-147):
+                         ``art_bbox`` [x0,y0,x1,y1] - the tightest rect over
+                         alpha > 128 pixels of the prop PNG in the pack,
+                         exclusive end, top-left origin - and ``image`` [w,h]
     tiles/floor.png      (96*N, 55) RGBA floor variants, procedural only
     tiles/collision.png  (96, 55) RGBA, the one tile the collision layer uses
     walls.png            the two declared wall planes on the declared lattice
@@ -78,6 +82,7 @@ TILED_VERSION = "1.10.2"
 SCHEMA = 2
 TILE_METERS = 0.7  # declared scale in the parent contract: 1 tile = 0.7 m
 WALL_PAD = 8       # px of transparent canvas around the declared wall planes
+ALPHA_GATE = 128   # art-bbox measurement gate (SOU-147; scale_props convention)
 GENERATOR = "scripts/gen_iso_room.py (SOU-123, ADR-067 renderer v2)"
 
 # The screen formula, as one string both artefacts and humans can diff.
@@ -454,8 +459,27 @@ def build_walls(out_path):
 # --------------------------------------------------------------------------- #
 # descriptor (schema 2, AC6)
 # --------------------------------------------------------------------------- #
+def measure_art_bbox(png_path):
+    """SOU-147 art-bbox convention (the same alpha>128 object measurement as
+    scripts/scale_props.py): the tightest rect over pixels with alpha > 128,
+    exclusive end, top-left origin, as [x0, y0, x1, y1]; plus the image size
+    [w, h]. Returns (None, [w, h]) when the prop PNG is absent or blank so a
+    bare regeneration (props not in the working tree) simply omits the fields -
+    the committed pack's contract tests assert presence."""
+    path = Path(png_path)
+    if not path.is_file():
+        return None, None
+    img = Image.open(path).convert("RGBA")
+    mask = img.getchannel("A").point(lambda a: 255 if a > ALPHA_GATE else 0)
+    box = mask.getbbox()
+    size = [int(img.size[0]), int(img.size[1])]
+    if box is None:
+        return None, size
+    return [int(v) for v in box], size
+
+
 def build_descriptor(profile, zones, anchors, findings, blocked, walls, doors,
-                     map_obj):
+                     map_obj, pack_dir=None):
     ox, oy, gx_max, gy_max = _floor()
     canvas = room_geometry.ROOM["canvas"]
     props = []
@@ -472,6 +496,16 @@ def build_descriptor(profile, zones, anchors, findings, blocked, walls, doors,
             "flip_x": False,
             "asset": f"props/{prop['id']}.png",
         }
+        if pack_dir is not None:
+            # SOU-147 grounding data: the prop PNGs are canvases, not footprints.
+            # The scene must anchor the CONTENT (measured alpha bbox) on the
+            # lattice point and scale it to the declared `tiles` width, so the
+            # measurement lives here, in the descriptor, where it is inspectable
+            # and byte-reproducible - not in the scene.
+            bbox, image = measure_art_bbox(Path(pack_dir) / entry["asset"])
+            if bbox is not None:
+                entry["art_bbox"] = bbox
+                entry["image"] = image
         for key in ("personal", "decor", "note"):
             if key in prop:
                 entry[key] = prop[key]
@@ -579,7 +613,7 @@ def generate(profile_path: Path, out_dir: Path) -> dict:
 
     walls = build_walls(out_dir / "walls.png")
     descriptor = build_descriptor(profile, zones, anchors, findings, blocked,
-                                  walls, doors, map_obj)
+                                  walls, doors, map_obj, pack_dir=out_dir)
 
     (out_dir / "room.map.json").write_text(_dumps(map_obj), encoding="utf-8")
     (out_dir / "room.json").write_text(_dumps(descriptor), encoding="utf-8")

@@ -286,8 +286,8 @@ def image_size(path: str):
     """(width, height, mode) measured with pillow, or None when unreadable."""
     try:
         from PIL import Image
-    except ImportError:  # pragma: no cover - pillow is in backend/requirements.txt
-        raise SystemExit("pillow is required to measure image dimensions: pip install pillow")
+    except ImportError:  # pragma: no cover - pillow is a pyproject.toml dependency
+        raise SystemExit("pillow is required to measure image dimensions: uv sync --extra art")
     try:
         with Image.open(path) as image:
             return image.size[0], image.size[1], image.mode

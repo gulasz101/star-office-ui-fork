@@ -152,7 +152,7 @@ validator), the privacy canaries, the fail-open/exit-0 rules and this file's
 wiring:
 
 ```bash
-.venv/bin/python -m pytest reporter/claude-code/tests -q
+uv run pytest reporter/claude-code/tests -q
 ```
 
 ## Known limits (deliberate, out of this ticket's scope)

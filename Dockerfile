@@ -1,4 +1,5 @@
-# Star Office UI - production container image (SOU-12, rebuilt for Phase 5 by SOU-62)
+# Star Office UI - production container image (SOU-12, rebuilt for Phase 5 by
+# SOU-62; dependency install moved onto uv by SOU-170)
 #
 # Two stages: only the deps stage installs anything; the runtime stage copies
 # the result plus the files the server actually serves. Alembic runs on every
@@ -6,27 +7,48 @@
 # backend/sou.db is migrated before the first request lands.
 #
 # Python 3.13 is pinned (AC1's preference): the Phase 1 code uses `int | None`
-# syntax, and SOU-64 proved every entry in backend/requirements.txt resolves to
-# a cp313 manylinux wheel, so neither stage needs a compiler.
+# syntax, and SOU-64 proved every dependency resolves to a cp313 manylinux
+# wheel, so neither stage needs a compiler.
 #
 # No secret is set here. FLASK_SECRET_KEY / STAR_OFFICE_SECRET, ASSET_DRAWER_PASS
 # and DATABASE_URL arrive at deploy time; STAR_OFFICE_ENV=production makes the
 # app refuse to boot while those are weak, which is the behaviour we want.
 
+# uv as a static binary, the pattern astral-sh documents (docs/guides/docker.md):
+# this stage only *holds* the binary; the deps stage below has to copy it in.
+# Pinned to the exact patch release 0.13.1, which is the same uv the CI job
+# installs, and verified against the registry: the linux/amd64 manifest of
+# ghcr.io/astral-sh/uv:0.13.1 resolves and its layer carries /uv and /uvx at the
+# filesystem root. scripts/validate_dockerfile.py now fails if either half of
+# this pair goes missing again (the 186e3a0 defect: `RUN uv sync` -> 127).
+FROM ghcr.io/astral-sh/uv:0.13.1 AS uv
+
 FROM python:3.13-slim AS deps
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PYTHONDONTWRITEBYTECODE=1
+# The line that was missing at 186e3a0: without it `uv` is not on PATH in this
+# stage and the build dies before it can install anything.
+COPY --from=uv /uv /uvx /bin/
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/install
 
 WORKDIR /build
 
-# Requirements land in their own layer so a code change never re-resolves them.
-# pytest travels with requirements.txt by ruling on SOU-62: the file is the one
-# dependency contract the fork keeps, and a runtime/dev split would be a
-# separate change (a few MB, no runtime impact).
-COPY backend/requirements.txt /build/backend/requirements.txt
-RUN pip install --no-cache-dir --prefix=/install -r /build/backend/requirements.txt
+# pyproject.toml + uv.lock in their own layer, so a code change never re-resolves
+# the environment. SOU-170: this is the single dependency source; the old
+# backend/requirements.txt is generated from it via `uv export` when someone
+# needs a pip-style snapshot. --frozen refuses to touch the lock, --no-dev
+# keeps pytest and friends out of the image (the SOU-62 "pytest travels with
+# requirements.txt" ruling retired together with the file).
+COPY pyproject.toml uv.lock /build/
+
+# The venv is created --relocatable on purpose: console scripts (gunicorn,
+# alembic) get `exec <their-own-dir>/python` trampolines instead of absolute
+# shebangs, and the environment resolves its prefix from the script location,
+# so the /install tree copied into the runtime stage works untouched.
+RUN uv venv --relocatable --python /usr/local/bin/python3 /install \
+ && uv sync --frozen --no-dev
 
 FROM python:3.13-slim AS runtime
 
@@ -36,7 +58,9 @@ LABEL org.opencontainers.image.title="star-office-ui-fork" \
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    STAR_BACKEND_PORT=19000
+    STAR_BACKEND_PORT=19000 \
+    VIRTUAL_ENV=/install \
+    PATH="/install/bin:${PATH}"
 
 # Unprivileged, fixed uid 10001: the homelab PVC can grant that uid write access
 # and nothing in the container ever runs as root (kept from SOU-12).
@@ -53,9 +77,12 @@ WORKDIR /app
 # the whole tree in a new layer).
 RUN chown app:app /app
 
-# Installed packages and their console scripts (gunicorn, alembic) merge into
-# the base image's own /usr/local, so nothing custom has to be on PYTHONPATH.
-COPY --from=deps /install/ /usr/local/
+# SOU-170: the whole uv environment travels as one self-contained, relocated
+# tree — console scripts (gunicorn, alembic) are `exec <their-dir>/python`
+# trampolines that resolve their prefix from the script location, so nothing
+# is merged into /usr/local and nothing custom has to be on PYTHONPATH.
+# /install is root-owned; the app user only reads and executes it.
+COPY --from=deps /install /install
 
 # The server serves backend/ (Flask app + migrations) and frontend/ (its static
 # root, see app.py's static_folder) and reads/writes assets/. Everything else in

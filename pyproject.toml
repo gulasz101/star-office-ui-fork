@@ -1,3 +1,8 @@
+# Single dependency source for the fork (SOU-170). Runtime deps moved over
+# from backend/requirements.txt with their pins kept; uv.lock is the resolved
+# record and `uv sync` is the only install step. requirements.txt is gone —
+# a frozen snapshot of this file can always be regenerated with
+# `uv export --frozen --no-dev --no-hashes -o backend/requirements.txt`.
 [project]
 name = "star-office-ui"
 version = "0.1.0"
@@ -5,5 +10,46 @@ description = "Star Office UI - Backend State Service"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "flask>=3.0.0",
+    "flask==3.0.2",
+    # Asset pipeline used by the backend itself (PIL import in app.py, the
+    # asset-drawer measurements in scripts/extract_asset_contract.py).
+    "pillow==10.4.0",
+    # Production WSGI server started by entrypoint.sh (SOU-12 ruling: one
+    # gthread worker, in-process state must not fork per worker).
+    "gunicorn==26.2.0",
+
+    # Database adapter layer (SOU-18, ADR-034): Postgres primary, SQLite
+    # fallback. psycopg2-binary only serves the Postgres backend; SQLite
+    # needs no extra driver.
+    "sqlalchemy>=2.0",
+    "alembic>=1.12",
+    "psycopg2-binary",
+
+    # Event ingest contract (SOU-36, ADR-035): POST /events validates its body
+    # against backend/schemas/event_v1.json. Pure-Python wheel (attrs,
+    # referencing, rpds-py ship manylinux wheels), so the slim image needs
+    # no compiler.
+    "jsonschema>=4.18",
 ]
+
+[dependency-groups]
+# Test runner for backend/tests (the suite is unittest-style, so it also runs
+# under `python -m unittest` without this installed).
+dev = [
+    "pytest",
+]
+
+[project.optional-dependencies]
+# scripts/ art-pipeline post-processes committed to the repo (pixelize,
+# asset-contract extract/validate). torch/diffusers deliberately stay OUT:
+# the FLUX.2-klein generation venv lives on the Mac (AGENTS.md art rules),
+# and nothing in this repo imports them.
+art = [
+    "pillow==10.4.0",
+]
+
+[tool.uv]
+# Not an importable package: the backend is run as scripts (`uv run python
+# backend/app.py`, gunicorn --chdir backend), and every backend/tests module
+# injects BACKEND_DIR into sys.path itself. No build backend, no wheel.
+package = false

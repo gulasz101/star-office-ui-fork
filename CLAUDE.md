@@ -111,9 +111,10 @@ Rules for everyone:
 ## Running it
 
 ```bash
-# backend + v1 (port 19000, STAR_BACKEND_PORT overrides), SQLite by default
-uv venv && uv pip install -r backend/requirements.txt
-backend/run.sh            # = .venv/bin/python backend/app.py, loads .env if present
+# backend + v1 (port 19000, STAR_BACKEND_PORT overrides), SQLite by default.
+# uv is the single dependency source: pyproject.toml + uv.lock, no requirements.txt.
+uv sync                       # creates/prunes .venv from uv.lock — that's the whole setup
+backend/run.sh            # = uv run python backend/app.py, loads .env if present
 # v3 renderer
 open http://127.0.0.1:19000/v3/
 # push a test event
@@ -121,7 +122,7 @@ curl -s -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json
   -d '{"version":1,"agent":"claude","event_type":"tool_call","timestamp":"2026-10-16T12:00:00Z","payload":{"tool":"Edit","status":"ok"}}'
 ```
 
-Tests: `.venv/bin/python -m pytest backend/tests` (Python), `node --test "frontend/tests/*.test.js" "frontend/v3/tests/*.test.mjs"` (JS; quote the globs — the bare directory form fails on Node 22/26).
+Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/tests/*.test.js" "frontend/v3/tests/*.test.mjs"` (JS; quote the globs — the bare directory form fails on Node 22/26).
 
 ## History, in brief
 

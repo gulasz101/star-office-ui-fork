@@ -15,9 +15,9 @@ The Postgres leg needs a reachable server and is skipped when
         python3 -m unittest tests.test_migrations -v
 
 When the database extras (alembic / SQLAlchemy / psycopg2) are not installed —
-the normal state of the fork until SOU-18 claims their requirements.txt entry —
-the module skips itself instead of erroring, so it never breaks the Flask-only
-install path.
+any interpreter outside the uv-synced project env, before SOU-18's pyproject
+dependencies reach it — the module skips itself instead of erroring, so it
+never breaks the Flask-only install path.
 """
 
 from __future__ import annotations

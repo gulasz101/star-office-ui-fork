@@ -33,9 +33,20 @@ export function roomTypeFor(agent) {
 export const PROP_ART = Object.fromEntries(
   ['desk', 'chair', 'rack', 'bookshelf', 'coffee', 'rug', 'couch', 'bass', 'amp', 'cat', 'van', 'spool', 'crate']
     .map((n) => [n, `assets/office-01/props/${n}.png`])
-    .concat(['cat_box', 'rack_v2', 'armchair', 'fireplace', 'woodpile'].map((n) => [n, `assets/lodge/props/${n}.png`])),
+    .concat(['cat_box', 'rack_v2', 'armchair', 'fireplace', 'woodpile'].map((n) => [n, `assets/lodge/props/${n}.png`]))
+    .concat(['gear_shelf_a', 'gear_shelf_b', 'workbench', 'ups_stack', 'cable_coil', 'stool', 'network_cabinet']
+      .map((n) => [n, `assets/serverroom/props/${n}.png`]))
+    .concat(['control_desk', 'ore_pile', 'item_box'].map((n) => [n, `assets/factory/props/${n}.png`])),
 );
-export const FLAT_PROPS = new Set(['rug', 'belt']);
+export const FLAT_PROPS = new Set(['rug', 'belt', 'cable_coil']);
+
+// Animated props (SOU-213): name -> [file, frame w, frame h, frames, fps]. Loaded as
+// spritesheets under prop-<name>; the room plays prop-anim-<name> on them.
+export const SHEET_PROPS = {
+  belt_h: ['assets/factory/props/belt_h.png', 32, 32, 4, 10],
+  assembler: ['assets/factory/props/assembler.png', 64, 80, 2, 2],
+  inserter: ['assets/factory/props/inserter.png', 32, 48, 2, 3],
+};
 
 // Hoodie colour per agent (SOU-202): null keeps the generated orange.
 const HOODIES = [

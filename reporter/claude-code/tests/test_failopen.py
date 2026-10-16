@@ -64,11 +64,34 @@ def test_unroutable_host_exits_zero():
     assert result.elapsed < 3.0
 
 
-@pytest.mark.parametrize("url", ["", "not a url", "http://", "ftp://example.invalid/", "127.0.0.1:9000"])
+@pytest.mark.parametrize("url", ["not a url", "http://", "ftp://example.invalid/", "127.0.0.1:9000"])
 def test_nonsense_url_is_swallowed(url):
     result = run_hook(SESSION_START, url=url)
     assert result.returncode == 0
     assert result.stdout == b""
+
+
+def test_explicitly_empty_url_switches_reporting_off():
+    """``STAR_OFFICE_URL=""`` is the operator's kill switch, not a fall-back.
+
+    Tested against the compiled-in default on purpose: the bug this pins down
+    was found by running the suite while a real dashboard listened on 19000 —
+    an empty URL fell back to the default and wrote a live ``session_start``
+    row into that office. If 19000 is taken (a real dashboard running) the test
+    skips rather than post into someone's session.
+    """
+    try:
+        server = StubServer(port=19000)
+    except OSError:
+        pytest.skip("port 19000 is in use by a real dashboard")
+    with server:
+        result = run_hook(SESSION_START, url="http://127.0.0.1:19000",
+                          env={"STAR_OFFICE_URL": ""})
+    assert result.returncode == 0
+    assert result.stdout == b""
+    assert server.requests == [], (
+        f"an empty STAR_OFFICE_URL still reported to the default: {server.requests}"
+    )
 
 
 CASES = {

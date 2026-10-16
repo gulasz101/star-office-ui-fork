@@ -92,9 +92,9 @@ already points at the project root the session started in. Note that
 groups omit it.
 
 Restart the session (or run `/hooks` to see what Claude Code picked up). To
-silence it temporarily, delete the entry or set `disableAllHooks` in your
-settings — do not edit the script to fail: a hook that exits non-zero shows
-error notices in the transcript.
+silence it temporarily, set `STAR_OFFICE_URL=""` for the hook, delete the
+entry, or set `disableAllHooks` in your settings — do not edit the script to
+fail: a hook that exits non-zero shows error notices in the transcript.
 
 ## Configure
 
@@ -104,7 +104,7 @@ your settings file):
 
 | Setting | Env var | Default | Notes |
 |---|---|---|---|
-| Dashboard URL | `STAR_OFFICE_URL` | `http://127.0.0.1:19000` | base URL; `/events` is appended |
+| Dashboard URL | `STAR_OFFICE_URL` | `http://127.0.0.1:19000` | base URL; `/events` is appended. **Set it to an empty value to switch reporting off** without uninstalling the hook; unset still means the local dashboard |
 | Agent name | `STAR_OFFICE_AGENT` | `claude-code` | one token, no spaces; registers the agent on first event |
 | Network cap (s) | `STAR_OFFICE_TIMEOUT` | `2.0` | clamped to 0.25–10 |
 | Debug echo | `STAR_OFFICE_DEBUG` | off | writes the envelope to **stderr** only, never stdout |

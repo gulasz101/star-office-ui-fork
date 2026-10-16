@@ -95,7 +95,7 @@ class StubServer:
     hook silent and exiting 0.
     """
 
-    def __init__(self, *, delay: float = 0.0, status: int = 201):
+    def __init__(self, *, delay: float = 0.0, status: int = 201, port: int = 0):
         self.delay = delay
         self.status = status
         self.requests: list[dict] = []
@@ -129,7 +129,7 @@ class StubServer:
             def log_message(self, *args):  # keep pytest output clean
                 pass
 
-        self._server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self._server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
     def __enter__(self) -> "StubServer":

@@ -38,7 +38,9 @@ Stdlib only: a hook must not need an install step.
 
 Configuration (all optional):
 
-    STAR_OFFICE_URL      dashboard base URL   (default http://127.0.0.1:19000)
+    STAR_OFFICE_URL      dashboard base URL   (default http://127.0.0.1:19000;
+                                             set it to an empty value to switch
+                                             reporting off without uninstalling)
     STAR_OFFICE_AGENT    feed identity        (default claude-code)
     STAR_OFFICE_TIMEOUT  network cap, seconds (default 2.0, clamped 0.25-10)
     STAR_OFFICE_DEBUG    1 = echo the envelope on stderr, never on stdout
@@ -266,8 +268,17 @@ def first_path(tool_input: dict) -> str:
 
 
 # ---------------------------------------------------------------- transport --
-def resolve_config(env) -> tuple[str, str, float]:
-    url = (env.get("STAR_OFFICE_URL") or DEFAULT_URL).strip() or DEFAULT_URL
+def resolve_config(env) -> tuple[str | None, str, float]:
+    """URL, agent and network cap.
+
+    An *unset* ``STAR_OFFICE_URL`` means the local dashboard. An explicitly
+    empty one means "do not report" — the off switch that does not need the
+    hook uninstalled, and the reason a blank value must not fall back to the
+    default (SOU-157: it used to, and the suite then wrote into any live
+    office on 19000).
+    """
+    raw_url = env.get("STAR_OFFICE_URL")
+    url = DEFAULT_URL if raw_url is None else raw_url.strip()
     agent = (env.get("STAR_OFFICE_AGENT") or "").strip()
     if not agent or re.search(r"\s", agent):
         agent = DEFAULT_AGENT
@@ -276,7 +287,7 @@ def resolve_config(env) -> tuple[str, str, float]:
     except (TypeError, ValueError):
         timeout = DEFAULT_TIMEOUT
     timeout = min(max(timeout, TIMEOUT_FLOOR), TIMEOUT_CEIL)
-    return url, agent, timeout
+    return url or None, agent, timeout
 
 
 def make_envelope(agent: str, event_type: str, payload: dict) -> dict:
@@ -326,6 +337,8 @@ def main(argv=None) -> int:
         return 0
     event_type, payload = built
     url, agent, timeout = resolve_config(env)
+    if url is None:
+        return 0  # STAR_OFFICE_URL="" -> reporting off, silently
     envelope = make_envelope(agent, event_type, payload)
 
     if (env.get("STAR_OFFICE_DEBUG") or "").strip().lower() in {"1", "true", "yes", "on"}:

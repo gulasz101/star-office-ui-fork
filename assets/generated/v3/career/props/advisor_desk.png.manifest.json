@@ -1,0 +1,164 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a tidy honey-brown timber desk seen from above and slightly in front, standing on four short legs with its front panel showing below the table top: an open slim grey laptop with a pale glowing screen in the middle, a small potted green plant in a terracotta pot on the left, a white coffee mug on the right, a neat stack of blank pale papers and a short pen. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 64:80 in width:height (the object's bounding box is wider than it is tall). Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Inside a cosy log-cabin office at night: honey-brown horizontal log walls, wide warm plank floor, chunky honey-brown timber furniture, warm amber lamplight falling from the top-left, deep blue shadow on the right, and a cool white ring-light glow plus small teal-green and orange equipment lights. Tidy, modern, lived-in. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. The glow is plain coloured light only - no letters, no numbers, no symbols, no characters, no writing of any kind. The FRONT FACE of this object and its four short legs must both be visible below the table top: the top surface occupies the upper part of the object and the front panel with its legs occupies the lower part, standing on the floor. This is NOT a flat top-down view of the table top alone, and there is no floor, rug or ground patch underneath the legs.Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 20244,
+  "source_file": "advisor_desk.raw.png",
+  "output_file": "props/advisor_desk.png",
+  "output_dims": [
+    64,
+    80
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T19:37:45.713072+00:00",
+  "asset_key": "advisor_desk",
+  "kind": "prop",
+  "set": "career",
+  "view": "top-down 3/4",
+  "ticket": "SOU-200",
+  "footprint_px": [
+    64,
+    64
+  ],
+  "footprint_tiles": [
+    2.0,
+    2.0
+  ],
+  "texture_px": [
+    64,
+    80
+  ],
+  "declared_px": [
+    64,
+    80
+  ],
+  "lift_px": 16,
+  "fit_mode": "inside",
+  "fit": {
+    "content_px": [
+      474,
+      344
+    ],
+    "fitted_px": [
+      64,
+      46
+    ],
+    "canvas_px": [
+      64,
+      80
+    ],
+    "mode": "inside",
+    "scale": 0.135,
+    "crop_bbox": [
+      21,
+      179,
+      495,
+      523
+    ],
+    "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199 rule, restated for set C)"
+  },
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+  "key_colour": [
+    253,
+    255,
+    253,
+    255
+  ],
+  "generation_mode": "text-only generation",
+  "frames": 1,
+  "frame_px": [
+    64,
+    80
+  ],
+  "sheet_px": [
+    64,
+    80
+  ],
+  "frame_derivation": {
+    "0": "the FLUX base (contact), unchanged - set C ships no sheets, so frame 0 is the whole asset"
+  },
+  "post_process": "full",
+  "post_process_meta": {
+    "stray_islands_dropped_px": [],
+    "disconnected_parts_kept_px": [],
+    "despeckled_px": 0,
+    "interior_holes_filled_px": 0
+  },
+  "full_bleed": false,
+  "connects": null,
+  "ticket_size_class": "2x2",
+  "prompt_ruling": null,
+  "content_bottom_row": 79,
+  "base_row_coverage": 0.117,
+  "opaque_bottom_rows_coverage": 0.117,
+  "transparent_px": 2969,
+  "colours": 42,
+  "off_palette": [],
+  "note": "re-rolled (SEED 20221 -> 20244): pass 1 came back as a pure TOP-DOWN view of the table top - no front face, no legs, 88% of the canvas opaque - so a reviewer read the wooden surface as a leftover floor patch under the desk, which is both a 3/4-view contract breach and the 'no ground patch' KEY breach. The FRONT_FACE clause states what the lower third of the object has to be."
+}

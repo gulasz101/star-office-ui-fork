@@ -1,0 +1,302 @@
+{
+  "pack": "mystery-v1",
+  "set": "mystery",
+  "issue": "SOU-200",
+  "title": "the mystery cabin (hermes-default)",
+  "generated_from": "assets/generated/v3/mystery",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/mystery/palette.json",
+  "palette_shared_with": "lodge (SOU-198), serverroom + factory (SOU-199)",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "room_plank_a",
+    "why": "set C is four rooms of the same lodge, not four new rooms: each room map already references the lodge tileset, so this set ships props only and reuses the lodge material tiles (all four of these rooms stand on room_plank_a) rather than shipping a second tileset."
+  },
+  "contact_sheets": [
+    "assets/generated/v3/mystery/contact_sheet.png",
+    "assets/generated/v3/mystery/contact_sheet_4x.png"
+  ],
+  "room_map": "frontend/v3/maps/rooms/mystery.json",
+  "prop_lift_for_placeholders_js": {
+    "curiosity_shelf": 64,
+    "eye_painting": 16,
+    "crystal_ball": 8,
+    "journal_stand": 16,
+    "strange_rug": 0,
+    "lantern_green": 16
+  },
+  "assets": [
+    {
+      "key": "curiosity_shelf",
+      "served_path": "assets/mystery/props/curiosity_shelf.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        96
+      ],
+      "ticket_size_class": "2x1",
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "full_bleed": false,
+      "flat": false,
+      "note": "2x1 shelf; the footprint is the 2x1 floor rect it stands on, the extra 64px is lift",
+      "texture_px_actual": [
+        64,
+        96
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "eye_painting",
+      "served_path": "assets/mystery/props/eye_painting.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        48
+      ],
+      "ticket_size_class": "wall64x48",
+      "texture_px_declared": [
+        64,
+        48
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "wall decal: 64x32 wall rect + 16px lift carries the 64x48 canvas up the wall",
+      "texture_px_actual": [
+        64,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "crystal_ball",
+      "served_path": "assets/mystery/props/crystal_ball.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        40
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        40
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "journal_stand",
+      "served_path": "assets/mystery/props/journal_stand.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "strange_rug",
+      "served_path": "assets/mystery/props/strange_rug.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        96,
+        64
+      ],
+      "ticket_size_class": "3x2",
+      "texture_px_declared": [
+        96,
+        64
+      ],
+      "footprint_px": [
+        96,
+        64
+      ],
+      "footprint_tiles": [
+        3.0,
+        2.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": true,
+      "note": "3x2 flat floor decal; the ticket calls it a cipher-wheel pattern with no letters",
+      "texture_px_actual": [
+        96,
+        64
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "lantern_green",
+      "served_path": "assets/mystery/props/lantern_green.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/mystery/props/curiosity_shelf.png",
+      "source": "assets/generated/v3/mystery/props/curiosity_shelf.png",
+      "sha256": "d0ac07f65834aee11bd03cb3aede7934d75f6e532da88e60c7e7c4486f44ffe2",
+      "bytes": 6962
+    },
+    {
+      "served_path": "assets/mystery/props/curiosity_shelf.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/curiosity_shelf.png.manifest.json",
+      "sha256": "d6b1a174824c036a9e22edafb06620373a249b4481c0faba0bf9f500c6ac9ef3",
+      "bytes": 5912
+    },
+    {
+      "served_path": "assets/mystery/props/eye_painting.png",
+      "source": "assets/generated/v3/mystery/props/eye_painting.png",
+      "sha256": "89e2c1e3c0372a0ad7bef55e1c32840f5026a50142540b5979933ff1ebbd9234",
+      "bytes": 3956
+    },
+    {
+      "served_path": "assets/mystery/props/eye_painting.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/eye_painting.png.manifest.json",
+      "sha256": "90afd32f79992fee0e758b8c885a0bb9d3f2d287bdad6b4faed20b2237281ed9",
+      "bytes": 6421
+    },
+    {
+      "served_path": "assets/mystery/props/crystal_ball.png",
+      "source": "assets/generated/v3/mystery/props/crystal_ball.png",
+      "sha256": "e6f322d64448bb1d041557ef69bef019896e57715d002b849594652c2be1302d",
+      "bytes": 1440
+    },
+    {
+      "served_path": "assets/mystery/props/crystal_ball.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/crystal_ball.png.manifest.json",
+      "sha256": "951461fb113e3d4b72d94f4b75dcf53b586cf497bead55c138a644df11425948",
+      "bytes": 5777
+    },
+    {
+      "served_path": "assets/mystery/props/journal_stand.png",
+      "source": "assets/generated/v3/mystery/props/journal_stand.png",
+      "sha256": "283015482503a8b1a0d00cbe85666520d746364a48a909c5d7ed93556fddc854",
+      "bytes": 1410
+    },
+    {
+      "served_path": "assets/mystery/props/journal_stand.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/journal_stand.png.manifest.json",
+      "sha256": "20fcfe67fe49687e305c9ab26ab2ea8f8f21f1fa4e167fd5198716b424cf8831",
+      "bytes": 5725
+    },
+    {
+      "served_path": "assets/mystery/props/strange_rug.png",
+      "source": "assets/generated/v3/mystery/props/strange_rug.png",
+      "sha256": "77a910bd5847149677bbc32a610fa8a71b54e540f2734be0bcd8fb263bbe6e22",
+      "bytes": 2744
+    },
+    {
+      "served_path": "assets/mystery/props/strange_rug.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/strange_rug.png.manifest.json",
+      "sha256": "97aee3c48a63b6fbbca84e71a805ea1dcd05babbfba220bf83829fdc3b01a7ef",
+      "bytes": 5816
+    },
+    {
+      "served_path": "assets/mystery/props/lantern_green.png",
+      "source": "assets/generated/v3/mystery/props/lantern_green.png",
+      "sha256": "e9648ac04f724dfb397e24d20ca493f3fe70cbe80b9ea6a6bdc409635d6debee",
+      "bytes": 1577
+    },
+    {
+      "served_path": "assets/mystery/props/lantern_green.png.manifest.json",
+      "source": "assets/generated/v3/mystery/props/lantern_green.png.manifest.json",
+      "sha256": "9a670bcf03c2f883b9e3e164fbe2ac23f54f0e8005a180d8962721c97be8eeb0",
+      "bytes": 5836
+    }
+  ],
+  "created_at": "2026-10-16T19:38:52.343090+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-200 asks for the exact size given within the ticket's size classes), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

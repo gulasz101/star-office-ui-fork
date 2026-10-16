@@ -1,0 +1,302 @@
+{
+  "pack": "career-v1",
+  "set": "career",
+  "issue": "SOU-200",
+  "title": "the career office (hermes-careerpa)",
+  "generated_from": "assets/generated/v3/career",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/career/palette.json",
+  "palette_shared_with": "lodge (SOU-198), serverroom + factory (SOU-199)",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "room_plank_a",
+    "why": "set C is four rooms of the same lodge, not four new rooms: each room map already references the lodge tileset, so this set ships props only and reuses the lodge material tiles (all four of these rooms stand on room_plank_a) rather than shipping a second tileset."
+  },
+  "contact_sheets": [
+    "assets/generated/v3/career/contact_sheet.png",
+    "assets/generated/v3/career/contact_sheet_4x.png"
+  ],
+  "room_map": "frontend/v3/maps/rooms/career.json",
+  "prop_lift_for_placeholders_js": {
+    "coat_stand": 16,
+    "whiteboard": 48,
+    "ring_light": 16,
+    "advisor_desk": 16,
+    "framed_certs": 0,
+    "ficus": 16
+  },
+  "assets": [
+    {
+      "key": "coat_stand",
+      "served_path": "assets/career/props/coat_stand.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "whiteboard",
+      "served_path": "assets/career/props/whiteboard.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        80
+      ],
+      "ticket_size_class": "2x1",
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 48,
+      "full_bleed": false,
+      "flat": false,
+      "note": "2x1 standing board: 64x32 floor rect + 48px lift",
+      "texture_px_actual": [
+        64,
+        80
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "ring_light",
+      "served_path": "assets/career/props/ring_light.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "post=light + two re-rolls (SEED 20214 -> 20227 -> 20237). Pass 1 drew the tripod legs as 3px hairlines inside a 260px-wide object, i.e. a QUARTER of a pixel once fitted into a 1x1 box, so NEAREST sampled them into a dotted 1px column and the island/despeckle chain removed what was left - the lamp floated (bottom row 21 of 48, measured). Pass 2 drew a DARK stand on a DARK non-magenta field, so the border-seeded flood fill leaked through the stand's outline and keyed the column away: the ring ended up in two pieces (checked with scripts/v3/_check_c_continuity.py before assembling). Pass 3 states the material (pale grey, never dark) and re-states the magenta field. Lesson: leg thickness has to be a FRACTION OF THE OBJECT, and an object whose colour matches a mis-painted background is a keying trap.",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "advisor_desk",
+      "served_path": "assets/career/props/advisor_desk.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        80
+      ],
+      "ticket_size_class": "2x2",
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        64
+      ],
+      "footprint_tiles": [
+        2.0,
+        2.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "re-rolled (SEED 20221 -> 20244): pass 1 came back as a pure TOP-DOWN view of the table top - no front face, no legs, 88% of the canvas opaque - so a reviewer read the wooden surface as a leftover floor patch under the desk, which is both a 3/4-view contract breach and the 'no ground patch' KEY breach. The FRONT_FACE clause states what the lower third of the object has to be.",
+      "texture_px_actual": [
+        64,
+        80
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "framed_certs",
+      "served_path": "assets/career/props/framed_certs.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        32
+      ],
+      "ticket_size_class": "wall64x32",
+      "texture_px_declared": [
+        64,
+        32
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "ficus",
+      "served_path": "assets/career/props/ficus.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "post=light: the pot's base and the loose leaves are 1-2px after the ~13x NEAREST downscale into a 1x1 box and the despeckle chain shaved the bottom two rows (measured bottom row 46 of 48 with post=full, 47 with post=light); the anchor AC is asserted by the gate either way",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/career/props/coat_stand.png",
+      "source": "assets/generated/v3/career/props/coat_stand.png",
+      "sha256": "9b10621835726f4bd4a186d559a0a41449de97ab505aa0231937ea15afd90b30",
+      "bytes": 1151
+    },
+    {
+      "served_path": "assets/career/props/coat_stand.png.manifest.json",
+      "source": "assets/generated/v3/career/props/coat_stand.png.manifest.json",
+      "sha256": "a0dd5f5dadd32ea375869ed239b93b49114892f6340b9a413a9f0f53774d2800",
+      "bytes": 5735
+    },
+    {
+      "served_path": "assets/career/props/whiteboard.png",
+      "source": "assets/generated/v3/career/props/whiteboard.png",
+      "sha256": "e8a13caab0eddee872c4e50bac7d11990e02c683c6e24367b81c28dca0ee2032",
+      "bytes": 1676
+    },
+    {
+      "served_path": "assets/career/props/whiteboard.png.manifest.json",
+      "source": "assets/generated/v3/career/props/whiteboard.png.manifest.json",
+      "sha256": "63732cd8202fe1035f7b9d76a65d77ae59fbf76f383cbcda5ea9efac380df602",
+      "bytes": 6402
+    },
+    {
+      "served_path": "assets/career/props/ring_light.png",
+      "source": "assets/generated/v3/career/props/ring_light.png",
+      "sha256": "6bb81f297c9d573311dc3bbeaceed19b36d1b287a5a2fd26b67c00bfbec3c8c5",
+      "bytes": 992
+    },
+    {
+      "served_path": "assets/career/props/ring_light.png.manifest.json",
+      "source": "assets/generated/v3/career/props/ring_light.png.manifest.json",
+      "sha256": "2ecd48f4304b2a7e3b1d6ceb1a27e9b596e6903ab5cb3a25bb83b0527c79c5e1",
+      "bytes": 7091
+    },
+    {
+      "served_path": "assets/career/props/advisor_desk.png",
+      "source": "assets/generated/v3/career/props/advisor_desk.png",
+      "sha256": "36d10071de7ca5c4edc9856f8494593de1ca3e6a9b31185eb348322d6f3c27e0",
+      "bytes": 2141
+    },
+    {
+      "served_path": "assets/career/props/advisor_desk.png.manifest.json",
+      "source": "assets/generated/v3/career/props/advisor_desk.png.manifest.json",
+      "sha256": "f936bf3fc6b00f44a1b0f9a1c76227bf355fb53758ebcda107ce5b46c9cb20bd",
+      "bytes": 6701
+    },
+    {
+      "served_path": "assets/career/props/framed_certs.png",
+      "source": "assets/generated/v3/career/props/framed_certs.png",
+      "sha256": "50ea089a451a5b94bd383be13506c77e3630792349c0727f4ab0de609e42b631",
+      "bytes": 724
+    },
+    {
+      "served_path": "assets/career/props/framed_certs.png.manifest.json",
+      "source": "assets/generated/v3/career/props/framed_certs.png.manifest.json",
+      "sha256": "defaf97fc0e3ede6c29bb104a6fbcb7e822ccbe05e9c1eabe2c550dbf189e6f1",
+      "bytes": 6273
+    },
+    {
+      "served_path": "assets/career/props/ficus.png",
+      "source": "assets/generated/v3/career/props/ficus.png",
+      "sha256": "61a05af5fc80277b4cb414c611e8895422e07adbb7ee79de3e1056f5e3dc6d6d",
+      "bytes": 1562
+    },
+    {
+      "served_path": "assets/career/props/ficus.png.manifest.json",
+      "source": "assets/generated/v3/career/props/ficus.png.manifest.json",
+      "sha256": "17671a2343848d97068241f2d55e823280541432f4e0f45639fddd62a8ecf038",
+      "bytes": 5943
+    }
+  ],
+  "created_at": "2026-10-16T19:38:52.472905+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-200 asks for the exact size given within the ticket's size classes), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

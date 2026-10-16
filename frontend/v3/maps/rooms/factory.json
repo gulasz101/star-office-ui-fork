@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 32,
+ "nextobjectid": 33,
  "properties": [
   {
    "name": "room",
@@ -639,10 +639,28 @@
    "objects": [
     {
      "id": 1,
-     "name": "desk",
+     "name": "control_desk",
      "type": "",
      "x": 64,
-     "y": 96,
+     "y": 128,
+     "width": 64,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 2,
+     "name": "assembler",
+     "type": "",
+     "x": 160,
+     "y": 64,
      "width": 64,
      "height": 64,
      "rotation": 0,
@@ -656,30 +674,12 @@
      ]
     },
     {
-     "id": 2,
-     "name": "chair",
-     "type": "",
-     "x": 64,
-     "y": 160,
-     "width": 32,
-     "height": 32,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": false
-      }
-     ]
-    },
-    {
      "id": 3,
-     "name": "rack",
+     "name": "assembler",
      "type": "",
-     "x": 160,
+     "x": 256,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -693,11 +693,11 @@
     },
     {
      "id": 4,
-     "name": "rack",
+     "name": "bookshelf",
      "type": "",
-     "x": 192,
+     "x": 352,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -711,12 +711,12 @@
     },
     {
      "id": 5,
-     "name": "rack",
+     "name": "inserter",
      "type": "",
-     "x": 288,
-     "y": 64,
+     "x": 128,
+     "y": 192,
      "width": 32,
-     "height": 64,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [
@@ -729,12 +729,12 @@
     },
     {
      "id": 6,
-     "name": "bookshelf",
+     "name": "inserter",
      "type": "",
-     "x": 352,
-     "y": 64,
-     "width": 64,
-     "height": 64,
+     "x": 320,
+     "y": 192,
+     "width": 32,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [
@@ -801,7 +801,7 @@
     },
     {
      "id": 10,
-     "name": "spool",
+     "name": "ore_pile",
      "type": "",
      "x": 416,
      "y": 160,
@@ -855,6 +855,24 @@
     },
     {
      "id": 13,
+     "name": "ore_pile",
+     "type": "",
+     "x": 288,
+     "y": 288,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 14,
      "name": "belt",
      "type": "",
      "x": 32,
@@ -872,7 +890,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 15,
      "name": "belt",
      "type": "",
      "x": 64,
@@ -890,7 +908,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 16,
      "name": "belt",
      "type": "",
      "x": 96,
@@ -908,7 +926,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 17,
      "name": "belt",
      "type": "",
      "x": 128,
@@ -926,7 +944,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 18,
      "name": "belt",
      "type": "",
      "x": 160,
@@ -944,7 +962,7 @@
      ]
     },
     {
-     "id": 18,
+     "id": 19,
      "name": "belt",
      "type": "",
      "x": 256,
@@ -962,7 +980,7 @@
      ]
     },
     {
-     "id": 19,
+     "id": 20,
      "name": "belt",
      "type": "",
      "x": 288,
@@ -980,7 +998,7 @@
      ]
     },
     {
-     "id": 20,
+     "id": 21,
      "name": "belt",
      "type": "",
      "x": 320,
@@ -998,7 +1016,7 @@
      ]
     },
     {
-     "id": 21,
+     "id": 22,
      "name": "belt",
      "type": "",
      "x": 352,
@@ -1016,7 +1034,7 @@
      ]
     },
     {
-     "id": 22,
+     "id": 23,
      "name": "belt",
      "type": "",
      "x": 384,
@@ -1034,7 +1052,7 @@
      ]
     },
     {
-     "id": 23,
+     "id": 24,
      "name": "belt",
      "type": "",
      "x": 416,
@@ -1052,7 +1070,7 @@
      ]
     },
     {
-     "id": 24,
+     "id": 25,
      "name": "belt",
      "type": "",
      "x": 448,
@@ -1082,7 +1100,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 25,
+     "id": 26,
      "name": "work",
      "type": "",
      "x": 80,
@@ -1101,7 +1119,7 @@
      ]
     },
     {
-     "id": 26,
+     "id": 27,
      "name": "ops",
      "type": "",
      "x": 176,
@@ -1120,7 +1138,7 @@
      ]
     },
     {
-     "id": 27,
+     "id": 28,
      "name": "read",
      "type": "",
      "x": 368,
@@ -1139,7 +1157,7 @@
      ]
     },
     {
-     "id": 28,
+     "id": 29,
      "name": "wait",
      "type": "",
      "x": 400,
@@ -1158,7 +1176,7 @@
      ]
     },
     {
-     "id": 29,
+     "id": 30,
      "name": "rest",
      "type": "",
      "x": 112,
@@ -1182,7 +1200,7 @@
      ]
     },
     {
-     "id": 30,
+     "id": 31,
      "name": "build",
      "type": "",
      "x": 400,
@@ -1201,7 +1219,7 @@
      ]
     },
     {
-     "id": 31,
+     "id": 32,
      "name": "entry",
      "type": "",
      "x": 208,

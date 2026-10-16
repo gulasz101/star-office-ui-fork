@@ -51,14 +51,20 @@ ROOMS = {
     # hermes-andrzej: the homelab manager's server room
     "serverroom": {
         "floor": "stone_floor",
-        "props": [("rack_v2", x, 2, 2, 2, True) for x in (1, 3, 10, 12)]
-        + [("rack", 5, 2, 1, 2, True), ("rack", 14, 2, 1, 2, True)]
-        + [("rack_v2", 2, 6, 2, 2, True), ("rack", 4, 6, 1, 2, True),
-           ("rack_v2", 10, 6, 2, 2, True), ("rack", 12, 6, 1, 2, True)]
-        + [("desk", 7, 3, 2, 2, True), ("chair", 7, 5, 1, 1, False),
-           ("coffee", 1, 9, 2, 1, True), ("couch", 11, 9, 3, 1, True),
-           ("crate", 14, 6, 1, 1, True), ("crate", 14, 7, 1, 1, True), ("spool", 13, 6, 1, 1, True)],
-        "zones": {"work": (7, 5, "up", None), "ops": (3, 8, "up", None), "read": (12, 4, "up", None),
+        "props": [
+            # back wall: racks, gear shelves, the patch cabinet and the UPS
+            ("rack_v2", 1, 2, 2, 2, True), ("gear_shelf_a", 3, 2, 2, 2, True), ("network_cabinet", 5, 2, 1, 2, True),
+            ("gear_shelf_b", 10, 2, 2, 2, True), ("rack_v2", 12, 2, 2, 2, True), ("ups_stack", 14, 2, 1, 2, True),
+            # the workbench is Andrzej's desk
+            ("workbench", 7, 3, 2, 2, True), ("stool", 7, 5, 1, 1, False),
+            # middle row with an aisle down the centre
+            ("rack_v2", 2, 6, 2, 2, True), ("rack", 4, 6, 1, 2, True),
+            ("gear_shelf_a", 10, 6, 2, 2, True), ("rack", 12, 6, 1, 2, True),
+            ("cable_coil", 5, 9, 1, 1, False), ("cable_coil", 9, 5, 1, 1, False),
+            ("coffee", 1, 9, 2, 1, True), ("couch", 11, 9, 3, 1, True),
+            ("crate", 14, 6, 1, 1, True), ("crate", 14, 7, 1, 1, True), ("spool", 13, 6, 1, 1, True),
+        ],
+        "zones": {"work": (7, 5, "up", None), "ops": (3, 8, "up", None), "read": (11, 4, "up", None),
                   "wait": (1, 10, "up", None), "rest": (12, 10, "down", "up"),
                   "build": (13, 7, "right", None), "entry": (6, 10, "down", None)},
     },
@@ -66,12 +72,13 @@ ROOMS = {
     "factory": {
         "floor": "metal_grate", "belt_row": 7,  # crossing at the door columns
         "props": [
-            ("desk", 2, 3, 2, 2, True), ("chair", 2, 5, 1, 1, False),
-            ("rack", 5, 2, 1, 2, True), ("rack", 6, 2, 1, 2, True), ("rack", 9, 2, 1, 2, True),
+            ("control_desk", 2, 4, 2, 1, True),
+            ("assembler", 5, 2, 2, 2, True), ("assembler", 8, 2, 2, 2, True),
             ("bookshelf", 11, 2, 2, 2, True),
+            ("inserter", 4, 6, 1, 1, True), ("inserter", 10, 6, 1, 1, True),
             ("crate", 13, 4, 1, 1, True), ("crate", 14, 4, 1, 1, True), ("crate", 14, 5, 1, 1, True),
-            ("spool", 13, 5, 1, 1, True),
-            ("coffee", 12, 9, 2, 1, True), ("couch", 2, 9, 3, 1, True),
+            ("ore_pile", 13, 5, 1, 1, True),
+            ("coffee", 12, 9, 2, 1, True), ("couch", 2, 9, 3, 1, True), ("ore_pile", 9, 9, 1, 1, True),
         ] + [("belt", x, 7, 1, 1, True) for x in range(1, 15) if x not in (6, 7)],
         "zones": {"work": (2, 5, "up", None), "ops": (5, 4, "up", None), "read": (11, 4, "up", None),
                   "wait": (12, 10, "up", None), "rest": (3, 10, "down", "up"),

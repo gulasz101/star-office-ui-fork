@@ -4,7 +4,7 @@ import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
 import { snowfall, CorridorCat } from './ambience.js';
 import { RoomCard } from './card.js';
-import { ROOM_TYPES, PROP_ART } from './rooms.js';
+import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
 export const ART_SET = 'office-01';
@@ -35,6 +35,9 @@ class OfficeScene extends Phaser.Scene {
       const base = `assets/${ART_SET}`;
       this.load.image(`tiles-${ART_SET}`, `${base}/tiles.png`);
       for (const [name, path] of Object.entries(PROP_ART)) this.load.image(`prop-${name}`, path);
+      for (const [name, [path, frameWidth, frameHeight]] of Object.entries(SHEET_PROPS)) {
+        this.load.spritesheet(`prop-${name}`, path, { frameWidth, frameHeight });
+      }
       this.load.spritesheet(`sheet-${ART_SET}`, `${base}/character/${ART_SET}.png`, { frameWidth: 32, frameHeight: 48 });
       // the Lodge set (SOU-198) is optional until it lands; lodge.js draws what's missing
       if (params.get('lodge') !== '0') {
@@ -48,6 +51,10 @@ class OfficeScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor(COLORS.background);
+    for (const [name, [, , , frames, frameRate]] of Object.entries(SHEET_PROPS)) {
+      if (!this.textures.exists(`prop-${name}`)) continue;
+      this.anims.create({ key: `prop-anim-${name}`, frames: this.anims.generateFrameNumbers(`prop-${name}`, { start: 0, end: frames - 1 }), frameRate, repeat: -1 });
+    }
     this.building = new Building(this);
     for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 

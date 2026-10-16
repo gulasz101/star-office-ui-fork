@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 25,
+ "nextobjectid": 27,
  "properties": [
   {
    "name": "room",
@@ -652,7 +652,7 @@
     },
     {
      "id": 2,
-     "name": "rack_v2",
+     "name": "gear_shelf_a",
      "type": "",
      "x": 96,
      "y": 64,
@@ -670,7 +670,25 @@
     },
     {
      "id": 3,
-     "name": "rack_v2",
+     "name": "network_cabinet",
+     "type": "",
+     "x": 160,
+     "y": 64,
+     "width": 32,
+     "height": 64,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "gear_shelf_b",
      "type": "",
      "x": 320,
      "y": 64,
@@ -687,7 +705,7 @@
      ]
     },
     {
-     "id": 4,
+     "id": 5,
      "name": "rack_v2",
      "type": "",
      "x": 384,
@@ -705,26 +723,8 @@
      ]
     },
     {
-     "id": 5,
-     "name": "rack",
-     "type": "",
-     "x": 160,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
      "id": 6,
-     "name": "rack",
+     "name": "ups_stack",
      "type": "",
      "x": 448,
      "y": 64,
@@ -742,6 +742,42 @@
     },
     {
      "id": 7,
+     "name": "workbench",
+     "type": "",
+     "x": 224,
+     "y": 96,
+     "width": 64,
+     "height": 64,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "name": "stool",
+     "type": "",
+     "x": 224,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 9,
      "name": "rack_v2",
      "type": "",
      "x": 64,
@@ -759,7 +795,7 @@
      ]
     },
     {
-     "id": 8,
+     "id": 10,
      "name": "rack",
      "type": "",
      "x": 128,
@@ -777,8 +813,8 @@
      ]
     },
     {
-     "id": 9,
-     "name": "rack_v2",
+     "id": 11,
+     "name": "gear_shelf_a",
      "type": "",
      "x": 320,
      "y": 192,
@@ -795,7 +831,7 @@
      ]
     },
     {
-     "id": 10,
+     "id": 12,
      "name": "rack",
      "type": "",
      "x": 384,
@@ -813,28 +849,28 @@
      ]
     },
     {
-     "id": 11,
-     "name": "desk",
+     "id": 13,
+     "name": "cable_coil",
      "type": "",
-     "x": 224,
-     "y": 96,
-     "width": 64,
-     "height": 64,
+     "x": 160,
+     "y": 288,
+     "width": 32,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [
       {
        "name": "collides",
        "type": "bool",
-       "value": true
+       "value": false
       }
      ]
     },
     {
-     "id": 12,
-     "name": "chair",
+     "id": 14,
+     "name": "cable_coil",
      "type": "",
-     "x": 224,
+     "x": 288,
      "y": 160,
      "width": 32,
      "height": 32,
@@ -849,7 +885,7 @@
      ]
     },
     {
-     "id": 13,
+     "id": 15,
      "name": "coffee",
      "type": "",
      "x": 32,
@@ -867,7 +903,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 16,
      "name": "couch",
      "type": "",
      "x": 352,
@@ -885,7 +921,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 17,
      "name": "crate",
      "type": "",
      "x": 448,
@@ -903,7 +939,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 18,
      "name": "crate",
      "type": "",
      "x": 448,
@@ -921,7 +957,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 19,
      "name": "spool",
      "type": "",
      "x": 416,
@@ -951,7 +987,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 18,
+     "id": 20,
      "name": "work",
      "type": "",
      "x": 240,
@@ -970,7 +1006,7 @@
      ]
     },
     {
-     "id": 19,
+     "id": 21,
      "name": "ops",
      "type": "",
      "x": 112,
@@ -989,10 +1025,10 @@
      ]
     },
     {
-     "id": 20,
+     "id": 22,
      "name": "read",
      "type": "",
-     "x": 400,
+     "x": 368,
      "y": 144,
      "width": 0,
      "height": 0,
@@ -1008,7 +1044,7 @@
      ]
     },
     {
-     "id": 21,
+     "id": 23,
      "name": "wait",
      "type": "",
      "x": 48,
@@ -1027,7 +1063,7 @@
      ]
     },
     {
-     "id": 22,
+     "id": 24,
      "name": "rest",
      "type": "",
      "x": 400,
@@ -1051,7 +1087,7 @@
      ]
     },
     {
-     "id": 23,
+     "id": 25,
      "name": "build",
      "type": "",
      "x": 432,
@@ -1070,7 +1106,7 @@
      ]
     },
     {
-     "id": 24,
+     "id": 26,
      "name": "entry",
      "type": "",
      "x": 208,

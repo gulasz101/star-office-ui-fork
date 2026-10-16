@@ -5,7 +5,7 @@
 import { TILE, COLORS, CHAR_W, CHAR_H } from './config.js';
 import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
 import { AgentCharacter } from './character.js';
-import { FLAT_PROPS, hoodieFor } from './rooms.js';
+import { FLAT_PROPS, SHEET_PROPS, hoodieFor } from './rooms.js';
 import { swapHoodie } from './palette.js';
 import { ROOM_W } from './world.js';
 import { lightRoom, roomShade } from './ambience.js';
@@ -95,7 +95,10 @@ export class OfficeModule {
       // anchor = bottom-centre of the footprint, so the art can be taller than its footprint
       const x = this.ox + o.x + o.width / 2;
       const y = this.oy + o.y + o.height;
-      const img = this.scene.add.image(x, y, key).setOrigin(0.5, 1);
+      const animated = SHEET_PROPS[o.name] && this.scene.anims.exists(`prop-anim-${o.name}`);
+      const img = animated
+        ? this.scene.add.sprite(x, y, key, 0).setOrigin(0.5, 1).play({ key: `prop-anim-${o.name}`, startFrame: Math.floor(Math.random() * SHEET_PROPS[o.name][3]) })
+        : this.scene.add.image(x, y, key).setOrigin(0.5, 1);
       img.setDepth(FLAT_PROPS.has(o.name) ? -500 : y);
       props.push({ name: o.name, image: img, x: o.x, y: o.y, w: o.width, h: o.height });
     }
@@ -121,18 +124,28 @@ export class OfficeModule {
         if (i < xs.length && xs[i] === xs[i - 1] + 1) continue;
         const end = xs[i - 1];
         const x = this.ox + start * TILE;
-        const y = this.oy + ty * TILE + 6;
         const w = (end - start + 1) * TILE;
-        const strip = this.scene.add.tileSprite(x, y, w, 20, 'ph-belt').setOrigin(0, 0).setDepth(-500);
+        // the generated belt (SOU-199) is a 4-frame tile; the drawn strip is the fallback
+        const art = this.scene.anims.exists('prop-anim-belt_h');
+        const y = this.oy + ty * TILE + (art ? 0 : 6);
+        let strip = null;
+        if (art) {
+          for (let tx = start; tx <= end; tx++) {
+            this.scene.add.sprite(this.ox + tx * TILE, y, 'prop-belt_h', 0).setOrigin(0, 0).setDepth(-500).play('prop-anim-belt_h');
+          }
+        } else {
+          strip = this.scene.add.tileSprite(x, y, w, 20, 'ph-belt').setOrigin(0, 0).setDepth(-500);
+        }
+        const itemKey = this.scene.textures.exists('prop-item_box') ? 'prop-item_box' : 'ph-item';
         const items = [];
         for (let k = 0; k < Math.max(1, Math.round(w / 64)); k++) {
-          const item = this.scene.add.image(x + 6, y + 4, 'ph-item').setOrigin(0.5, 0).setDepth(-499);
+          const item = this.scene.add.image(x + 8, y + (art ? 6 : 4), itemKey).setOrigin(0.5, 0).setDepth(-499);
           this.scene.tweens.add({
             targets: item, x: x + w - 6, duration: w * 28, repeat: -1, delay: (k * w * 28) / Math.round(w / 64 || 1),
           });
           items.push(item);
         }
-        this.belts.push({ strip, items });
+        if (strip) this.belts.push({ strip, items });
         if (i < xs.length) start = xs[i];
       }
     }

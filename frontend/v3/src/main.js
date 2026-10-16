@@ -4,6 +4,7 @@ import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
 import { snowfall, CorridorCat } from './ambience.js';
 import { RoomCard } from './card.js';
+import { Roster } from './roster.js';
 import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
@@ -63,6 +64,11 @@ class OfficeScene extends Phaser.Scene {
     this.card = new RoomCard();
     this.events.on('room-focus', (o) => (o ? this.card.show(o) : this.card.hide()));
     this.rig = new CameraRig(this, this.building);
+    this.roster = new Roster((o) => this.rig.focus(o));
+    const renderRoster = () => this.roster.render(this.building.offices.values(), this.rig.focused);
+    this.events.on('room-focus', renderRoster);
+    this.events.on('building-grew', renderRoster);
+    this.time.addEvent({ delay: 1000, loop: true, callback: renderRoster });
     this.snow = snowfall(this, this.building);
     this.events.on('building-grew', () => {
       this.snow.destroy();

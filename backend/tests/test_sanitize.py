@@ -18,6 +18,10 @@ Run from the repo root::
 
 from __future__ import annotations
 
+import datetime as dt
+import json
+import os
+import sqlite3
 import unittest
 
 import sanitize
@@ -286,6 +290,212 @@ class SanitizePayloadTest(unittest.TestCase):
     def test_non_dict_payload_produces_empty_projection(self) -> None:
         for junk in (None, "CANARY", 5, ["CANARY"]):
             self.assertEqual(sanitize.sanitize_payload("tool_call", junk), {})
+
+
+# ---------------------------------------------------------------------------
+# Slice S2 (SOU-229): the canary sweep through the real Flask test client.
+# ---------------------------------------------------------------------------
+import shutil
+import tempfile
+
+try:
+    import sqlalchemy as sa
+    import flask  # noqa: F401  (the app under test is a Flask module)
+    import alembic  # noqa: F401
+    import jsonschema  # noqa: F401
+except ImportError as exc:  # pragma: no cover - only hit without the extras
+    sa = None
+    _IMPORT_ERROR = str(exc)
+else:
+    _IMPORT_ERROR = None
+
+app_mod = None
+_ORIG_ENV: dict = {}
+
+
+def setUpModule() -> None:
+    """Same throwaway-database harness as tests/test_events_api.py."""
+    global app_mod
+    if sa is None:
+        return
+    _ORIG_ENV.update({k: os.environ.get(k) for k in ("DATABASE_URL", "ALEMBIC_SKIP_FILECONFIG")})
+    workdir = tempfile.mkdtemp(prefix="sou218-module-")
+    os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(workdir, 'module.db')}"
+    os.environ["ALEMBIC_SKIP_FILECONFIG"] = "1"
+    import app  # noqa: F401  (triggers the startup path the other suites test)
+
+    app_mod = app
+
+
+def tearDownModule() -> None:
+    for key, value in _ORIG_ENV.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
+CANARY = "CANARY"
+
+
+def sweep_events(now_iso: str) -> list:
+    """One envelope per event type, CANARY planted in every sensitive field.
+
+    The canary sits where secrets sit in the wild: path *directories* (the
+    basename is the allow-listed signal, the road to it is not), command
+    flags and values, ``session_id`` / ``url`` / free-text keys, keys whose
+    very *name* is the canary, nested dicts and lists under unknown keys.
+    Allow-listed identifier fields carry clean realistic values — they are
+    stored by design (ruling on the ticket: the sweep proves what is DROPPED
+    and TRANSFORMED, not that allow-listed labels are scrubbed of content,
+    which would contradict the ticket's own allow-list).
+    """
+    def env(event_type, payload):
+        return {"version": 1, "agent": "sweep", "event_type": event_type,
+                "timestamp": now_iso, "payload": payload}
+
+    return [
+        env("tool_call", {
+            "tool": "Bash", "status": "started", "session_id": f"{CANARY}-sess",
+            "detail": f"{CANARY} detail", "args": {"secret": CANARY},
+            f"{CANARY}_key": {"nested": [CANARY, {"deep": CANARY}]},
+        }),
+        env("file_edit", {
+            "tool": "Edit", "file": f"/home/dev/{CANARY}-project/app.py",
+            "status": "ok", "duration_ms": 250, "session_id": f"{CANARY}-sess",
+            "output": f"{CANARY} file contents", "note": CANARY,
+        }),
+        env("command_run", {
+            "tool": "Bash",
+            "command": f"git -c credential.helper='!echo {CANARY}' push https://{CANARY}.example/x",
+            "cwd": f"/srv/{CANARY}-host/api", "status": "ok", "exit_code": 0,
+            "duration_ms": 1234, "output": f"{CANARY} stdout", "error": f"{CANARY} stderr",
+        }),
+        env("state_change", {
+            "state": "thinking", "detail": f"{CANARY} prompt text",
+            "prompt": f"{CANARY} user said", "message": f"{CANARY} notification",
+            "progress": 42,
+        }),
+        env("session_start", {
+            "cwd": f"/x/{CANARY}-repo/backend", "source": "startup",
+            "session_id": f"{CANARY}-sess", "engine_version": "2.0", "pid": 1234,
+            "url": f"https://{CANARY}.example/boot",
+        }),
+        env("session_end", {
+            "reason": "logout", "session_id": f"{CANARY}-sess",
+            "detail": CANARY, "url": f"https://{CANARY}",
+        }),
+        env("code_completion", {
+            "session_id": f"{CANARY}-sess", "files_touched": [f"/a/{CANARY}.py"],
+            "edits": 12, "message": f"{CANARY} summary",
+        }),
+        env("itsaplan_issue_transition", {
+            "issue": f"{CANARY}-42", "title": f"{CANARY} title",
+            "kind": "board", "status": "ok", "session_id": f"{CANARY}-sess",
+            "detail": f"{CANARY} body",
+        }),
+        env("background_start", {
+            "task_id": "ses_01ABCdef", "kind": "shell", "label": f"sleep {CANARY}",
+            "session_id": f"{CANARY}-sess",
+        }),
+        env("background_end", {
+            "task_id": "ses_01ABCdef", "kind": "shell", "label": f"npm run {CANARY}-script",
+            "status": "ok", "exit_code": 0,
+            "error": f"{CANARY} tail",
+        }),
+        env("widget_frobnicated", {
+            f"{CANARY}_key": {"nested": CANARY}, "secret": CANARY,
+            "tool": "widget", "note": f"{CANARY} free text",
+        }),
+    ]
+
+
+class CanarySweepTest(unittest.TestCase):
+    """POST every event type through the real Flask client; nothing but the
+    projection may land. (SOU-218 AC 1: a DB dump then leaks nothing.)"""
+
+    def setUp(self) -> None:
+        if sa is None:
+            self.skipTest(f"runtime extras missing: {_IMPORT_ERROR}")
+        workdir = tempfile.mkdtemp(prefix="sou218-")
+        os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(workdir, 'app.db')}"
+        self.workdir = workdir
+        app_mod.db.shutdown()
+        app_mod.init_database()
+        self.client = app_mod.app.test_client()
+
+    def tearDown(self) -> None:
+        app_mod.db.shutdown()
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def post_all(self) -> None:
+        now = dt.datetime.now(dt.timezone.utc).isoformat()
+        for event in sweep_events(now):
+            resp = self.client.post("/events", json=event)
+            self.assertEqual(resp.status_code, 201,
+                             f"{event['event_type']}: {resp.get_json()}")
+
+    def sweep_rows(self) -> list:
+        with app_mod.db.session_scope() as session:
+            sweep_id = next(a.id for a in app_mod.db.list_agents(session) if a.name == "sweep")
+            return [r for r in app_mod.db.list_events(session, limit=200)
+                    if r.agent_id == sweep_id]
+
+    def test_sweep_posts_are_accepted_and_stored_as_projections(self) -> None:
+        self.post_all()
+        stored = {r.event_type: r.payload for r in self.sweep_rows()}
+        # the safe signal survives...
+        self.assertEqual(stored["command_run"], {
+            "tool": "Bash", "command": "git push", "cwd": "api",
+            "status": "ok", "exit_code": 0, "duration_ms": 1234,
+        })
+        self.assertEqual(stored["file_edit"], {
+            "tool": "Edit", "file": "app.py", "status": "ok", "duration_ms": 250,
+        })
+        self.assertEqual(stored["state_change"], {"state": "thinking"})
+        self.assertEqual(stored["background_end"], {
+            "task_id": "ses_01ABCdef", "kind": "shell", "label": "npm run",
+            "status": "ok", "exit_code": 0,
+        })
+        # ...and every sweep row is a dict we can audit
+        for event_type, payload in stored.items():
+            self.assertIsInstance(payload, dict, event_type)
+
+    def test_no_canary_in_stored_payloads(self) -> None:
+        self.post_all()
+        for row in self.sweep_rows():
+            blob = json.dumps(row.payload).lower()
+            self.assertNotIn(CANARY.lower(), blob,
+                             f"{CANARY} leaked into the {row.event_type} payload")
+
+    def test_no_canary_in_the_raw_database_dump(self) -> None:
+        """Even a straight dump of the SQLite files leaks nothing."""
+        self.post_all()
+        conn = sqlite3.connect(os.path.join(self.workdir, "app.db"))
+        try:
+            for table in ("events", "agents"):
+                for row in conn.execute(f"SELECT * FROM {table}"):
+                    blob = str(row).lower()
+                    self.assertNotIn(CANARY.lower(), blob,
+                                     f"{CANARY} leaked into the {table} table")
+        finally:
+            conn.close()
+
+    def test_no_canary_in_the_read_endpoints(self) -> None:
+        self.post_all()
+        for path in ("/events/recent?limit=200", "/events/agents"):
+            resp = self.client.get(path)
+            self.assertEqual(resp.status_code, 200, path)
+            text = resp.get_data(as_text=True).lower()
+            self.assertNotIn(CANARY.lower(), text, f"{CANARY} served by GET {path}")
+
+    def test_v1_state_paths_keep_their_own_round_trip(self) -> None:
+        """Ruling on the ticket: /set_state stores v1's own state dict
+        unsanitised (its /status read-back needs detail); POST /events does not."""
+        resp = self.client.post("/set_state", json={"state": "writing", "detail": "phase13 v1"})
+        self.assertEqual(resp.status_code, 200)
+        served = self.client.get("/status").get_json()
+        self.assertEqual(served["state"], "writing")
+        self.assertEqual(served["detail"], "phase13 v1")
 
 
 if __name__ == "__main__":

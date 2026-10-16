@@ -218,7 +218,12 @@ class EventsIngestTest(_AppTestCase):
         self.assertEqual(len(hermes), 1, f"one event row expected, got {hermes}")
         stored = hermes[0]
         self.assertEqual(stored["event_type"], "tool_call")
-        self.assertEqual(stored["payload"], event["payload"], "AC 3: full payload, unreshaped")
+        # SOU-218 replaced "AC 3: full payload, unreshaped" at this door:
+        # POST /events stores the safe projection. The fixture sends the
+        # shape an old buggy reporter would send (args/result free text);
+        # only the allow-listed tool label may land.
+        self.assertEqual(stored["payload"], {"tool": "read_file"},
+                         "AC (SOU-218): only the safe projection is stored")
         self.assertEqual(
             stored["created_at"],
             dt.datetime(2026, 10, 13, 14, 20, 55, 653000),
@@ -232,19 +237,23 @@ class EventsIngestTest(_AppTestCase):
         self.assertEqual(stored["agent_id"], row.id, "AC 3: agent -> agents.id")
 
     def test_payload_survives_the_json_round_trip_including_unicode(self) -> None:
-        payload = {"state": "writing", "detail": "Organizing documents", "progress": 0.5, "tags": ["a", "b"]}
+        # SOU-218: the round-trip is for the *projection* now — free-text
+        # fields never land, but a unicode basename must still come back intact.
+        # Accented (not CJK) letters: the repo-wide english-only gate stays green.
+        payload = {"tool": "Write", "file": "/home/dev/café-résumé.txt", "status": "ok"}
+        expected = {"tool": "Write", "file": "café-résumé.txt", "status": "ok"}
         self.assertEqual(
-            self.post_event(valid_event(event_type="state_change", payload=payload)).status_code,
+            self.post_event(valid_event(event_type="file_edit", payload=payload)).status_code,
             201,
         )
         with self._session() as session:
             row = app_mod.db.list_events(
                 session,
                 agent_id=next(a.id for a in self.agents() if a.name == "hermes"),
-                event_type="state_change",
+                event_type="file_edit",
                 limit=1,
             )[0]
-            self.assertEqual(row.payload, payload)
+            self.assertEqual(row.payload, expected)
             self.assertIsInstance(row.payload, dict, "the adapter parses the stored JSON back")
 
     def test_missing_required_field_is_400(self) -> None:
@@ -486,7 +495,10 @@ class SetStateBackwardCompatTest(_AppTestCase):
         self.assertEqual(status["state"], "executing")
 
     def test_set_state_and_post_events_write_the_same_row_shape(self) -> None:
-        """One write path: the two doors produce interchangeable events."""
+        """One write path, two projections (SOU-218): both doors land a
+        state_change row on the main agent row, but only /set_state keeps
+        v1's own dict — the reporter door stores the safe projection, so
+        free text posted there is never stored and never served."""
         self.client.post("/set_state", json={"state": "syncing", "detail": "via set_state"})
         self.assertEqual(
             self.post_event(
@@ -502,13 +514,15 @@ class SetStateBackwardCompatTest(_AppTestCase):
         main = self.main_agent()
         rows = self.raw_event_rows()
         from_set_state = next(r for r in rows if r["payload"].get("detail") == "via set_state")
-        from_events = next(r for r in rows if r["payload"].get("detail") == "via events")
+        from_events = next(r for r in rows if r["payload"] == {"state": "syncing"})
         for r in (from_set_state, from_events):
             self.assertEqual(r["agent_id"], main.id)
             self.assertEqual(r["event_type"], "state_change")
-        self.assertEqual(
-            self.client.get("/status").get_json()["detail"], "via events",
-            "both doors feed the same /status read",
+        status = self.client.get("/status").get_json()
+        self.assertEqual(status["state"], "syncing")
+        self.assertNotEqual(
+            status["detail"], "via events",
+            "SOU-218: the reporter door cannot put free text into /status",
         )
 
     def test_both_routes_converge_on_one_ingest_function(self) -> None:

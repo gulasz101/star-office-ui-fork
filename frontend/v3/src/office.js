@@ -1,10 +1,12 @@
-// OfficeModule: one agent's office. It owns its own Tilemap instance (a Tilemap layer can't be
-// created twice from one map), its props, zones and character slot, all placed at a world
-// origin so the Building can put many offices side by side (M2).
+// OfficeModule: one agent's room in the Lodge. It owns its own Tilemap instance (a Tilemap
+// layer can't be created twice from one map), its props, zones and character, placed at its
+// slot's origin. The character walks on the Building's world grid (corridor included), so
+// it can arrive from outside and leave again; zones stay this room's.
 import { TILE, COLORS } from './config.js';
 import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
 import { AgentCharacter } from './character.js';
-import { buildGrid, findPath } from './grid.js';
+import { FLAT_PROPS } from './rooms.js';
+import { ROOM_W } from './world.js';
 
 export class OfficeModule {
   /**
@@ -12,21 +14,26 @@ export class OfficeModule {
    * @param {object} opts
    * @param {string} opts.mapKey   tilemap cache key (Tiled JSON)
    * @param {string} opts.agentId  agent shown in this office
-   * @param {number} opts.originX  world origin in tiles
-   * @param {number} opts.originY  world origin in tiles
+   * @param {number} opts.slot     building slot (0 = middle, then +1, -1, ...)
+   * @param {object} opts.grid     buildGrid() of the map
+   * @param {Building} opts.building
+   * @param {boolean} opts.arrive  walk in from the bottom of the world instead of starting inside
    */
-  constructor(scene, { mapKey, agentId, originX = 0, originY = 0, color = 0x4f7cc9 }) {
+  constructor(scene, { mapKey, agentId, slot = 0, grid, roomType, building, arrive = true, color = 0x4f7cc9 }) {
     this.scene = scene;
     this.agentId = agentId;
-    this.originX = originX;
-    this.originY = originY;
+    this.slot = slot;
+    this.roomType = roomType;
+    this.originX = slot * ROOM_W;
+    this.originY = 0;
+    const originX = this.originX;
+    const originY = 0;
     this.ox = originX * TILE;
     this.oy = originY * TILE;
 
     this.map = scene.make.tilemap({ key: mapKey });
-    // tileset slots are fixed by the map; the generated set keeps the same order (SOU-158)
-    const tilesKey = scene.textures.exists('tiles-office-01') ? 'tiles-office-01' : 'tiles-placeholder';
-    const tileset = this.map.addTilesetImage('placeholder', tilesKey);
+    // rooms share the Lodge strip with the corridor (slot order fixed by the SOU-198 contract)
+    const tileset = this.map.addTilesetImage('lodge', 'lodge-strip');
     this.floor = this.map.createLayer('floor', tileset, this.ox, this.oy);
     this.walls = this.map.createLayer('walls', tileset, this.ox, this.oy);
     this.floor.setDepth(-1000);
@@ -38,11 +45,19 @@ export class OfficeModule {
     this.heightTiles = this.map.height;
 
     // walkability, props and zones come from the same pure module the tests use
-    this.grid = buildGrid(scene.cache.tilemap.get(mapKey).data);
+    this.grid = grid;
     this.zones = this.grid.zones;
     this.blocked = this.grid.blocked;
     this.props = this._createProps();
-    this.character = this._createCharacter(color);
+    // what the character walks on: world tiles, this room's zones shifted into the world
+    const world = building.world;
+    this.nav = {
+      scene,
+      zones: world.zonesOf(slot),
+      tileToWorld: (tx, ty) => ({ x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 }),
+      path: (from, to) => world.path(from, to),
+    };
+    this.character = this._createCharacter(color, arrive ? world.spawn : this.nav.zones.entry);
     this.label = this._createLabel();
     this.debug = null;
   }
@@ -59,33 +74,69 @@ export class OfficeModule {
   _createProps() {
     const layer = this.map.getObjectLayer('props');
     const props = [];
+    const belts = [];
     for (const o of layer ? layer.objects : []) {
-      const art = `prop-office-01-${o.name}`;
+      if (o.name === 'belt') {
+        belts.push(o);
+        continue;
+      }
+      const art = `prop-${o.name}`;
       const key = this.scene.textures.exists(art) ? art : ensurePropTexture(this.scene, o.name, o.width, o.height);
       // anchor = bottom-centre of the footprint, so the art can be taller than its footprint
       const x = this.ox + o.x + o.width / 2;
       const y = this.oy + o.y + o.height;
       const img = this.scene.add.image(x, y, key).setOrigin(0.5, 1);
-      const flat = o.name === 'rug';
-      img.setDepth(flat ? -500 : y);
-      props.push({ name: o.name, image: img });
+      img.setDepth(FLAT_PROPS.has(o.name) ? -500 : y);
+      props.push({ name: o.name, image: img, x: o.x, y: o.y, w: o.width, h: o.height });
     }
+    this._createBelts(belts);
     return props;
   }
 
-  // path between two tiles of this office, or null
-  path(from, to) {
-    return findPath(this.grid, from, to);
+  // Conveyor belts (factory): contiguous belt tiles on a row become one scrolling strip with
+  // crates riding along it.
+  _createBelts(belts) {
+    if (!belts.length) return;
+    const rows = new Map();
+    for (const o of belts) {
+      const ty = Math.floor(o.y / TILE);
+      if (!rows.has(ty)) rows.set(ty, []);
+      rows.get(ty).push(Math.floor(o.x / TILE));
+    }
+    this.belts = [];
+    for (const [ty, xs] of rows) {
+      xs.sort((a, b) => a - b);
+      let start = xs[0];
+      for (let i = 1; i <= xs.length; i++) {
+        if (i < xs.length && xs[i] === xs[i - 1] + 1) continue;
+        const end = xs[i - 1];
+        const x = this.ox + start * TILE;
+        const y = this.oy + ty * TILE + 6;
+        const w = (end - start + 1) * TILE;
+        const strip = this.scene.add.tileSprite(x, y, w, 20, 'ph-belt').setOrigin(0, 0).setDepth(-500);
+        const items = [];
+        for (let k = 0; k < Math.max(1, Math.round(w / 64)); k++) {
+          const item = this.scene.add.image(x + 6, y + 4, 'ph-item').setOrigin(0.5, 0).setDepth(-499);
+          this.scene.tweens.add({
+            targets: item, x: x + w - 6, duration: w * 28, repeat: -1, delay: (k * w * 28) / Math.round(w / 64 || 1),
+          });
+          items.push(item);
+        }
+        this.belts.push({ strip, items });
+        if (i < xs.length) start = xs[i];
+      }
+    }
+    this.scene.events.on('update', (_t, dt) => {
+      for (const b of this.belts) b.strip.tilePositionX -= dt * 0.036;
+    });
   }
 
-  _createCharacter(color) {
+  _createCharacter(color, start) {
     // one generated character for M1; per-agent characters come with M2 (SOU-161)
     const sheetKey = this.scene.textures.exists('sheet-office-01')
       ? 'sheet-office-01'
       : ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
-    return new AgentCharacter(this, {
-      agentId: this.agentId, sheetKey, start: this.zones.entry || { tx: 1, ty: 1 },
-    });
+    return new AgentCharacter(this.nav, { agentId: this.agentId, sheetKey, start });
   }
 
   _createLabel() {

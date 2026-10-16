@@ -1,9 +1,10 @@
 import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
+import { ROOM_TYPES, PROP_ART } from './rooms.js';
+import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
 export const ART_SET = 'office-01';
-const PROP_NAMES = ['desk', 'chair', 'rack', 'bookshelf', 'coffee', 'rug', 'couch', 'bass', 'amp', 'cat', 'van', 'spool', 'crate'];
 
 // Default: live. Offices appear as agents show up in GET /events/recent.
 // ?agents=a,b pins offices instead (no feed); ?demo=1 cycles zones on the pinned offices.
@@ -23,23 +24,28 @@ class OfficeScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.tilemapTiledJSON('office-01', 'maps/office-01.json');
+    for (const t of ROOM_TYPES) this.load.tilemapTiledJSON(`room-${t}`, `maps/rooms/${t}.json`);
     this.load.image('tiles-placeholder', 'assets/placeholder/tiles.png');
     // Generated art (SOU-158 contract). Any file that's missing falls back to its placeholder,
     // so a partial art drop renders fine. ?art=0 forces placeholders for comparison.
     if (params.get('art') !== '0') {
       const base = `assets/${ART_SET}`;
       this.load.image(`tiles-${ART_SET}`, `${base}/tiles.png`);
-      for (const p of PROP_NAMES) this.load.image(`prop-${ART_SET}-${p}`, `${base}/props/${p}.png`);
+      for (const [name, path] of Object.entries(PROP_ART)) this.load.image(`prop-${name}`, path);
       this.load.spritesheet(`sheet-${ART_SET}`, `${base}/character/${ART_SET}.png`, { frameWidth: 32, frameHeight: 48 });
+      // the Lodge set (SOU-198) is optional until it lands; lodge.js draws what's missing
+      if (params.get('lodge') !== '0') {
+        this.load.image('lodge-tiles', 'assets/lodge/tiles.png');
+        for (const name of Object.keys(LODGE_PROPS)) this.load.image(lodgePropKey(name), `assets/lodge/props/${name}.png`);
+      }
       this.load.on('loaderror', (file) => console.info(`[v3] art fallback: ${file.key} not found`));
     }
   }
 
   create() {
     this.cameras.main.setBackgroundColor(COLORS.background);
-    this.building = new Building(this, 'office-01');
-    for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id);
+    this.building = new Building(this);
+    for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 
     this.fitCamera();
     this.scale.on('resize', () => this.fitCamera());

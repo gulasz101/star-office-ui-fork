@@ -43,9 +43,19 @@ ENTRYPOINT = os.path.join(REPO_ROOT, "entrypoint.sh")
 BACKEND_DIR = os.path.join(REPO_ROOT, "backend")
 TOOLING_SITE = os.path.join(REPO_ROOT, ".tooling", "site")
 
-# The revision migration 001 stamps. If a new migration lands, this pin and
-# backend/migrations/versions move together — that is the point of the check.
-HEAD_REVISION = "001_initial_schema"
+# The revision head stamps. It is derived from backend/migrations/versions so
+# the container checks always run against the real head; when a new migration
+# lands, this follows it. ``test_single_head_is_current`` keeps the script
+# directory honest about being single-headed.
+def _head_revision() -> str:
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    config = Config(os.path.join(REPO_ROOT, "backend", "alembic.ini"))
+    return ScriptDirectory.from_config(config).get_current_head()
+
+
+HEAD_REVISION = _head_revision()
 TABLES = {"agents", "events", "sessions", "alembic_version"}
 
 # The stub server writes this; the tests read it back. setUp prefixes it with a

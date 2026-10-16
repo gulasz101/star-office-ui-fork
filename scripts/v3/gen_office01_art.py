@@ -42,6 +42,7 @@ import argparse
 import json
 import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -103,6 +104,28 @@ PALETTE_HEX = [hexv for _name, hexv in PALETTE]
 PALETTE_RGB = [tuple(int(hexv[i : i + 2], 16) for i in (1, 3, 5)) for _n, hexv in PALETTE]
 
 # --------------------------------------------------------------------------------------
+# The character's signature orange (SOU-187), declared as an EXTENSION of the shared palette
+# rather than added to it.
+#
+# Measured reason, and a correction of a wrong first attempt: these three entries WERE added to
+# PALETTE at first, on the strength of a probe that re-mapped the props' *quantised* colours and
+# found 0 changed pixels. That probe tested the wrong input. `assemble` re-quantises every prop
+# from its RAW generation, so a new nearest colour reaches into pixels that are not palette
+# colours yet, and the next assemble moved art the owner had already accepted: the couch lost
+# 967 px (474x #ffea99 and 449x #e0a35c became #ffc46a), the bookshelf 148 px, the cat 49 px,
+# the bass 2 px. The shared palette is therefore FROZEN at 32 colours and the character gets a
+# 3-colour extension that only the sheet is quantised through - so the props and tiles come out
+# byte-identical and the reviewer can see that in the diff.
+CHARACTER_EXTRA = [
+    ("hoodie_light", "#ffc46a"),  # the hoodie's lit side
+    ("hoodie", "#f0872b"),        # THE SIGNATURE ORANGE
+    ("hoodie_dark", "#b35d16"),   # the hoodie's shaded side
+]
+CHARACTER_PALETTE_HEX = PALETTE_HEX + [hexv for _n, hexv in CHARACTER_EXTRA]
+CHARACTER_PALETTE_RGB = PALETTE_RGB + [tuple(int(h[i : i + 2], 16) for i in (1, 3, 5))
+                                       for _n, h in CHARACTER_EXTRA]
+
+# --------------------------------------------------------------------------------------
 # Projection vocabulary. "top-down 3/4" stated as geometry, because a style word alone is
 # not a specification: the v2 pipeline measured the model returning a front-facing desk
 # when asked for "isometric" without numbers. Here the ruling is a 45-degree camera with
@@ -138,19 +161,42 @@ KEY = (
 # sheet read as a crowd, not one agent. Naming the colours numerically is what makes the model
 # hold the outfit; the character palette below then forces every row onto the same ramp anyway,
 # so the worst case is a colour the model invented being mapped onto the declared one.
+#
+# SOU-187 changed the wardrobe: the first pass dressed the agent in a dark blue hoodie
+# (#44618a), which is the same value family as the chair (#3a3f52/#50566e) and the floor is a
+# mid warm brown - the owner's review read it on the live floor as "a dark blob", worst seated
+# at the desk. The outfit is now the ORANGE hoodie the owner signed off in the 15:27 sheet,
+# which is the highest-contrast garment value available in the declared palette.
+# The proportions are stated as numbers for the same reason the colours are: "anime style"
+# alone returned realistic 5-head figures (measured), and the ticket asks for a chibi whose
+# head is ~40% of the 48px frame.
 OUTFIT = (
-    "The character is exactly the same in every image: a small anime-style engineer with short "
-    "black hair, wearing one dark blue hooded jumper (colour #44618a) zipped up, dark slate grey "
-    "trousers (colour #3a4152), brown boots (colour #6e4a2c) and pale skin (colour #e2d3b4). "
-    "Plain clothing: no logo, no pattern, no text, no badge, no emblem. "
+    "The character is exactly the same in every image: a small CHIBI anime-style engineer with "
+    "short black hair (colour #14161f), a big round head, huge expressive anime eyes with a "
+    "bright highlight, wearing a BRIGHT ORANGE hooded jumper (main colour #f0872b, shadow "
+    "#b35d16, highlight #ffc46a) with the hood down behind the neck and a small zipped front, "
+    "blue denim jeans (colour #44618a with #505a70 shadow) and pale cream trainers (colour "
+    "#f4ead2 with #c3cad9 soles), pale skin (colour #e2d3b4). "
+    "CHIBI proportions, NOT realistic: the head together with the hair is about 40% of the "
+    "figure's total height in EVERY pose - the figure is only about two and a half heads tall in "
+    "total - with a small short body, short arms and short legs, like a cute Pokemon or Stardew "
+    "Valley trainer sprite. The head is the LARGEST single shape in the figure, wider than the "
+    "shoulders. Do not draw a tall realistic adult. "
+    "Plain clothing: no logo, no pattern, no text, no badge, no emblem, no brand mark. "
 )
 CHARACTER_VIEWS = {
-    "down": "standing upright, facing the camera (front view), arms at the sides, eyes visible",
-    "up": "standing upright, seen from directly behind: the back of the hood and hair, no face, "
-          "arms at the sides, the same hooded jumper and trousers visible from behind",
-    "right": "standing upright in side profile facing right, arms at the sides, "
-             "same hooded jumper with the hood down",
-    "sleep": "curled up asleep lying down on its side, eyes closed, knees pulled up",
+    "down": "standing upright, facing the camera (front view), both eyes visible, arms at the "
+            "sides, the orange jumper and the face clearly visible",
+    "up": "standing upright, seen from directly behind: the HOOD IS DOWN and lies flat on the "
+          "back of the shoulders, so the back of the head is BLACK HAIR and is clearly visible "
+          "above the orange jumper. Do NOT pull the hood up over the head and do NOT cover the "
+          "head with orange. No face. Arms at the sides, the same orange jumper and jeans "
+          "visible from behind",
+    "right": "standing upright in side profile facing right, arms at the sides, the same orange "
+             "jumper with the hood down and the same jeans visible in profile",
+    "sleep": "sitting upright asleep with the eyes closed and the head tilted down, legs "
+             "stretched out in front, arms resting in the lap - a seated doze, not a standing "
+             "pose and not lying down",
 }
 
 
@@ -265,8 +311,8 @@ CATALOGUE = [
         "id": "char_down",
         "kind": "char",
         "view": "down",
-        "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
-                   "jumper and trousers",
+        "subject": "a full body game character sprite of a small chibi anime-style engineer in a "
+                   "bright orange hooded jumper and blue jeans",
         "texture_px": [32, 48],
         "note": "base for sheet row 'down'",
     },
@@ -274,8 +320,8 @@ CATALOGUE = [
         "id": "char_up",
         "kind": "char",
         "view": "up",
-        "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
-                   "jumper and trousers",
+        "subject": "a full body game character sprite of a small chibi anime-style engineer in a "
+                   "bright orange hooded jumper and blue jeans",
         "texture_px": [32, 48],
         "reference": "char_down",
         "note": "base for sheet row 'up' - generated as a REFERENCE EDIT of char_down, so the "
@@ -285,8 +331,8 @@ CATALOGUE = [
         "id": "char_right",
         "kind": "char",
         "view": "right",
-        "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
-                   "jumper and trousers",
+        "subject": "a full body game character sprite of a small chibi anime-style engineer in a "
+                   "bright orange hooded jumper and blue jeans",
         "texture_px": [32, 48],
         "reference": "char_down",
         "note": "base for sheet row 'right'; row 'left' is its mirror. Reference edit of char_down "
@@ -296,8 +342,8 @@ CATALOGUE = [
         "id": "char_sleep",
         "kind": "char",
         "view": "sleep",
-        "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
-                   "jumper and trousers",
+        "subject": "a full body game character sprite of a small chibi anime-style engineer in a "
+                   "bright orange hooded jumper and blue jeans",
         "texture_px": [32, 48],
         "reference": "char_down",
         "note": "base for sheet column 7 (sleep) in every row; reference edit of char_down so the "
@@ -310,18 +356,23 @@ CATALOGUE = [
 # outfit changes colour when it turns is the most visible "different game" defect there is.
 # Quantising the sheet through this ramp makes the sheet consistent BY CONSTRUCTION; it stays a
 # subset of PALETTE, so AC3 (every asset on the declared palette) still holds.
+#
+# Re-keyed on SOU-187 to the orange-hoodie look. The orange is deliberately the largest-value
+# garment in the ramp: the previous set's dominant garment colour was the #3a4152 trousers
+# (measured 31-61% per facing), i.e. the character's biggest area was its darkest one, which is
+# exactly why it read as a blob on the live floor.
 CHARACTER_RAMP = [
-    "#14161f",  # outline
-    "#2a2f3e",  # hair / deep shadow
-    "#3a4152",  # trousers
-    "#505a70",  # jumper shadow
-    "#44618a",  # the hooded jumper
-    "#88c0d0",  # jumper highlight
-    "#6e4a2c",  # boots
-    "#b07a48",  # boots highlight
+    "#14161f",  # outline / hair / pupils
+    "#2a2f3e",  # hair highlight, deepest garment shadow
+    "#b35d16",  # hoodie shadow
+    "#f0872b",  # THE ORANGE HOODIE (signature colour)
+    "#ffc46a",  # hoodie highlight
+    "#505a70",  # jeans shadow
+    "#44618a",  # denim jeans
+    "#c3cad9",  # trainer sole
+    "#f4ead2",  # trainer upper / eye white / skin highlight
     "#e2d3b4",  # skin
-    "#f4ead2",  # skin highlight
-    "#c1a46b",  # hairband / accent
+    "#ffea99",  # eye sparkle / jumper drawstring
 ]
 CHARACTER_RGB = [tuple(int(h[i : i + 2], 16) for i in (1, 3, 5)) for h in CHARACTER_RAMP]
 BY_ID = {a["id"]: a for a in CATALOGUE}
@@ -363,12 +414,20 @@ def compose_prompt(asset):
         # A character is not an object on a 45-degree camera: it is a standing figure in a
         # slightly elevated game camera. Asking for the object VIEW here produced, among other
         # things, a figure with a perspective floor hint and a side profile that read flat.
+        standing = asset["view"] != "sleep"
         head = (
             f"pixel art game character sprite: {asset['subject']}. {OUTFIT}"
             f"Pose: {CHARACTER_VIEWS[asset['view']]}. Full body visible from head to feet, centred "
             "in the frame, nothing else in the frame. Drawn in the slightly elevated camera of a "
-            "top-down game: the character stands upright and reads as a complete standing figure. "
-            "Do NOT draw the floor, a base, a platform or a contact shadow under the feet. "
+            "top-down game: "
+            + ("the character stands upright and reads as a complete standing figure. "
+               if standing else
+               "the character reads as a complete seated figure, entirely inside the frame. ")
+            + "The figure fills the frame: its content touches the top edge and the bottom edge "
+              "of the image with no empty margin above or below, so it fills a tall narrow "
+              "rectangle completely. "
+            "Do NOT draw the floor, a base, a platform, a chair or a contact shadow under the "
+            "body. "
         )
         if asset.get("reference"):
             # Reference edit (klein is a unified generate+edit model). The init image is OUR OWN
@@ -376,12 +435,14 @@ def compose_prompt(asset):
             # no-img2img rule protects - so identity is carried over instead of re-invented.
             head += (
                 "This is an EDIT of the reference image: keep EXACTLY the same character - the same "
-                "person, same short black hair (colour #14161f), same pale skin (#e2d3b4), same dark "
-                "blue hooded jumper (#44618a) with the same hood, same dark slate grey trousers "
-                "(#3a4152), same brown boots (#6e4a2c), same proportions and same 1px dark outline. "
+                "person, same short black hair (colour #14161f), same pale skin (#e2d3b4), same "
+                "BRIGHT ORANGE hooded jumper (#f0872b, shadow #b35d16, highlight #ffc46a) with the "
+                "hood down, same blue denim jeans (#44618a), same pale cream trainers (#f4ead2), "
+                "same CHIBI proportions (head about 40% of the total height), same huge anime eyes "
+                "and same 1px dark outline. "
                 "Change ONLY the camera angle to the pose above: do not restyle the character, do "
-                "not change its colours, do not add or remove clothing, do not redraw the face as a "
-                "different person. "
+                "not change its colours, do not turn the orange jumper into any other colour, do "
+                "not add or remove clothing, do not redraw the face as a different person. "
             )
         tail = (
             f"Palette limited to exactly these colours: {', '.join(CHARACTER_RAMP)}. "
@@ -430,10 +491,10 @@ def cmd_generate(args):
             pipe, torch_mod = frg.load_pipe()  # LoRA off: it blacks out (ADR-060 field result)
         tw, th = asset["texture_px"]
         gw, gh = _gen_size(tw, th)
-        seed = 15800 + index * 7
+        seed = 15800 + index * 7 + args.seed_shift
         prompt = compose_prompt(asset)
         ref = None
-        if asset.get("reference"):
+        if asset.get("reference") and not args.no_reference:
             ref_path = OUT / f"{asset['reference']}.keyed.png"
             if not ref_path.exists():
                 sys.exit(f"{asset['id']} wants a reference edit of {asset['reference']} but "
@@ -442,9 +503,18 @@ def cmd_generate(args):
             print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed} REFERENCE EDIT of "
                   f"{ref_path.name} ({ref.size[0]}x{ref.size[1]})", flush=True)
         else:
-            print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed}", flush=True)
+            print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed}"
+                  + (" (reference dropped by --no-reference)" if asset.get("reference") else ""),
+                  flush=True)
         image = _generate(frg, pipe, torch_mod, prompt, gw, gh, seed=seed, reference=ref)
         image.save(raw)
+        # The seed and the actual generation MODE are written next to the raw and read back by
+        # `assemble`, so a re-roll (--seed-shift / --no-reference) cannot leave a manifest that
+        # claims a seed or a reference edit that was not used.
+        (OUT / f"{asset['id']}.seed.txt").write_text(f"{seed}\n")
+        (OUT / f"{asset['id']}.mode.txt").write_text(
+            ("reference edit of " + asset["reference"] + ".keyed.png") if ref is not None
+            else "text-only generation")
         (OUT / f"{asset['id']}.prompt.txt").write_text(prompt + "\n")
     print("GENERATE_DONE")
 
@@ -544,6 +614,198 @@ def key_magenta(img, tolerance=48):
     return img, key
 
 
+def connected_components(img):
+    """4-connected opaque regions of an image, largest first."""
+    from collections import deque
+
+    img = img.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    seen = [[0] * w for _ in range(h)]
+    comps = []
+    for sy in range(h):
+        for sx in range(w):
+            if seen[sy][sx] or not px[sx, sy][3]:
+                continue
+            queue, cells = deque([(sx, sy)]), []
+            seen[sy][sx] = 1
+            while queue:
+                x, y = queue.popleft()
+                cells.append((x, y))
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] and px[nx, ny][3]:
+                        seen[ny][nx] = 1
+                        queue.append((nx, ny))
+            comps.append(cells)
+    comps.sort(key=len, reverse=True)
+    return comps
+
+
+def substantial_bbox(img, min_share=0.2):
+    """The bbox of the character, i.e. of components too BIG to be keying speckle.
+
+    This is the fix for a real defect measured on the SOU-187 reference edits (2026-10-16): the
+    fit scales the content bbox, and `content_bbox()` takes EVERY opaque pixel into account. A
+    keyed reference-edit generation scatters a few hundred speckle fragments over the canvas
+    (char_up: 325 components), including some far above the figure, so the bbox stretched from
+    y=33 to y=611 while the character itself only spanned y=261..608 - the sprite was scaled to
+    60% of the frame and its head came out tiny.
+
+    A component at least `min_share` of the largest is treated as part of the character (the
+    reference edits really do arrive split: char_up's body and its legs are two components, 36.9k
+    and 15.2k px). Everything smaller is speckle and is called out in the manifest. Returns
+    (bbox, dropped_px, components_kept).
+    """
+    comps = connected_components(img)
+    if not comps:
+        return None, 0, 0
+    largest = len(comps[0])
+    keep = [c for c in comps if len(c) >= min_share * largest]
+    drop = [c for c in comps if len(c) < min_share * largest]
+    xs = [p[0] for c in keep for p in c]
+    ys = [p[1] for c in keep for p in c]
+    return (min(xs), min(ys), max(xs) + 1, max(ys) + 1), sum(len(c) for c in drop), len(keep)
+
+
+def drop_stray_islands(img, min_share=0.2):
+    """Drop disconnected fragments too SMALL to be a body part; keep everything substantial.
+
+    Run on the FINAL 32x48 frame. Measured reason, and a correction of a wrong first attempt:
+    applied to the 432x640 keyed image this split real body parts off (`char_right` lost a
+    15231px component, the frame came out 32x26 - a mutilated sprite), because at that
+    resolution the reference-edit output is full of keying speckle and the character itself is
+    not reliably one 4-connected blob. At display scale (32x48) the silhouette IS one blob and a
+    fragment is unambiguous: the profile base carried a ~12px blob above the head, against a
+    ~110px body. (Before the fit, use `substantial_bbox` instead - it is the same rule at the
+    resolution where it belongs.)
+
+    So: the largest component always stays; a component at least `min_share` of it is also KEPT
+    and reported as a disconnected part, because that is big enough to be a leg or an arm and
+    silently deleting it would damage the sprite. Returns (image, dropped_px_list, kept_parts).
+    """
+    comps = connected_components(img)
+    if len(comps) < 2:
+        return img.convert("RGBA").copy(), [], []
+    out = img.convert("RGBA").copy()
+    px = out.load()
+    largest = len(comps[0])
+    dropped, kept_parts = [], []
+    for cells in comps[1:]:
+        if len(cells) >= min_share * largest:
+            kept_parts.append(len(cells))
+            continue
+        dropped.append(len(cells))
+        for x, y in cells:
+            px[x, y] = (0, 0, 0, 0)
+    return out, dropped, kept_parts
+
+
+def despeckle_outline(img, outline="#14161f"):
+    """Delete ISOLATED near-black pixels that sit inside a flat garment area.
+
+    The 4-step klein output scatters single dark pixels across large flat regions; after
+    quantisation they land on the outline colour and read as dirt / holes / moth damage at 8x.
+    Measured on the first SOU-187 front frame: 7 isolated outline pixels inside the orange
+    jumper and the jeans.
+
+    A pixel is removed only if ALL FOUR neighbours are opaque and none of them carries the
+    outline colour. That is deliberately conservative: the silhouette outline always has a
+    transparent neighbour, and interior features (pupils, the jumper's zip line, any 2px mark)
+    have a same-coloured neighbour, so both survive by construction. It is a pure colour change -
+    no alpha is touched - so the derived-frame hole invariant is unaffected. The count removed
+    goes into the manifest, so "cleaned" is a number and not a claim.
+    """
+    img = img.convert("RGBA").copy()
+    px = img.load()
+    w, h = img.size
+    target = tuple(int(outline[i : i + 2], 16) for i in (1, 3, 5))
+    removed = 0
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if not a or (r, g, b) != target:
+                continue
+            neighbours = [(nx, ny) for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))
+                          if 0 <= nx < w and 0 <= ny < h]
+            if len(neighbours) != 4:
+                continue
+            values = [px[nx, ny] for nx, ny in neighbours]
+            if all(v[3] > 0 and (v[0], v[1], v[2]) != target for v in values):
+                counts = Counter((v[0], v[1], v[2]) for v in values)
+                fill = min(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+                px[x, y] = (fill[0], fill[1], fill[2], 255)
+                removed += 1
+    return img, removed
+
+
+def fill_interior_holes(img, palette=None):
+    """Fill every transparent pixel that is NOT reachable from the frame border.
+
+    An enclosed transparent pixel is never legitimate in a 32x48 character frame: the renderer
+    draws the sprite over the office floor, so a hole inside a leg or the torso is literally the
+    floor showing through the body - the same visible defect class as the vacated bands the
+    underlay fix removes, just smaller. Two survive that fix (measured 2026-10-16 on the SOU-187
+    redo): one 1px hole in the `char_sleep` base (a low-alpha pixel that the binary alpha
+    threshold in `quantise` drops) which the sheet then repeats in all four rows, and one 1px
+    hole that the `up` row's typing shift seals by closing a 1px transparent channel.
+
+    Each hole pixel takes the most common colour among its opaque 8-neighbours, ties broken by
+    RGB so two runs agree; a pixel whose whole neighbourhood is transparent (an isolated 1px
+    hole) takes the nearest opaque pixel found by expanding rings. Reachability is 4-connected,
+    matching the gate, so a diagonal channel - which reads as a gap at 1:1 - is not mistaken
+    for an opening. Returns the repaired copy and the number of pixels filled, so "hole-free"
+    is a number in the manifest and not a claim.
+    """
+    img = img.convert("RGBA").copy()
+    px = img.load()
+    w, h = img.size
+    solid = {(x, y) for y in range(h) for x in range(w) if px[x, y][3] > 0}
+    # flood the outside from the border over 4-connected transparent pixels
+    outside = set()
+    stack = [(x, y) for x in range(w) for y in (0, h - 1) if px[x, y][3] == 0]
+    stack += [(x, y) for y in range(h) for x in (0, w - 1) if px[x, y][3] == 0]
+    outside.update(stack)
+    while stack:
+        x, y = stack.pop()
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 0 and (nx, ny) not in outside:
+                outside.add((nx, ny))
+                stack.append((nx, ny))
+    holes = [(x, y) for y in range(h) for x in range(w)
+             if px[x, y][3] == 0 and (x, y) not in outside]
+    filled = 0
+    neighbours8 = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    for x, y in holes:
+        counts = Counter()
+        for dx, dy in neighbours8:
+            nx, ny = x + dx, y + dy
+            if (nx, ny) in solid and 0 <= nx < w and 0 <= ny < h:
+                r, g, b, _ = px[nx, ny]
+                counts[(r, g, b)] += 1
+        if counts:
+            fill = min(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+        else:
+            # isolated hole: nearest opaque pixel by expanding ring, deterministic scan order
+            fill = None
+            for radius in range(1, max(w, h)):
+                ring = [(x + dx, y + dy)
+                        for dx in range(-radius, radius + 1)
+                        for dy in (-radius, radius)]
+                ring += [(x + dx, y + dy)
+                         for dy in range(-radius + 1, radius)
+                         for dx in (-radius, radius)]
+                ring = sorted((p for p in ring if p in solid), key=lambda p: (p[1], p[0]))
+                if ring:
+                    r, g, b, _ = px[ring[0][0], ring[0][1]]
+                    fill = (r, g, b)
+                    break
+            if fill is None:
+                fill = (palette or PALETTE_RGB)[0]
+        px[x, y] = (fill[0], fill[1], fill[2], 255)
+        filled += 1
+    return img, filled
+
+
 def content_bbox(img):
     return img.convert("RGBA").getchannel("A").getbbox()
 
@@ -587,7 +849,7 @@ def quantise(img, alpha_threshold=96, palette=None):
     return out
 
 
-def fit_to_canvas(content, size, anchor="bottom", mode="width"):
+def fit_to_canvas(content, size, anchor="bottom", mode="width", bbox=None):
     """Scale the keyed content into the declared canvas with NEAREST, then anchor it.
 
     The renderer puts a prop's origin at the footprint's bottom-centre and the character's
@@ -607,7 +869,7 @@ def fit_to_canvas(content, size, anchor="bottom", mode="width"):
     """
     nearest = _nearest()
     w, h = size
-    bbox = content_bbox(content)
+    bbox = bbox if bbox is not None else content_bbox(content)
     if bbox is None:
         return Image.new("RGBA", size, (0, 0, 0, 0)), {"empty": True}
     content = content.crop(bbox)
@@ -755,28 +1017,41 @@ def best_tile_crop(raw, size=32, inter_tiles=2):
 # character: 4 FLUX bases -> the 32-frame sheet the renderer registers
 # --------------------------------------------------------------------------------------
 def _region_shift(frame, region, dx, dy):
-    """Move one rectangular region of a frame by whole pixels, leaving the rest in place."""
+    """Move one rectangular region of a frame by whole pixels WITHOUT punching holes in it.
+
+    The first version cleared the region and then composited the shifted patch on top. That
+    left the vacated band transparent, which on the live floor reads as floor-coloured gaps
+    inside the legs and torso of every walk and typing frame (SOU-187 defect 1; measured on the
+    SOU-158 sheet: 22-36 newly transparent pixels per derived frame against that row's idle
+    frame, plus one enclosed hole in the front row).
+
+    The pre-shift content is therefore kept as an UNDERLAY and the shifted copy is composited
+    over it. A derived frame's alpha mask is then a superset of its base's, so no pixel that was
+    opaque in the base can become transparent - the invariant the gate asserts per frame
+    (`check_v3_assets.py`, section DERIVED FRAME INTEGRITY). The shift is still visible: the
+    moved copy lands where the base had a different colour (a leg's jeans creeping into the
+    jumper hem, an arm reaching past the wrist) and the animation differs from idle in pixels,
+    which the sheet check measures rather than assumes.
+    """
     x0, y0, x1, y1 = region
     patch = frame.crop((x0, y0, x1, y1))
-    frame.paste((0, 0, 0, 0), (x0, y0, x1, y1))
     frame.alpha_composite(patch, (x0 + dx, y0 + dy))
     return frame
 
 
-def _bob(frame, dy):
-    out = Image.new("RGBA", frame.size, (0, 0, 0, 0))
-    out.alpha_composite(frame, (0, dy))
-    return out
-
-
 def _frame_regions(frame):
-    """Arm and leg regions for a DERIVED frame, measured from the frame's own content bbox.
+    """Arm, leg and torso regions for a DERIVED frame, measured from the frame's own content bbox.
 
     Hardcoded pixel regions were a real defect (caught by the gate, 2026-10-16): the left/right
     rows are ~11px wide inside a 32px frame, so a region defined as `x < 11` contained no pixels
     at all and the typing columns came out identical to idle - animation that silently is not
     one. Measuring the bbox makes the derivation work for a narrow profile and a wide front view
     alike.
+
+    `torso` is everything above the legs. It exists so the walk's body bob can move the upper
+    body WITHOUT moving the feet: bobbing the whole frame (the first version) translated the
+    bottom row out of the sprite, so the character hovered a pixel above its own anchor. The
+    renderer anchors the character at its feet, so the feet must not move.
     """
     bbox = frame.getchannel("A").getbbox()
     if bbox is None:
@@ -793,6 +1068,7 @@ def _frame_regions(frame):
         "legs_right": (cx, leg_top, x1, y1),
         "arm_left": (x0, arm_top, x0 + arm_w, arm_bot),
         "arm_right": (x1 - arm_w, arm_top, x1, arm_bot),
+        "torso": (x0, y0, x1, leg_top),
     }
 
 
@@ -808,13 +1084,15 @@ def _derived_frame(base, ops):
 
 
 WALK_SEQUENCE = {
-    # (ops, bob) - a stride: one leg forward while the other goes back, with a body bob on the
-    # two middle frames. Declared as a derivation in the manifest; it is a stride, not a
-    # hand-drawn cycle.
-    1: ([("legs_left", 0, -2), ("legs_right", 0, 2)], 0),
-    2: ([("legs_left", 0, 2)], -1),
-    3: ([("legs_left", 0, 2), ("legs_right", 0, -2)], 0),
-    4: ([("legs_right", 0, 2)], -1),
+    # A stride: one leg forward while the other goes back, plus a body bob on the two middle
+    # frames. Declared as a derivation in the manifest; it is a stride, not a hand-drawn cycle.
+    # The bob is a TORSO shift, so the feet keep touching the anchor row (see `_frame_regions`).
+    # Every op goes through `_region_shift`, which keeps the pre-shift content as an underlay -
+    # that is what makes these frames hole-free (SOU-187 defect 1).
+    1: [("legs_left", 0, -2), ("legs_right", 0, 2)],
+    2: [("legs_left", 0, 2), ("torso", 0, -1)],
+    3: [("legs_left", 0, 2), ("legs_right", 0, -2)],
+    4: [("legs_right", 0, 2), ("torso", 0, -1)],
 }
 WORK_SEQUENCE = {
     5: [("arm_left", 0, 1), ("arm_right", 0, -1)],
@@ -847,24 +1125,27 @@ def build_character_sheet(bases):
         frames[0] = base
         derivation[f"{facing}/0 idle"] = "base, unchanged"
         for col in (1, 2, 3, 4):
-            ops, bob = WALK_SEQUENCE[col]
-            f = _derived_frame(base, ops)
-            if bob:
-                f = _bob(f, bob)
-            frames[col] = f
+            ops = WALK_SEQUENCE[col]
+            frames[col] = _derived_frame(base, ops)
+            bobbed = any(name == "torso" for name, _dx, _dy in ops)
             derivation[f"{facing}/{col} walk{col}"] = (
-                "leg halves shifted +/-2px from the frame's own bbox"
-                + (", body bob -1px" if bob else ""))
+                "leg halves shifted +/-2px from the frame's own bbox, source kept as underlay "
+                "(no vacated pixels)" + (", torso bob -1px with the feet planted" if bobbed else ""))
         for col in (5, 6):
             frames[col] = _derived_frame(base, WORK_SEQUENCE[col])
             derivation[f"{facing}/{col} work{col - 4}"] = (
-                "arm bands (from the frame's own bbox) shifted +/-1px - the typing alternation")
+                "arm bands (from the frame's own bbox) shifted +/-1px, source kept as underlay "
+                "(no vacated pixels) - the typing alternation")
         sleep = bases["sleep"]
         if facing == "left":
             sleep = sleep.transpose(Image.FLIP_LEFT_RIGHT)
         frames[7] = sleep
         derivation[f"{facing}/7 sleep"] = "char_sleep" + (" (mirrored)" if facing == "left" else "")
         for col, frame in frames.items():
+            # a shift can SEAL a 1px transparent channel and enclose a hole the base did not have
+            # (`up`/typing-1 measured 1px), so the fill runs on the derived frame too, not only on
+            # the bases - the gate then asserts zero enclosed pixels over all 32 frames
+            frame, _filled = fill_interior_holes(frame, palette=CHARACTER_RGB)
             sheet.alpha_composite(frame, (col * fw, row * fh))
     return sheet, derivation
 
@@ -907,8 +1188,22 @@ def cmd_assemble(args):
         "named": [{"name": n, "hex": h} for n, h in PALETTE],
         "hex": PALETTE_HEX,
         "why": "One palette for the whole set (SOU-158 AC3). Extends the v2 room palette the owner "
-               "signed off with the wood/beige/amber/crt ramps the new props need; every asset is "
-               "quantised to exactly these colours by scripts/v3/gen_office01_art.py assemble.",
+               "signed off with the wood/beige/amber/crt ramps the new props need; every prop and "
+               "tile is quantised to exactly these colours by scripts/v3/gen_office01_art.py "
+               "assemble. FROZEN since SOU-158 - see character_extension for why the character's "
+               "orange is not part of it.",
+        "character_extension": {
+            "colors": len(CHARACTER_EXTRA),
+            "named": [{"name": n, "hex": h} for n, h in CHARACTER_EXTRA],
+            "applies_to": "the character sheet only (CHARACTER_RAMP / character sheet quantiser)",
+            "why": "SOU-187: the 32 shared colours contain no saturated warm colour, so the orange "
+                   "hoodie the owner signed off cannot be reached from them. Adding the orange to "
+                   "the shared palette instead is not free - assemble re-quantises the props from "
+                   "their raw generations, and the attempt moved 967 px of the already-accepted "
+                   "couch (plus 148 bookshelf / 49 cat / 2 bass). The shared palette stays frozen "
+                   "and the character carries these three.",
+        },
+        "character_ramp": CHARACTER_RAMP,
     }, indent=2) + "\n")
 
     results = {}
@@ -951,7 +1246,8 @@ def cmd_assemble(args):
         if not raw.exists():
             print(f"[miss] {aid}: no raw generation on disk")
             continue
-        seed = 15800 + index * 7
+        seed_file = OUT / f"{aid}.seed.txt"
+        seed = int(seed_file.read_text().strip()) if seed_file.exists() else 15800 + index * 7
         prompt = (OUT / f"{aid}.prompt.txt").read_text().strip() if (OUT / f"{aid}.prompt.txt").exists() else compose_prompt(asset)
         src = Image.open(raw)
         if asset["kind"] == "tile":
@@ -982,17 +1278,44 @@ def cmd_assemble(args):
         keyed[aid] = keyed_img
         keyed_img.save(OUT / f"{aid}.keyed.png")
         if asset["kind"] == "char":
-            canvas, fit = fit_to_canvas(keyed_img, (32, 48), anchor="bottom", mode="inside")
+            # The bbox comes from the SUBSTANTIAL components, not from every opaque pixel: the
+            # reference edits arrive covered in keying speckle whose bbox is much taller than the
+            # figure, which is what shrank the first attempt's profile/back sprites (see
+            # `substantial_bbox`).
+            char_bbox, speckle_px, parts_kept = substantial_bbox(keyed_img)
+            canvas, fit = fit_to_canvas(keyed_img, (32, 48), anchor="bottom", mode="inside",
+                                        bbox=char_bbox)
+            fit["bbox"] = list(char_bbox) if char_bbox else None
+            fit["bbox_source"] = "union of connected components >= 20% of the largest " \
+                                 "(keying speckle excluded)"
             frame = quantise(canvas, palette=CHARACTER_RGB)
-            frame.save(OUT / f"{aid}.frame.png")
+            # islands at DISPLAY scale: a fragment floating over the head is unambiguous here,
+            # and anything substantial is kept (and reported) rather than silently deleted.
+            frame, islands, kept_parts = drop_stray_islands(frame)
+            frame, speckles = despeckle_outline(frame)
+            # last: no enclosed transparent pixel can survive in a frame the renderer draws on
+            # top of the floor (SOU-187 AC1) - the gate asserts the count across the whole sheet
+            frame, hole_px = fill_interior_holes(frame, palette=CHARACTER_RGB)
+            frame.save(OUT / f"{asset['id']}.frame.png")
             char_bases[asset["view"]] = frame
-            mode = (f"reference edit of {asset['reference']}.keyed.png (our own klein output)"
-                    if asset.get("reference") else "text-only generation")
+            mode_file = OUT / f"{asset['id']}.mode.txt"
+            mode = (mode_file.read_text().strip() if mode_file.exists()
+                    else (f"reference edit of {asset['reference']}.keyed.png (our own klein output)"
+                          if asset.get("reference") else "text-only generation"))
             char_modes[asset["view"]] = mode
-            results[aid] = {"kind": "char", "path": f"{aid}.frame.png",
-                            "key_colour": list(key), "fit": fit, "generation_mode": mode}
+            results[asset["id"]] = {"kind": "char", "path": f"{asset['id']}.frame.png",
+                                    "key_colour": list(key), "fit": fit, "generation_mode": mode,
+                                    "despeckled_px": speckles,
+                                    "interior_holes_filled_px": hole_px,
+                                    "keying_speckle_px_ignored": speckle_px,
+                                    "substantial_components_kept": parts_kept,
+                                    "stray_islands_dropped_px": islands,
+                                    "disconnected_parts_kept_px": kept_parts}
             print(f"[asm ] {aid:12s} char frame 32x48 fit={fit['fitted_px']} by {fit['fitted_by']} "
-                  f"({mode})")
+                  f"bbox={fit['bbox']} ({mode}; ignored {speckle_px}px speckle in {parts_kept} "
+                  f"substantial component(s); despeckled {speckles} isolated outline px"
+                  + (f"; dropped stray islands {islands}" if islands else "")
+                  + (f"; kept disconnected part(s) {kept_parts}" if kept_parts else "") + ")")
             continue
         if asset.get("flat"):
             # a decal has no silhouette to scale: it IS the footprint (a rug lying on the floor),
@@ -1056,17 +1379,25 @@ def cmd_assemble(args):
                 "derivation": derivation,
                 "generation_mode": char_modes,
                 "character_ramp": CHARACTER_RAMP,
+                "character_palette_extension": [h for _n, h in CHARACTER_EXTRA],
                 "character_ramp_why": "the sheet is quantised through this 11-colour subset of the "
                                       "declared palette, so all four facings share one outfit by "
                                       "construction - four independent generations otherwise "
                                       "returned four different characters (measured 2026-10-16)",
                 "note": "The idle and sleep columns are direct FLUX outputs; the walk and typing "
                         "columns are deterministic pixel derivations of the same base (leg/arm "
-                        "region shifts + body bob), recorded per frame under `derivation`. The "
+                        "region shifts + torso bob), recorded per frame under `derivation`. The "
                         "char_up / char_right / char_sleep bases are REFERENCE EDITS of char_down "
                         "(klein's unified generate+edit mode, conditioning image = our own "
                         "char_down.keyed.png), which is what holds one identity across the "
-                        "facings; no upstream or LimeZu pixels are involved anywhere.",
+                        "facings; no upstream or LimeZu pixels are involved anywhere. "
+                        "SOU-187 (character v2): the wardrobe is the owner-signed-off orange "
+                        "hoodie (#f0872b, shadow #b35d16, highlight #ffc46a) over denim jeans "
+                        "(#44618a) and cream trainers (#f4ead2), the figure is a chibi with the "
+                        "head at ~40% of the 48px frame, and every derived frame keeps its base's "
+                        "pixels as an underlay so no vacated (floor-coloured) pixel can appear - "
+                        "asserted per frame by scripts/v3/check_v3_assets.py, section DERIVED "
+                        "FRAME INTEGRITY. The walk remains a stride, not a hand-drawn cycle.",
             })
         (OUT / "character" / "office-01.png.manifest.json").write_text(json.dumps(sheet_manifest, indent=2) + "\n")
         results["character"] = {"kind": "sheet", "path": "character/office-01.png", "dims": [256, 192]}
@@ -1300,8 +1631,9 @@ def build_contact_sheets(results):
         img = _floor_backdrop((width, sheet_h), scale)
         _grid_overlay(img, scale)
         _label(img, (margin, 10 * scale),
-               f"office-01 v3 art set (SOU-158) - props at {scale}x on the floor tile, footprints are "
-               f"multiples of 32px (grid drawn); every asset quantised to one 32-colour palette")
+               f"office-01 v3 art set (props SOU-158, character v2 SOU-187) - props at {scale}x on "
+               f"the floor tile, footprints are multiples of 32px (grid drawn); every asset "
+               f"quantised to one {len(PALETTE_HEX)}-colour palette")
         for asset, sprite, px, py in placed:
             img.alpha_composite(sprite, (px, py))
             fw, fh = asset["footprint_px"]
@@ -1374,6 +1706,12 @@ def main():
     g = sub.add_parser("generate", help="FLUX pass (needs the sou-flux venv + MPS)")
     g.add_argument("--only", help="comma-separated asset ids")
     g.add_argument("--force", action="store_true", help="regenerate even if a raw exists")
+    g.add_argument("--seed-shift", type=int, default=0,
+                   help="add N to the per-asset seed (a re-roll; recorded in <id>.seed.txt so the "
+                        "manifest cannot claim a seed that was not used)")
+    g.add_argument("--no-reference", action="store_true",
+                   help="ignore the asset's `reference` and generate text-only (recorded in "
+                        "<id>.mode.txt, so the manifest reports what actually ran)")
     g.set_defaults(func=cmd_generate)
     a = sub.add_parser("assemble", help="CPU pass: key, fit, quantise, manifests, sheets")
     a.set_defaults(func=cmd_assemble)

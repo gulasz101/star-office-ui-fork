@@ -25,7 +25,13 @@ What it proves, in the order the ticket asks for it:
             `tiles[]` in frontend/v3/maps/office-01.json - the map is the consumer, so its
             order is the authority, not ours;
   seam      for each floor/wall tile, the wrap-around edge step vs the mean interior step
-            (a tile repeats, so column 31 sits next to column 0).
+            (a tile repeats, so column 31 sits next to column 0);
+  derived    (SOU-187 AC1) every derived frame (4 facings x walk 1-4 + typing 1-2) carries no
+            transparent pixel that its row's idle frame has content in, and no enclosed hole
+            there either - the walk/typing frames used to be punched through by their own
+            derivation, which the live floor showed as floor-coloured gaps in the legs;
+  look       (SOU-187) the chibi head band is 30-50% of the 48px frame (target 40%) and the
+            dominant garment colour of every facing is the signature orange hoodie.
 
 Exit code 0 = all checks pass, 1 = at least one failure (each printed with the measurement),
 2 = the checker itself could not run.
@@ -37,6 +43,7 @@ import argparse
 import json
 import os
 import sys
+from collections import deque
 
 from PIL import Image
 
@@ -45,6 +52,8 @@ sys.path.insert(0, HERE)
 
 from gen_office01_art import (  # noqa: E402  (same directory)
     CATALOGUE,
+    CHARACTER_EXTRA,
+    CHARACTER_PALETTE_RGB,
     OUT,
     PALETTE_HEX,
     PALETTE_RGB,
@@ -122,9 +131,9 @@ def alpha_profile(img) -> dict:
     }
 
 
-def palette_check(img) -> tuple[list[tuple[int, int, int]], list[tuple[int, int, int]]]:
+def palette_check(img, allowed=None) -> tuple[list[tuple[int, int, int]], list[tuple[int, int, int]]]:
     colours = unique_colours(img)
-    allowed = set(PALETTE_RGB)
+    allowed = set(allowed if allowed is not None else PALETTE_RGB)
     return colours, [c for c in colours if c not in allowed]
 
 
@@ -243,6 +252,197 @@ def dominant_colour(img, exclude=("#14161f",)) -> tuple[str, int, float]:
     return "none", 0, 0.0
 
 
+# ---------------------------------------------------------------------------------------
+# SOU-187 checks. AC1 is a NEW gate: the derived walk/typing frames must carry no interior
+# alpha hole that the idle frame does not have. The old derivation cleared a rectangular
+# region and composited the shifted patch over it, so the vacated band stayed transparent and
+# the live floor showed through the legs and torso. The generator now keeps the pre-shift
+# content as an underlay, and these two measurements are what make "no holes" checkable
+# instead of asserted.
+# ---------------------------------------------------------------------------------------
+ORANGE_FAMILY = {h for _n, h in CHARACTER_EXTRA}
+# Everything a row can be made of that is NOT the head: the orange jumper and the denim jeans.
+# The light neutrals (#f4ead2 cream, #c3cad9 steel) are deliberately NOT here: the model paints
+# the FACE with the same cream, so counting them as clothing made the face row read as
+# garment-dominant and collapsed the measured head band (measured on the first pass of this
+# check: the profile facings reported 4% where the pixels show a 13-row head).
+GARMENT_FAMILY = ORANGE_FAMILY | {"#44618a", "#505a70"}
+CHAR_FRAME = (32, 48)
+
+
+def frame_alpha(frame) -> list[list[int]]:
+    a = frame.convert("RGBA").getchannel("A")
+    w, h = frame.size
+    return [[1 if a.getpixel((x, y)) > 0 else 0 for x in range(w)] for y in range(h)]
+
+
+def enclosed_holes(mask: list[list[int]]) -> int:
+    """Transparent pixels NOT reachable from the frame border - i.e. holes inside the sprite."""
+    h, w = len(mask), len(mask[0])
+    seen = [[0] * w for _ in range(h)]
+    queue = deque()
+    for x in range(w):
+        for y in (0, h - 1):
+            if not mask[y][x] and not seen[y][x]:
+                seen[y][x] = 1
+                queue.append((x, y))
+    for y in range(h):
+        for x in (0, w - 1):
+            if not mask[y][x] and not seen[y][x]:
+                seen[y][x] = 1
+                queue.append((x, y))
+    while queue:
+        x, y = queue.popleft()
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h and not mask[ny][nx] and not seen[ny][nx]:
+                seen[ny][nx] = 1
+                queue.append((nx, ny))
+    return sum(1 for y in range(h) for x in range(w) if not mask[y][x] and not seen[y][x])
+
+
+def derived_frame_integrity(sheet, report: Report, quiet: bool) -> dict:
+    """AC1: no derived frame (cols 1-6) may carry an interior alpha hole.
+
+    Two numbers per frame, because they answer different questions and the ticket names both:
+      * `new_transparent` - pixels transparent in the derived frame but OPAQUE in that row's
+        idle frame. This is the strong form of the derivation's own invariant (it is 0) and it
+        is what the floor-coloured gaps measured as (24 frames, 5-36 px each, on the SOU-158
+        sheet).
+      * `enclosed` - transparent pixels not reachable from the frame border at all, i.e. a hole
+        the floor is visible through. Reported as a TOTAL, not as "holes where idle had
+        content": the first version of this check only counted a hole when the idle frame had
+        content in that pixel, so it passed a real 1px hole in `up`/typing-1 that the shift
+        created by *sealing* a 1px channel the base legitimately had (measured 2026-10-16). A
+        hole is a hole wherever it comes from, so the gate counts them all.
+    Column 7 (sleep) is excluded here because it is a different POSE, not a derivation of the
+    idle base, so its silhouette is legitimately not comparable to the standing idle frame -
+    `sheet_hole_free` covers it on the absolute measure instead.
+    """
+    fw, fh = CHAR_FRAME
+    summary = {"frames": 0, "new_transparent": 0, "enclosed": 0}
+    for row, facing in enumerate(("down", "left", "right", "up")):
+        idle = frame_alpha(sheet.crop((0, row * fh, fw, (row + 1) * fh)))
+        for col in range(1, 7):
+            frame = sheet.crop((col * fw, row * fh, (col + 1) * fw, (row + 1) * fh))
+            mask = frame_alpha(frame)
+            new_transparent = sum(1 for y in range(fh) for x in range(fw)
+                                  if idle[y][x] and not mask[y][x])
+            enclosed = enclosed_holes(mask)
+            summary["frames"] += 1
+            summary["new_transparent"] += new_transparent
+            summary["enclosed"] += enclosed
+            if new_transparent or enclosed:
+                report.fail(f"AC1 {facing}/col{col}: {new_transparent} pixel(s) transparent that "
+                            f"the idle frame has content in, {enclosed} enclosed interior "
+                            f"hole pixel(s) - the derivation vacated pixels instead of keeping "
+                            f"the source as an underlay, or sealed a channel the base had")
+            if not quiet:
+                report.note(f"{facing}/col{col} ({('walk', 'walk', 'walk', 'walk', 'work',
+                                                    'work')[col - 1]}): new_transparent="
+                            f"{new_transparent}, enclosed_holes={enclosed}")
+    if not summary["new_transparent"] and not summary["enclosed"]:
+        report.ok(f"AC1 derived frame integrity: {summary['frames']} derived frames "
+                  f"(4 facings x walk 1-4 + typing 1-2) carry ZERO transparent pixels that their "
+                  f"row's idle frame has content in AND zero enclosed interior holes - no "
+                  f"floor-coloured gaps inside legs or torso")
+    return summary
+
+
+def sheet_hole_free(sheet, report: Report, quiet: bool) -> dict:
+    """AC1, absolute form: NO frame of the sheet encloses a single transparent pixel.
+
+    Covers all 32 frames including idle and the four sleep frames, which `derived_frame_integrity`
+    cannot judge because it compares each frame against its row's base. The renderer draws every
+    frame over the floor, so an enclosed pixel is the floor showing through the body in all of
+    them; the count has to be 0, not merely "no worse than idle".
+    """
+    fw, fh = CHAR_FRAME
+    worst = {"frames": 0, "enclosed": 0, "worst_frame": None}
+    names = ("idle", "walk1", "walk2", "walk3", "walk4", "work1", "work2", "sleep")
+    for row, facing in enumerate(("down", "left", "right", "up")):
+        for col in range(8):
+            frame = sheet.crop((col * fw, row * fh, (col + 1) * fw, (row + 1) * fh))
+            n = enclosed_holes(frame_alpha(frame))
+            worst["frames"] += 1
+            worst["enclosed"] += n
+            if n and worst["worst_frame"] is None:
+                worst["worst_frame"] = f"{facing}/{names[col]}"
+            if not quiet and n:
+                report.note(f"{facing}/{names[col]}: {n} enclosed transparent pixel(s)")
+    if worst["enclosed"]:
+        report.fail(f"AC1 sheet hole-free: {worst['enclosed']} enclosed transparent pixel(s) "
+                    f"across {worst['frames']} frames (first: {worst['worst_frame']}) - the floor "
+                    f"shows through the body there")
+    else:
+        report.ok(f"AC1 sheet hole-free: all {worst['frames']} frames of character/office-01.png "
+                  f"carry zero enclosed transparent pixels")
+    return worst
+
+
+def _reachable(mask, sx, sy) -> bool:
+    """Is (sx, sy) an empty pixel connected to the frame border?"""
+    h, w = len(mask), len(mask[0])
+    seen = [[0] * w for _ in range(h)]
+    queue = deque([(sx, sy)])
+    seen[sy][sx] = 1
+    while queue:
+        x, y = queue.popleft()
+        if x in (0, w - 1) or y in (0, h - 1):
+            return True
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h and not mask[ny][nx] and not seen[ny][nx]:
+                seen[ny][nx] = 1
+                queue.append((nx, ny))
+    return False
+
+
+def head_band_fraction(frame) -> tuple[float, int, int]:
+    """Head height as a fraction of the 48px frame, measured from the declared ramp.
+
+    A chibi's head is the top band that is NOT clothing. So: walk the rows from the top of the
+    content and stop at the first row whose opaque pixels are mostly garment colours (the
+    orange jumper reaching the shoulders). That row count / 48 is the head fraction the ticket
+    asks to be ~40%. Deliberately measured on colours from the declared palette rather than on
+    a shape model - it is a coarse measure, but it is reproducible and it fails loudly when the
+    model returns a realistic 5-head figure (measured 2026-10-15: that is what it did).
+
+    A row only counts as "garment-dominant" if it is SUBSTANTIAL (at least 40% of the widest
+    row). Without that guard a one-pixel speck of denim at the top of the frame makes row 0 read
+    as 100% garment and collapses the measured head band to 0% - which is exactly what the first
+    run of this check reported on the profile facings, where a 6px stray island sat above the
+    head (`drop_stray_islands` now removes it at the source; this guard is the second belt).
+    """
+    frame = frame.convert("RGBA")
+    w, h = frame.size
+    px = frame.load()
+    top = None
+    widths = []
+    for y in range(h):
+        n = sum(1 for x in range(w) if px[x, y][3])
+        widths.append(n)
+        if top is None and n:
+            top = y
+    if top is None:
+        return 0.0, 0, 0
+    substantial = max(3, int(0.4 * max(widths)))
+    first_garment_row = h
+    for y in range(top, h):
+        if widths[y] < substantial:
+            continue
+        opaque = garment = 0
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            opaque += 1
+            if hexs((r, g, b)) in GARMENT_FAMILY:
+                garment += 1
+        if opaque and garment / opaque >= 0.5:
+            first_garment_row = y
+            break
+    return round((first_garment_row - top) / h, 3), top, first_garment_row
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--root", default=str(OUT), help="art set root (default: assets/generated/v3/office-01)")
@@ -271,6 +471,17 @@ def main() -> int:
                         f"({len(declared)} vs {len(PALETTE_HEX)} colours)")
         else:
             report.ok(f"palette.json declares {len(declared)} colours, identical to the generator")
+        ext = json.load(open(palette_meta)).get("character_extension")
+        want_ext = [h for _n, h in CHARACTER_EXTRA]
+        if not ext:
+            report.fail("palette.json does not declare character_extension - the character's "
+                        "orange would be undeclared")
+        elif [c["hex"] for c in ext["named"]] != want_ext:
+            report.fail(f"palette.json character_extension {[c['hex'] for c in ext['named']]} != "
+                        f"the generator's {want_ext}")
+        else:
+            report.ok(f"palette.json declares the character extension {want_ext} (character sheet "
+                      f"only, shared palette frozen at {len(PALETTE_HEX)} colours)")
     else:
         report.fail("palette.json missing - the palette is not declared anywhere")
 
@@ -408,11 +619,14 @@ def main() -> int:
             report.fail(f"character sheet is {sheet.size}, expected {fw * cols}x{fh * rows}")
         else:
             report.ok(f"character sheet is {sheet.size[0]}x{sheet.size[1]} = {cols}x{rows} frames of {fw}x{fh}")
-        colours, off = palette_check(sheet)
+        colours, off = palette_check(sheet, allowed=CHARACTER_PALETTE_RGB)
         if off:
-            report.fail(f"character sheet has {len(off)} off-palette colours e.g. {hexs(off[0])}")
+            report.fail(f"character sheet has {len(off)} colours outside the shared palette + its "
+                        f"declared character extension, e.g. {hexs(off[0])}")
         else:
-            report.ok(f"character sheet uses {len(colours)} palette colours only")
+            report.ok(f"character sheet uses {len(colours)} colours, all from the {len(PALETTE_HEX)} "
+                      f"shared colours + the {len(CHARACTER_EXTRA)} declared character-only orange "
+                      f"entries ({', '.join(h for _n, h in CHARACTER_EXTRA)})")
         resid = magenta_residue(sheet)
         if resid["strong_magenta"] or resid["fringe"]:
             report.fail(f"character sheet magenta residue {resid}")
@@ -440,6 +654,39 @@ def main() -> int:
         report.note(f"colours: {' '.join(hexs(c) for c in colours)}")
     else:
         report.fail("character/office-01.png missing")
+
+    # ---- SOU-187 AC1: derived frames must not carry holes the idle frame does not have ------
+    print("\nDERIVED FRAME INTEGRITY (SOU-187 AC1 - derived walk/typing frames vs their row's idle frame)")
+    char_path = os.path.join(root, "character", "office-01.png")
+    if os.path.exists(char_path):
+        derived_frame_integrity(Image.open(char_path), report, args.quiet)
+        sheet_hole_free(Image.open(char_path), report, args.quiet)
+    else:
+        report.fail("character/office-01.png missing - cannot check derived frame integrity")
+
+    # ---- SOU-187 look: the signature orange and the chibi head proportion --------------------
+    print("\nCHARACTER LOOK (SOU-187 - signature colour + chibi head ~40% of the 48px frame)")
+    if os.path.exists(char_path):
+        sheet = Image.open(char_path)
+        for row, facing in enumerate(("down", "left", "right", "up")):
+            idle = sheet.crop((0, row * 48, 32, row * 48 + 48))
+            frac, top, garment_row = head_band_fraction(idle)
+            dom, n, share = dominant_colour(idle, exclude=("#14161f", "#2a2f3e"))
+            problems = []
+            if not 0.30 <= frac <= 0.50:
+                problems.append(f"head band is {frac:.0%} of the frame, outside the 30-50% band "
+                                f"the ticket asks for (~40%)")
+            if dom not in ORANGE_FAMILY:
+                problems.append(f"dominant garment colour is {dom} ({share:.0%}), not the "
+                                f"signature orange family {sorted(ORANGE_FAMILY)}")
+            print(f"  {facing:6s} head={frac:.0%} (rows {top}-{garment_row}) "
+                  f"dominant={dom} ({share:.0%} of {n} px)  "
+                  f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+            if problems:
+                report.fail(f"look {facing}: " + "; ".join(problems))
+            else:
+                report.ok(f"look {facing}: head {frac:.0%} of 48px (chibi), dominant garment "
+                          f"{dom} ({share:.0%}) = the orange hoodie")
 
     # ---- the 2026-10-16 review redo list, as machine checks --------------------------
     # Claude Code reviewed the 15:27 build and filed three defects. Each one is asserted here

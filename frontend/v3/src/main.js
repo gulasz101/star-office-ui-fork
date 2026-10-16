@@ -40,6 +40,7 @@ class OfficeScene extends Phaser.Scene {
       if (params.get('lodge') !== '0') {
         this.load.image('lodge-tiles', 'assets/lodge/tiles.png');
         for (const name of Object.keys(LODGE_PROPS)) this.load.image(lodgePropKey(name), `assets/lodge/props/${name}.png`);
+        this.load.spritesheet('lodge-cat-walk', 'assets/lodge/props/cat_walk.png', { frameWidth: 32, frameHeight: 32 });
       }
       this.load.on('loaderror', (file) => console.info(`[v3] art fallback: ${file.key} not found`));
     }
@@ -58,7 +59,14 @@ class OfficeScene extends Phaser.Scene {
       this.snow.destroy();
       this.snow = snowfall(this, this.building);
     });
-    this.cat = new CorridorCat(this, this.building);
+    // owner: "more agents <=> more cats in corridor": one cat per room, at least one, at most 8
+    this.cats = [];
+    const topUpCats = () => {
+      const want = Math.max(1, Math.min(8, this.building.offices.size));
+      while (this.cats.length < want) this.cats.push(new CorridorCat(this, this.building));
+    };
+    topUpCats();
+    this.events.on('building-grew', topUpCats);
 
     const toggleDebug = () => {
       for (const o of this.building.offices.values()) o.toggleDebug();

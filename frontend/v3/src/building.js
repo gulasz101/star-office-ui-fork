@@ -104,6 +104,11 @@ export class Building {
       add(glow(s, lx * TILE, (FRONT_Y + 2.6) * TILE - 50, 64, 0xffb35a, 0.5));
     }
     night(prop('woodpile', x0 + 2.5, FRONT_Y + 3.4), 0xb4aac4);
+    // a reading armchair at each end of the corridor, with its own lamp glow
+    for (const [ax, flip] of [[x0 + 1.9, false], [x1 - 0.9, true]]) {
+      prop('armchair', ax, CORRIDOR_Y + CORRIDOR_H).setFlipX(flip);
+      add(glow(s, ax * TILE, (CORRIDOR_Y + CORRIDOR_H - 1) * TILE, 56, 0xffb35a, 0.22));
+    }
 
     // the forest: deterministic scatter outside the building footprint, never on the path
     const r = rng(4242);

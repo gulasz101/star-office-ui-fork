@@ -38,10 +38,10 @@ ROOMS = {
         "floor": "room_plank_a", "garage": True,
         "props": [
             ("desk", 2, 3, 2, 2, True), ("chair", 2, 5, 1, 1, False),
-            ("rack", 5, 2, 1, 2, True), ("rack", 6, 2, 1, 2, True),
+            ("rack_v2", 5, 2, 2, 2, True),
             ("bookshelf", 8, 2, 2, 2, True), ("coffee", 1, 8, 2, 1, True),
             ("rug", 4, 6, 3, 2, False), ("couch", 3, 9, 3, 1, True),
-            ("bass", 8, 9, 1, 1, True), ("amp", 9, 9, 1, 1, True), ("cat", 1, 10, 1, 1, True),
+            ("bass", 8, 9, 1, 1, True), ("amp", 9, 9, 1, 1, True), ("cat_box", 12, 10, 2, 1, True),
             ("van", 12, 3, 3, 4, True), ("spool", 11, 3, 1, 1, True), ("crate", 14, 10, 1, 1, True),
         ],
         "zones": {"work": (2, 5, "up", None), "ops": (5, 4, "up", None), "read": (8, 4, "up", None),
@@ -51,8 +51,10 @@ ROOMS = {
     # hermes-andrzej: the homelab manager's server room
     "serverroom": {
         "floor": "stone_floor",
-        "props": [("rack", x, 2, 1, 2, True) for x in (1, 2, 3, 4, 5, 10, 11, 12, 13, 14)]
-        + [("rack", x, 6, 1, 2, True) for x in (2, 3, 4, 10, 11, 12)]
+        "props": [("rack_v2", x, 2, 2, 2, True) for x in (1, 3, 10, 12)]
+        + [("rack", 5, 2, 1, 2, True), ("rack", 14, 2, 1, 2, True)]
+        + [("rack_v2", 2, 6, 2, 2, True), ("rack", 4, 6, 1, 2, True),
+           ("rack_v2", 10, 6, 2, 2, True), ("rack", 12, 6, 1, 2, True)]
         + [("desk", 7, 3, 2, 2, True), ("chair", 7, 5, 1, 1, False),
            ("coffee", 1, 9, 2, 1, True), ("couch", 11, 9, 3, 1, True),
            ("crate", 14, 6, 1, 1, True), ("crate", 14, 7, 1, 1, True), ("spool", 13, 6, 1, 1, True)],

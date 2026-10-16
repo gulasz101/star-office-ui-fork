@@ -58,10 +58,11 @@ export function lightRoom(scene, office) {
       const y = img.y - img.height + img.height * L.fy;
       objs.push(glow(scene, x, y, L.r, L.color, L.a));
     }
-    if (p.name === 'rack') {
+    if (p.name === 'rack' || p.name === 'rack_v2') {
       // a teal haze in front of the rack and a handful of blinking LEDs on its face
-      objs.push(glow(scene, img.x, img.y - img.height * 0.45, 46, 0x4fe0b8, 0.16));
-      for (let k = 0; k < 7; k++) {
+      const big = p.name === 'rack_v2';
+      objs.push(glow(scene, img.x, img.y - img.height * 0.45, big ? 70 : 46, 0x4fe0b8, big ? 0.2 : 0.16));
+      for (let k = 0; k < (big ? 12 : 7); k++) {
         const led = scene.add.rectangle(
           Math.round(img.x - img.width / 2 + 8 + r() * (img.width - 16)),
           Math.round(img.y - img.height + 18 + r() * (img.height - 30)),
@@ -130,11 +131,17 @@ export class CorridorCat {
   constructor(scene, building) {
     this.scene = scene;
     this.building = building;
-    if (!scene.anims.exists('cat-walk')) {
-      scene.anims.create({ key: 'cat-walk', frames: [0, 1, 2, 3].map((f) => ({ key: 'ph-cat-walk', frame: f })), frameRate: 8, repeat: -1 });
+    // the generated tabby (SOU-198) when it's there, the drawn one otherwise
+    const sheet = scene.textures.exists('lodge-cat-walk') ? 'lodge-cat-walk' : 'ph-cat-walk';
+    const anim = `cat-walk-${sheet}`;
+    if (!scene.anims.exists(anim)) {
+      scene.anims.create({ key: anim, frames: [0, 1, 2, 3].map((f) => ({ key: sheet, frame: f })), frameRate: 8, repeat: -1 });
     }
-    const y = (CORRIDOR_Y + CORRIDOR_H - 0.6) * TILE;
-    this.sprite = scene.add.sprite((building.world.x0 + 4) * TILE, y, 'ph-cat-walk', 0).setOrigin(0.5, 1).setScale(1.5);
+    this.anim = anim;
+    const w = building.world;
+    const y = (CORRIDOR_Y + 1 + Math.random() * (CORRIDOR_H - 1.4)) * TILE;
+    const x = (w.x0 + 2 + Math.random() * (w.x1 - w.x0 - 4)) * TILE;
+    this.sprite = scene.add.sprite(x, y, sheet, 0).setOrigin(0.5, 1).setScale(sheet === 'ph-cat-walk' ? 1.5 : 1);
     this.zzz = scene.add.text(0, 0, 'z', { fontFamily: 'monospace', fontSize: '9px', color: '#cfe3ff', stroke: '#1d1f2a', strokeThickness: 3 })
       .setOrigin(0.5, 1).setVisible(false).setDepth(100000);
     this.next();
@@ -160,7 +167,7 @@ export class CorridorCat {
     const ty = (CORRIDOR_Y + 0.9 + Math.random() * (CORRIDOR_H - 1.2)) * TILE;
     const dist = Math.hypot(tx - s.x, ty - s.y);
     s.setFlipX(tx < s.x);
-    s.anims.play('cat-walk', true);
+    s.anims.play(this.anim, true);
     this.scene.tweens.add({
       targets: s, x: tx, y: ty, duration: dist * 22,
       onComplete: () => {

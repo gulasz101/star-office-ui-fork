@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 31,
+ "nextobjectid": 25,
  "properties": [
   {
    "name": "room",
@@ -634,11 +634,11 @@
    "objects": [
     {
      "id": 1,
-     "name": "rack",
+     "name": "rack_v2",
      "type": "",
      "x": 32,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -652,11 +652,11 @@
     },
     {
      "id": 2,
-     "name": "rack",
+     "name": "rack_v2",
      "type": "",
-     "x": 64,
+     "x": 96,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -670,11 +670,11 @@
     },
     {
      "id": 3,
-     "name": "rack",
+     "name": "rack_v2",
      "type": "",
-     "x": 96,
+     "x": 320,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -688,11 +688,11 @@
     },
     {
      "id": 4,
-     "name": "rack",
+     "name": "rack_v2",
      "type": "",
-     "x": 128,
+     "x": 384,
      "y": 64,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -726,78 +726,6 @@
      "id": 6,
      "name": "rack",
      "type": "",
-     "x": 320,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 7,
-     "name": "rack",
-     "type": "",
-     "x": 352,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 8,
-     "name": "rack",
-     "type": "",
-     "x": 384,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 9,
-     "name": "rack",
-     "type": "",
-     "x": 416,
-     "y": 64,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 10,
-     "name": "rack",
-     "type": "",
      "x": 448,
      "y": 64,
      "width": 32,
@@ -813,12 +741,12 @@
      ]
     },
     {
-     "id": 11,
-     "name": "rack",
+     "id": 7,
+     "name": "rack_v2",
      "type": "",
      "x": 64,
      "y": 192,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -831,25 +759,7 @@
      ]
     },
     {
-     "id": 12,
-     "name": "rack",
-     "type": "",
-     "x": 96,
-     "y": 192,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 13,
+     "id": 8,
      "name": "rack",
      "type": "",
      "x": 128,
@@ -867,12 +777,12 @@
      ]
     },
     {
-     "id": 14,
-     "name": "rack",
+     "id": 9,
+     "name": "rack_v2",
      "type": "",
      "x": 320,
      "y": 192,
-     "width": 32,
+     "width": 64,
      "height": 64,
      "rotation": 0,
      "visible": true,
@@ -885,25 +795,7 @@
      ]
     },
     {
-     "id": 15,
-     "name": "rack",
-     "type": "",
-     "x": 352,
-     "y": 192,
-     "width": 32,
-     "height": 64,
-     "rotation": 0,
-     "visible": true,
-     "properties": [
-      {
-       "name": "collides",
-       "type": "bool",
-       "value": true
-      }
-     ]
-    },
-    {
-     "id": 16,
+     "id": 10,
      "name": "rack",
      "type": "",
      "x": 384,
@@ -921,7 +813,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 11,
      "name": "desk",
      "type": "",
      "x": 224,
@@ -939,7 +831,7 @@
      ]
     },
     {
-     "id": 18,
+     "id": 12,
      "name": "chair",
      "type": "",
      "x": 224,
@@ -957,7 +849,7 @@
      ]
     },
     {
-     "id": 19,
+     "id": 13,
      "name": "coffee",
      "type": "",
      "x": 32,
@@ -975,7 +867,7 @@
      ]
     },
     {
-     "id": 20,
+     "id": 14,
      "name": "couch",
      "type": "",
      "x": 352,
@@ -993,7 +885,7 @@
      ]
     },
     {
-     "id": 21,
+     "id": 15,
      "name": "crate",
      "type": "",
      "x": 448,
@@ -1011,7 +903,7 @@
      ]
     },
     {
-     "id": 22,
+     "id": 16,
      "name": "crate",
      "type": "",
      "x": 448,
@@ -1029,7 +921,7 @@
      ]
     },
     {
-     "id": 23,
+     "id": 17,
      "name": "spool",
      "type": "",
      "x": 416,
@@ -1059,7 +951,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 24,
+     "id": 18,
      "name": "work",
      "type": "",
      "x": 240,
@@ -1078,7 +970,7 @@
      ]
     },
     {
-     "id": 25,
+     "id": 19,
      "name": "ops",
      "type": "",
      "x": 112,
@@ -1097,7 +989,7 @@
      ]
     },
     {
-     "id": 26,
+     "id": 20,
      "name": "read",
      "type": "",
      "x": 400,
@@ -1116,7 +1008,7 @@
      ]
     },
     {
-     "id": 27,
+     "id": 21,
      "name": "wait",
      "type": "",
      "x": 48,
@@ -1135,7 +1027,7 @@
      ]
     },
     {
-     "id": 28,
+     "id": 22,
      "name": "rest",
      "type": "",
      "x": 400,
@@ -1159,7 +1051,7 @@
      ]
     },
     {
-     "id": 29,
+     "id": 23,
      "name": "build",
      "type": "",
      "x": 432,
@@ -1178,7 +1070,7 @@
      ]
     },
     {
-     "id": 30,
+     "id": 24,
      "name": "entry",
      "type": "",
      "x": 208,

@@ -32,7 +32,8 @@ export function roomTypeFor(agent) {
 // get a placeholder box, drawn ones (belt) are animated by the renderer.
 export const PROP_ART = Object.fromEntries(
   ['desk', 'chair', 'rack', 'bookshelf', 'coffee', 'rug', 'couch', 'bass', 'amp', 'cat', 'van', 'spool', 'crate']
-    .map((n) => [n, `assets/office-01/props/${n}.png`]),
+    .map((n) => [n, `assets/office-01/props/${n}.png`])
+    .concat(['cat_box', 'rack_v2', 'armchair', 'fireplace', 'woodpile'].map((n) => [n, `assets/lodge/props/${n}.png`])),
 );
 export const FLAT_PROPS = new Set(['rug', 'belt']);
 

@@ -1,0 +1,699 @@
+{
+  "pack": "lodge-v1",
+  "set": "lodge",
+  "issue": "SOU-198",
+  "generated_from": "assets/generated/v3/lodge",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/lodge/palette.json",
+  "tileset": {
+    "path": "assets/lodge/tiles.png",
+    "tile_px": 32,
+    "columns": 16,
+    "firstgid": 1,
+    "order": [
+      "snow_a",
+      "snow_b",
+      "snow_path",
+      "corridor_floor",
+      "corridor_runner",
+      "wall_cap",
+      "wall_face",
+      "wall_base",
+      "stone_step",
+      "room_plank_a",
+      "room_plank_b",
+      "stone_floor",
+      "metal_grate",
+      "door_mat",
+      "snow_edge",
+      "snow_deep"
+    ],
+    "order_authority": "the SOU-198 ticket table (no lodge map in the tree yet)",
+    "slot_class": {
+      "snow_a": "material",
+      "snow_b": "material",
+      "snow_path": "material",
+      "corridor_floor": "material",
+      "corridor_runner": "material",
+      "wall_cap": "material",
+      "wall_face": "material",
+      "wall_base": "material",
+      "stone_step": "decal",
+      "room_plank_a": "material",
+      "room_plank_b": "material",
+      "stone_floor": "material",
+      "metal_grate": "material",
+      "door_mat": "decal",
+      "snow_edge": "decal",
+      "snow_deep": "material"
+    },
+    "slot_seam_axes": {
+      "snow_a": "xy",
+      "snow_b": "xy",
+      "snow_path": "xy",
+      "corridor_floor": "xy",
+      "corridor_runner": "x",
+      "wall_cap": "xy",
+      "wall_face": "xy",
+      "wall_base": "x",
+      "stone_step": "none",
+      "room_plank_a": "xy",
+      "room_plank_b": "xy",
+      "stone_floor": "xy",
+      "metal_grate": "xy",
+      "door_mat": "none",
+      "snow_edge": "none",
+      "snow_deep": "xy"
+    }
+  },
+  "prop_lift_for_placeholders_js": {
+    "pine_a": 64,
+    "pine_b": 96,
+    "pine_small": 32,
+    "lantern_post": 32,
+    "woodpile": 16,
+    "fireplace": 64,
+    "armchair": 16,
+    "wall_lamp": 0,
+    "window_night": 0,
+    "cat_box": 32,
+    "rack_v2": 96
+  },
+  "props": [
+    {
+      "key": "pine_a",
+      "served_path": "assets/lodge/props/pine_a.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "texture_px_actual": [
+        64,
+        96
+      ]
+    },
+    {
+      "key": "pine_b",
+      "served_path": "assets/lodge/props/pine_b.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        128
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 96,
+      "texture_px_actual": [
+        64,
+        128
+      ]
+    },
+    {
+      "key": "pine_small",
+      "served_path": "assets/lodge/props/pine_small.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        32,
+        64
+      ]
+    },
+    {
+      "key": "lantern_post",
+      "served_path": "assets/lodge/props/lantern_post.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        32,
+        64
+      ]
+    },
+    {
+      "key": "woodpile",
+      "served_path": "assets/lodge/props/woodpile.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        48
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "texture_px_actual": [
+        64,
+        48
+      ]
+    },
+    {
+      "key": "fireplace",
+      "served_path": "assets/lodge/props/fireplace.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "texture_px_actual": [
+        64,
+        96
+      ]
+    },
+    {
+      "key": "armchair",
+      "served_path": "assets/lodge/props/armchair.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        48,
+        48
+      ],
+      "footprint_px": [
+        48,
+        32
+      ],
+      "footprint_tiles": [
+        1.5,
+        1.0
+      ],
+      "lift_px": 16,
+      "texture_px_actual": [
+        48,
+        48
+      ]
+    },
+    {
+      "key": "wall_lamp",
+      "served_path": "assets/lodge/props/wall_lamp.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "texture_px_actual": [
+        32,
+        32
+      ]
+    },
+    {
+      "key": "window_night",
+      "served_path": "assets/lodge/props/window_night.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        48
+      ],
+      "footprint_px": [
+        64,
+        48
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.5
+      ],
+      "lift_px": 0,
+      "texture_px_actual": [
+        64,
+        48
+      ]
+    },
+    {
+      "key": "cat_box",
+      "served_path": "assets/lodge/props/cat_box.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        64
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        64,
+        64
+      ]
+    },
+    {
+      "key": "rack_v2",
+      "served_path": "assets/lodge/props/rack_v2.png",
+      "sprite_sheet": false,
+      "texture_px_declared": [
+        64,
+        128
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 96,
+      "texture_px_actual": [
+        64,
+        128
+      ]
+    },
+    {
+      "key": "cat_walk",
+      "served_path": "assets/lodge/props/cat_walk.png",
+      "sprite_sheet": true,
+      "sheet_px": [
+        128,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 4,
+      "order": "frames 0-3 = walk cycle, facing right (wander mirrors for left)",
+      "texture_px_actual": [
+        128,
+        32
+      ]
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/lodge/tiles.png",
+      "source": "assets/generated/v3/lodge/tiles/tileset.png",
+      "sha256": "5f60767fc64d4acb2e3c66d6d0ea7eb6a57023af98e56dd5cc190480143c5306",
+      "bytes": 2175
+    },
+    {
+      "served_path": "assets/lodge/tiles.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/tileset.png.manifest.json",
+      "sha256": "51b17d3970878f19bb5a13344fbb20865a16862f52812322a92896490ebe0313",
+      "bytes": 3079
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_a.png",
+      "source": "assets/generated/v3/lodge/tiles/snow_a.png",
+      "sha256": "2b9ce0bb3a6e48d9589b66211c06a6c28b39c98b363267176373accf7167f586",
+      "bytes": 285
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_a.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/snow_a.png.manifest.json",
+      "sha256": "cfed7b273f47b82aed0e4a69994c5ef22b7b16a32b1d329eb7150d0d70741978",
+      "bytes": 4197
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_b.png",
+      "source": "assets/generated/v3/lodge/tiles/snow_b.png",
+      "sha256": "10ab872130a95a3d16110310a61bbb3fc6b06839e85810143074a2ed31d450ba",
+      "bytes": 305
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_b.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/snow_b.png.manifest.json",
+      "sha256": "c79cae88433cbca6176197427b7038748d468238c373d379e44cc3db38bcc5ec",
+      "bytes": 1924
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_path.png",
+      "source": "assets/generated/v3/lodge/tiles/snow_path.png",
+      "sha256": "9cf31affe8aff6847d50bea093fcc28ed7f939746b2be6d227492209ea9cde9b",
+      "bytes": 260
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_path.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/snow_path.png.manifest.json",
+      "sha256": "5eb293a350471513ee023e2c5a9d0c4c827b69258222814324ebb1968268ac00",
+      "bytes": 1933
+    },
+    {
+      "served_path": "assets/lodge/tiles/corridor_floor.png",
+      "source": "assets/generated/v3/lodge/tiles/corridor_floor.png",
+      "sha256": "49d00e127a19da62ef608764c885c1f9b70cf252bc911b67bdf762be7040d358",
+      "bytes": 207
+    },
+    {
+      "served_path": "assets/lodge/tiles/corridor_floor.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/corridor_floor.png.manifest.json",
+      "sha256": "ae3df78af46787c121b70ca4cf6d8700c966e6ac913a610db42e2bac717879ef",
+      "bytes": 4239
+    },
+    {
+      "served_path": "assets/lodge/tiles/corridor_runner.png",
+      "source": "assets/generated/v3/lodge/tiles/corridor_runner.png",
+      "sha256": "44fb944f7b427c95a4966c6431a7b144e0db2d2a0c97dd2a4e5c64c18ae49762",
+      "bytes": 205
+    },
+    {
+      "served_path": "assets/lodge/tiles/corridor_runner.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/corridor_runner.png.manifest.json",
+      "sha256": "ced770191efaeea5b6e69b60f73678f3fd2b6950285ed69e0c683a12ecf92574",
+      "bytes": 1952
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_cap.png",
+      "source": "assets/generated/v3/lodge/tiles/wall_cap.png",
+      "sha256": "4ec3c48901fdc81728fc392c0fb654d6fc9049aba56fcc0801888b3955d2e308",
+      "bytes": 120
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_cap.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/wall_cap.png.manifest.json",
+      "sha256": "d3388b0ab744f414121964d73122c6340b0ba33c5bc7aaea31e30fc388324f3b",
+      "bytes": 1932
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_face.png",
+      "source": "assets/generated/v3/lodge/tiles/wall_face.png",
+      "sha256": "a3a46fc8b4f7dcc0344ee9c1981c95688a23e8a31efa51db9cb4fdda56421e1c",
+      "bytes": 164
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_face.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/wall_face.png.manifest.json",
+      "sha256": "914e21c913905cc65c95091a0a3ffb4d51b746272bf02207819c1e6af60e450d",
+      "bytes": 1937
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_base.png",
+      "source": "assets/generated/v3/lodge/tiles/wall_base.png",
+      "sha256": "3c5bb4d99cd0251db46f2543dbb6c06ced6be816496bb38217cef0b467269853",
+      "bytes": 169
+    },
+    {
+      "served_path": "assets/lodge/tiles/wall_base.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/wall_base.png.manifest.json",
+      "sha256": "5b6dd3631a4c4f18e644cd695f77cf4c6d79b5464e61327a9be11262e9aedd15",
+      "bytes": 1936
+    },
+    {
+      "served_path": "assets/lodge/tiles/stone_step.png",
+      "source": "assets/generated/v3/lodge/tiles/stone_step.png",
+      "sha256": "1a320e7993fbce8ea4760c59c4a1f3c89dc0424a0a747d8e546f745061f7a726",
+      "bytes": 216
+    },
+    {
+      "served_path": "assets/lodge/tiles/stone_step.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/stone_step.png.manifest.json",
+      "sha256": "b9f0bafc273961c4a81185e14ccecf23a6bd8eb29fda2b9e2d11bf6643e89c1f",
+      "bytes": 1941
+    },
+    {
+      "served_path": "assets/lodge/tiles/room_plank_a.png",
+      "source": "assets/generated/v3/lodge/tiles/room_plank_a.png",
+      "sha256": "177194258598c972e978424d1e9e69be3e97ff9f7fdee28e3cdadee41b70f23e",
+      "bytes": 199
+    },
+    {
+      "served_path": "assets/lodge/tiles/room_plank_a.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/room_plank_a.png.manifest.json",
+      "sha256": "17c1a27dd717034924f4a71d3c1e0dd763ad5d9a624f3bd331f2b0b35e129f9d",
+      "bytes": 1946
+    },
+    {
+      "served_path": "assets/lodge/tiles/room_plank_b.png",
+      "source": "assets/generated/v3/lodge/tiles/room_plank_b.png",
+      "sha256": "ad2679974842a75ad7fbd658de4b1dead03acfd4aa77c426fc6c156e1f10561a",
+      "bytes": 199
+    },
+    {
+      "served_path": "assets/lodge/tiles/room_plank_b.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/room_plank_b.png.manifest.json",
+      "sha256": "fb9203dbf369c32381e16066dcdcb7cb0df71119bb318f96bc4c55aaf778f408",
+      "bytes": 1947
+    },
+    {
+      "served_path": "assets/lodge/tiles/stone_floor.png",
+      "source": "assets/generated/v3/lodge/tiles/stone_floor.png",
+      "sha256": "f53b985942d0b0e06f7354fb1f4860798860c067597ed40ed622cebfde9fbf4a",
+      "bytes": 268
+    },
+    {
+      "served_path": "assets/lodge/tiles/stone_floor.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/stone_floor.png.manifest.json",
+      "sha256": "7379b3314e43ea9ed0584cd4249fc694dfa8b80c209b04989049bc5df919b730",
+      "bytes": 4221
+    },
+    {
+      "served_path": "assets/lodge/tiles/metal_grate.png",
+      "source": "assets/generated/v3/lodge/tiles/metal_grate.png",
+      "sha256": "2b5a58f1b8a5c522fcc75b66e36376b2d9a956f2f0481ce10467fa684b75d84a",
+      "bytes": 239
+    },
+    {
+      "served_path": "assets/lodge/tiles/metal_grate.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/metal_grate.png.manifest.json",
+      "sha256": "7fd5e7c1026e04363ea05a5353e4c84f8d1335327a4fd978e437396e30f9b871",
+      "bytes": 4295
+    },
+    {
+      "served_path": "assets/lodge/tiles/door_mat.png",
+      "source": "assets/generated/v3/lodge/tiles/door_mat.png",
+      "sha256": "98a7fa645a36f3a81291a6ec2064075aa761a5f38d4add11f6801694f79d5139",
+      "bytes": 223
+    },
+    {
+      "served_path": "assets/lodge/tiles/door_mat.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/door_mat.png.manifest.json",
+      "sha256": "25fa1ca38b41359b6b2b3f5d1cebcead3a2efbbdcb27f5ff7f179e18387db283",
+      "bytes": 1932
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_edge.png",
+      "source": "assets/generated/v3/lodge/tiles/snow_edge.png",
+      "sha256": "c1fd839669d5d75a48caf892d1be784f3e3ae659ea9d58c9a65e5102f2aa2420",
+      "bytes": 331
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_edge.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/snow_edge.png.manifest.json",
+      "sha256": "1a144bb154ae7daf8a3ec1a2ce7fd787f1b0e458078f807d2b0bde7e79bf98a7",
+      "bytes": 1943
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_deep.png",
+      "source": "assets/generated/v3/lodge/tiles/snow_deep.png",
+      "sha256": "17125d46a7e5f34f8b7009e8fa21322744182326b7f6c7b38423c3b53f573871",
+      "bytes": 283
+    },
+    {
+      "served_path": "assets/lodge/tiles/snow_deep.png.manifest.json",
+      "source": "assets/generated/v3/lodge/tiles/snow_deep.png.manifest.json",
+      "sha256": "53dd26853a0c58a178c8c2935c50675b33314cc8200e46094b224d2810dff673",
+      "bytes": 2033
+    },
+    {
+      "served_path": "assets/lodge/props/pine_a.png",
+      "source": "assets/generated/v3/lodge/props/pine_a.png",
+      "sha256": "ddb1c0b27df55b02ffb57f584fb99d5e7e5981808de870390ddae2185f6924e7",
+      "bytes": 3257
+    },
+    {
+      "served_path": "assets/lodge/props/pine_a.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/pine_a.png.manifest.json",
+      "sha256": "efa495a2aa13944c43ad794a1da952291040f052149b13b593c5974999eda772",
+      "bytes": 4704
+    },
+    {
+      "served_path": "assets/lodge/props/pine_b.png",
+      "source": "assets/generated/v3/lodge/props/pine_b.png",
+      "sha256": "034a37566c5fb919506599ff190705525d96e24d66033cecd974b2c06b411917",
+      "bytes": 3536
+    },
+    {
+      "served_path": "assets/lodge/props/pine_b.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/pine_b.png.manifest.json",
+      "sha256": "3ca0c2875b6eac9e20cd93bcd2a5962ed8a3abf6bd89dee782f0d21c96d4d706",
+      "bytes": 4652
+    },
+    {
+      "served_path": "assets/lodge/props/pine_small.png",
+      "source": "assets/generated/v3/lodge/props/pine_small.png",
+      "sha256": "4d9a65b04144fe6dc40361d6ea83aad13c24cd9032df7d7223ce42ebb569a77e",
+      "bytes": 1896
+    },
+    {
+      "served_path": "assets/lodge/props/pine_small.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/pine_small.png.manifest.json",
+      "sha256": "e919cfb23e55846257c234dcf4fc821cbdeb0107456e548e9434b0d5fc8e686c",
+      "bytes": 4527
+    },
+    {
+      "served_path": "assets/lodge/props/lantern_post.png",
+      "source": "assets/generated/v3/lodge/props/lantern_post.png",
+      "sha256": "2b28096eeeb25cc556a36fcc7bd29b6596c4666ba11eed9bf0e7ca8edac149aa",
+      "bytes": 811
+    },
+    {
+      "served_path": "assets/lodge/props/lantern_post.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/lantern_post.png.manifest.json",
+      "sha256": "dec19e2060662233266c56a3c6298faf81b0e93dc98ad07d8960cdf6e31826cc",
+      "bytes": 4652
+    },
+    {
+      "served_path": "assets/lodge/props/woodpile.png",
+      "source": "assets/generated/v3/lodge/props/woodpile.png",
+      "sha256": "8164c9ae4cad61f0d8c4cb16a9c7883cb7d6d6995fcf9a1a389c51cb516054df",
+      "bytes": 3233
+    },
+    {
+      "served_path": "assets/lodge/props/woodpile.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/woodpile.png.manifest.json",
+      "sha256": "c46590854a2d73c758b3e27a53d6671bb33ef1dbb9b0fa4cf3c1bfeb350d616b",
+      "bytes": 4592
+    },
+    {
+      "served_path": "assets/lodge/props/fireplace.png",
+      "source": "assets/generated/v3/lodge/props/fireplace.png",
+      "sha256": "656e871d53fa012958d576cc5beeb36ba02d4748585a68f72107d5eb5ad9350b",
+      "bytes": 2856
+    },
+    {
+      "served_path": "assets/lodge/props/fireplace.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/fireplace.png.manifest.json",
+      "sha256": "ffa986bb2b107f656e0acea4c74677f76848bc6e0ef9d2926285ae3d4439366d",
+      "bytes": 4653
+    },
+    {
+      "served_path": "assets/lodge/props/armchair.png",
+      "source": "assets/generated/v3/lodge/props/armchair.png",
+      "sha256": "f530d8fa2e7b9c69e9f3cabc6a8c7b454623246a1ae019f7dd71dea9df58e17c",
+      "bytes": 2004
+    },
+    {
+      "served_path": "assets/lodge/props/armchair.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/armchair.png.manifest.json",
+      "sha256": "d85f839c616a17f71944be31bd1642544ba1771a3a14c82aad47065a0d3563b6",
+      "bytes": 4580
+    },
+    {
+      "served_path": "assets/lodge/props/wall_lamp.png",
+      "source": "assets/generated/v3/lodge/props/wall_lamp.png",
+      "sha256": "ac5e21a7275af21e658ce69bdd5d1aa897e68f8502a10e590f3c6fdf74b6645f",
+      "bytes": 733
+    },
+    {
+      "served_path": "assets/lodge/props/wall_lamp.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/wall_lamp.png.manifest.json",
+      "sha256": "e47c941da4a49ad22af10a6f340947dc671e9541ad117dc41092d8fa8055b1c0",
+      "bytes": 4679
+    },
+    {
+      "served_path": "assets/lodge/props/window_night.png",
+      "source": "assets/generated/v3/lodge/props/window_night.png",
+      "sha256": "95d988f1dd7a1f82424d5c4875c2e9b0884c7e7715968e66bbb4f5d8418b33b5",
+      "bytes": 2876
+    },
+    {
+      "served_path": "assets/lodge/props/window_night.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/window_night.png.manifest.json",
+      "sha256": "8ead520aef790bf59a92a6d42b5d159b87460d7210151a9a8736fe45269f8cc3",
+      "bytes": 4694
+    },
+    {
+      "served_path": "assets/lodge/props/cat_box.png",
+      "source": "assets/generated/v3/lodge/props/cat_box.png",
+      "sha256": "ce347ffc365ba24573e9abec6a25cc7ef10b5384bfeec75199e26204659dfdbe",
+      "bytes": 2788
+    },
+    {
+      "served_path": "assets/lodge/props/cat_box.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/cat_box.png.manifest.json",
+      "sha256": "c9c64d09c33318387aee31a95b5babf70f90ab3b359be68ca368fbfac49e12ec",
+      "bytes": 4929
+    },
+    {
+      "served_path": "assets/lodge/props/rack_v2.png",
+      "source": "assets/generated/v3/lodge/props/rack_v2.png",
+      "sha256": "03871c5b02933c2642bc3d95444829c804524e109a4b45fe464eca4cb4ebb923",
+      "bytes": 7042
+    },
+    {
+      "served_path": "assets/lodge/props/rack_v2.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/rack_v2.png.manifest.json",
+      "sha256": "90c2bf280fb5e0ff2f13416fb7d2f4445892d85de2a11c8d3f3c76cec9a970e9",
+      "bytes": 4967
+    },
+    {
+      "served_path": "assets/lodge/props/cat_walk.png",
+      "source": "assets/generated/v3/lodge/props/cat_walk.png",
+      "sha256": "9b34e1bf584830e886c8bc72353bfd7b88f4ac826d7319db6eff76119f5fa1d7",
+      "bytes": 1199
+    },
+    {
+      "served_path": "assets/lodge/props/cat_walk.png.manifest.json",
+      "source": "assets/generated/v3/lodge/props/cat_walk.png.manifest.json",
+      "sha256": "e43369f5c0dc360fdbd437a6534ac01744e643be5aaa65239ad77022ba5f1ac2",
+      "bytes": 5195
+    }
+  ],
+  "created_at": "2026-10-16T18:23:50.801259+00:00",
+  "note": "texture_px_actual is measured from the published file; where it differs from texture_px_declared the canvas grew because the silhouette is taller than the placeholder box (width is the contract - the renderer draws the prop at the footprint width)."
+}

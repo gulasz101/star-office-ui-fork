@@ -1,0 +1,140 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a wide log-framed window seen from inside at night: a chunky honey-brown log frame around a glass pane that shows a snowy pine forest under a deep blue starry night sky. Wider than it is tall, and the frame fills the whole image. Single object, centred, nothing else in frame. The object's bounding box is wider than it is tall. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Cosy log-cabin lodge at night: honey-brown timber, warm amber lamplight coming from the top-left, deep blue night shadows, teal-green and orange LED accents. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 19968,
+  "source_file": "window_night.raw.png",
+  "output_file": "props/window_night.png",
+  "output_dims": [
+    64,
+    48
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T18:23:38.310116+00:00",
+  "asset_key": "window_night",
+  "kind": "prop",
+  "set": "lodge",
+  "view": "top-down 3/4",
+  "footprint_tiles": [
+    2.0,
+    1.5
+  ],
+  "footprint_px": [
+    64,
+    48
+  ],
+  "texture_px": [
+    64,
+    48
+  ],
+  "declared_px": [
+    64,
+    48
+  ],
+  "lift_px": 0,
+  "fit_mode": "inside",
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5,1)",
+  "key_colour": [
+    34,
+    46,
+    90,
+    255
+  ],
+  "fit": {
+    "content_px": [
+      556,
+      455
+    ],
+    "fitted_px": [
+      59,
+      48
+    ],
+    "canvas_px": [
+      64,
+      48
+    ],
+    "declared_px": [
+      64,
+      48
+    ],
+    "scale": 0.1055,
+    "fitted_by": "height",
+    "overhang_px": 0,
+    "offset": [
+      2,
+      0
+    ]
+  },
+  "generation_mode": "text-only generation",
+  "content_bottom_row": 47,
+  "base_row_coverage": 0.523,
+  "colours": 34,
+  "off_palette": [],
+  "note": "wall decal: mounted on the back wall, no floor footprint"
+}

@@ -94,11 +94,11 @@ DEGRADED = {
     b'{"hook_event_name":"PostToolUse","tool_name":"Edit","tool_input":null}':
         ("tool_call", {"tool": "Edit", "status": "ok"}),
     b'{"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":"ls"}':
-        ("tool_call", {"tool": "Bash", "status": "ok"}),
+        ("command_run", {"tool": "Bash", "command": "shell", "status": "ok"}),
     b'{"hook_event_name":"SessionStart","cwd":7,"source":"startup"}':
         ("session_start", {"source": "startup"}),
     b'{"hook_event_name":"SessionStart","session_id":"s"}':
-        ("session_start", {}),
+        ("session_start", {"session_id": "s"}),
     b'{"hook_event_name":"PreToolUse","session_id":"s","tool_name":"Grep","tool_input":{}}':
         ("tool_call", {"tool": "Grep", "status": "started", "session_id": "s"}),
 }

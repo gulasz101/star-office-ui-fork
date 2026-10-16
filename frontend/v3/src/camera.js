@@ -91,6 +91,7 @@ export class CameraRig {
   overview(instant = false) {
     this.mode = 'overview';
     this.focused = null;
+    this.scene.events.emit('room-focus', null);
     const b = this.building.bounds;
     this.fly(b, this.fitZoom(b), instant);
   }
@@ -98,6 +99,7 @@ export class CameraRig {
   focus(office, instant = false) {
     this.mode = 'focus';
     this.focused = office;
+    this.scene.events.emit('room-focus', office);
     const r = office.bounds;
     // the room plus its doorway and name plate
     const rect = new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height + TILE * 1.5);

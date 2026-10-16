@@ -10,12 +10,29 @@
     #caption { position: fixed; left: 0; right: 0; top: 18px; text-align: center; font: 14px monospace;
       color: #f4ead2; text-shadow: 0 0 6px #000, 0 1px 0 #000; letter-spacing: 1px; pointer-events: none;
       opacity: 0; transition: opacity 1.2s; }
+    #card { position: fixed; right: 14px; top: 14px; width: 330px; max-width: calc(100vw - 28px);
+      background: #2a1c12ee; border: 3px solid #6b4428; box-shadow: 0 0 0 2px #120a06, 0 6px 24px #0008;
+      color: #f4ead2; font: 11px/1.45 monospace; padding: 10px 12px; pointer-events: none;
+      opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; }
+    #card.open { opacity: 1; transform: none; }
+    .card-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #6b4428;
+      padding-bottom: 5px; margin-bottom: 6px; }
+    .card-name { font-size: 14px; color: #ffcf7a; }
+    .card-room { color: #c9a77c; }
+    .card-label, .card-seen, .card-hint, .card-time, .card-empty { color: #a88d6c; }
+    .card-now { margin-bottom: 2px; }
+    .card-events { list-style: none; margin: 8px 0 6px; padding: 0; }
+    .card-events li { display: grid; grid-template-columns: 62px 96px 1fr; gap: 6px; white-space: nowrap; overflow: hidden; }
+    .card-type { color: #7fd8c0; overflow: hidden; text-overflow: ellipsis; }
+    .card-what { overflow: hidden; text-overflow: ellipsis; }
+    .card-hint { border-top: 1px solid #6b4428; padding-top: 5px; font-size: 10px; }
     #hud { position: fixed; left: 8px; bottom: 6px; font: 11px monospace; color: #8a8fa3; pointer-events: none; }
   </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="caption"></div>
+  <div id="card"></div>
   <div id="hud">v3 · <span id="status">starting…</span> · drag/WASD pan · wheel/± zoom · click a room · F next room · Esc overview · G grid</div>
   <script src="vendor/phaser-4.2.1.min.js"></script>
   <script type="module" src="src/main.js"></script>

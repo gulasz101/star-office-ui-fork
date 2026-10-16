@@ -89,8 +89,8 @@
       "id": "cat",
       "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself",
       "grid": [
-        5,
-        8
+        0,
+        15
       ],
       "tiles": 0.703,
       "personal": "owns two cats",
@@ -102,8 +102,8 @@
       "id": "jdm_van",
       "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo",
       "grid": [
-        2,
-        8
+        6,
+        15
       ],
       "tiles": 5.682,
       "personal": "30-year-old Mazda MPV",

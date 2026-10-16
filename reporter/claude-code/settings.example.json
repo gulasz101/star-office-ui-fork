@@ -1,0 +1,96 @@
+{
+  "$comment": "Claude Code hooks wiring for the Star Office UI reporter (SOU-157). Copy the \"hooks\" block into ~/.claude/settings.json (every project, local to the machine) or .claude/settings.json (this project, committable). Hook entries merge across settings levels rather than replacing each other, so install it in ONE place or every event is sent twice. ${CLAUDE_PROJECT_DIR} resolves to the project root the session started in; for a user-level install replace it with the absolute path of this checkout. See README.md.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5,
+            "statusMessage": "reporting session start to the office"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/reporter/claude-code/star_office_hook.py"],
+            "timeout": 5,
+            "statusMessage": "signing the agent off in the office"
+          }
+        ]
+      }
+    ]
+  }
+}

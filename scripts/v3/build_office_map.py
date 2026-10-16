@@ -82,7 +82,10 @@ def build_layers():
                 if x >= GARAGE_X0:
                     floor[y][x] = GID["garage_stripe"] if y == 8 and x == GARAGE_X0 else GID["garage_concrete"]
                 else:
-                    floor[y][x] = GID["floor_wood_a"] if (x + y) % 2 else GID["floor_wood_b"]
+                    # plank A everywhere: a checkerboard of A/B read as a chessboard and a
+                    # sprinkle of the darker B read as stains (SOU-158 review). B stays in
+                    # the tileset for hand-placed accents in Tiled.
+                    floor[y][x] = GID["floor_wood_a"]
     # back wall: cap on row 0, face rows 1..2 (top-down 3/4 shows the wall front)
     for x in range(W):
         walls[0][x] = GID["wall_cap"]

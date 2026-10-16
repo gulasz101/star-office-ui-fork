@@ -42,12 +42,13 @@ next to each other) comes after M1 is accepted by the owner.
 | Event feed | `GET /events/recent?agent=&event_type=&since=&limit=` | Keep. Newest first. |
 | **v3 renderer** | `frontend/v3/` — Phaser **4.2.1**, served by Flask | **New, all new frontend work goes here.** |
 | v1 renderer | `frontend/index.html`, `frontend/game.js`, `layout.js`, `nav.js` | Legacy upstream code. Do not extend. Deleted once v3 reaches parity. |
-| Reporters | `reporter/` (OpenChamber/OpenCode), Hermes plugin `gulasz101/hermes-star-office-reporter` | Keep, add more (Claude Code hooks). |
+| Reporters | `reporter/` (OpenChamber/OpenCode), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`) | Keep, add more. |
 | Art pipeline | FLUX.2-klein-4B on the M1 Max (MPS), pixelize post-process | Keep. Mac-side only. |
 
 Event types in use (non-normative, new ones are allowed without a schema change):
 `session_start`, `session_end`, `tool_call`, `file_edit`, `command_run`,
-`code_completion`, `state_change`, `itsaplan_issue_transition`.
+`code_completion`, `state_change`, `itsaplan_issue_transition`, `background_start`,
+`background_end` (background tasks / subagents, shown as helpers in the room).
 
 ### v3 conventions
 

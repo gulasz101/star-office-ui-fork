@@ -1,3 +1,8 @@
+> **Superseded (SOU-210):** install the Claude Code plugin instead —
+> [`gulasz101/claude-code-star-office-reporter`](https://github.com/gulasz101/claude-code-star-office-reporter)
+> (`/plugin marketplace add gulasz101/claude-code-star-office-reporter`). It ships this hook plus
+> background-task and subagent events. This copy stays for its tests and history.
+
 # claude-code — Claude Code hooks reporter for Star Office UI
 
 A [Claude Code](https://docs.claude.com/en/docs/claude-code/hooks) **command hook**

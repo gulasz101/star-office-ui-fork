@@ -9,6 +9,7 @@ import { FLAT_PROPS, hoodieFor } from './rooms.js';
 import { swapHoodie } from './palette.js';
 import { ROOM_W } from './world.js';
 import { lightRoom, roomShade } from './ambience.js';
+import { Helpers } from './helpers.js';
 
 // even with the lights on it's night: a light dusk over the room makes the lamp pools read
 const DIM = 0.16;
@@ -63,6 +64,7 @@ export class OfficeModule {
       path: (from, to) => world.path(from, to),
     };
     this.character = this._createCharacter(color, arrive ? world.spawn : this.nav.zones.entry);
+    this.helpers = new Helpers(this);
     this.glows = lightRoom(scene, this);
     this.shade = roomShade(scene, this).setAlpha(DIM);
     this.lightsOn = true;

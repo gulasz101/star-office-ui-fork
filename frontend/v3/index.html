@@ -26,6 +26,18 @@
     .card-type { color: #7fd8c0; overflow: hidden; text-overflow: ellipsis; }
     .card-what { overflow: hidden; text-overflow: ellipsis; }
     .card-hint { border-top: 1px solid #6b4428; padding-top: 5px; font-size: 10px; }
+    #roster { position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; display: flex; gap: 6px;
+      flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 24px); }
+    .chip { display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 6px; cursor: pointer;
+      background: #2a1c12e6; border: 2px solid #6b4428; color: #f4ead2; font: 11px monospace;
+      box-shadow: 0 0 0 1px #120a06; }
+    .chip:hover { border-color: #b8864e; }
+    .chip.focused { border-color: #ffcf7a; background: #3a2616f0; }
+    .chip .swatch { width: 10px; height: 10px; box-shadow: 0 0 0 1px #120a06; }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: #a88d6c; }
+    .chip[data-status="working"] .dot { background: #7cff6a; box-shadow: 0 0 6px #7cff6a; }
+    .chip[data-status="idle"] .dot { background: #ffb35a; }
+    .chip[data-status="asleep"] .dot { background: #6a7fb8; }
     #hud { position: fixed; left: 8px; bottom: 6px; font: 11px monospace; color: #8a8fa3; pointer-events: none; }
   </style>
 </head>
@@ -33,6 +45,7 @@
   <div id="game"></div>
   <div id="caption"></div>
   <div id="card"></div>
+  <div id="roster"></div>
   <div id="hud">v3 · <span id="status">starting…</span> · drag/WASD pan · wheel/± zoom · click a room · F next room · Esc overview · G grid</div>
   <script>
     // a touchpad pinch arrives as ctrl+wheel: keep it for the camera, not the browser's page zoom

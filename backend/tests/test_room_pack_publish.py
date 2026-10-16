@@ -297,20 +297,40 @@ class SchemaTwoCoexistenceTests(unittest.TestCase):
         The publisher must (a) not try to normalize a schema-2 pack, (b) keep
         the served entry and files of that agent byte-identical, and (c) stay
         idempotent - a second run changes nothing in the served tree.
+
+        SOU-137 states (b) for both serving modes on this base: a LIVE
+        ``index.json`` keeps its entries byte-for-byte; a DISABLED one
+        (renamed to ``index.json.disabled`` at 1fa3cfb "so the office renders
+        while v2 lands") must STAY absent - the publisher may not resurrect
+        it from a schema-2 pack, not even as an empty index.
         """
         v2 = self.v2
         index_path = os.path.join(SERVED, "index.json")
-        with open(index_path) as fh:
-            index_before = json.load(fh)
+        disabled_path = os.path.join(SERVED, "index.json.disabled")
+        live = os.path.exists(index_path)
+        if not live and not os.path.exists(disabled_path):
+            self.skipTest("no served index (live or disabled) on this tree")
+        index_before = json.load(open(index_path)) if live else None
+
         room_shas = {}
         for agent in v2:
             served_room = os.path.join(SERVED, agent, "room.json")
             if not os.path.exists(served_room):
                 self.skipTest(f"{agent} is schema 2 but has no served v1 copy")
             room_shas[agent] = _sha(served_room)
-            self.assertIn(agent, index_before["rooms"],
-                          f"{agent}: a served entry must be carried over, not dropped")
+            if live:
+                self.assertIn(agent, index_before["rooms"],
+                              f"{agent}: a served entry must be carried over, not dropped")
 
+        def served_tree():
+            tree = {}
+            for root, _dirs, files in os.walk(SERVED):
+                for f in files:
+                    p = os.path.join(root, f)
+                    tree[p] = _sha(p)
+            return tree
+
+        tree_before = served_tree()
         proc = _run_publisher()
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("schema 2", proc.stdout,
@@ -318,10 +338,16 @@ class SchemaTwoCoexistenceTests(unittest.TestCase):
         for agent, sha_before in room_shas.items():
             self.assertEqual(_sha(os.path.join(SERVED, agent, "room.json")), sha_before,
                              f"{agent}: v1 served room.json was rewritten")
-        with open(index_path) as fh:
-            index_after = json.load(fh)
-        self.assertEqual(index_before, index_after,
-                         "carried-over v1 index entries must survive byte-for-byte")
+        if live:
+            with open(index_path) as fh:
+                self.assertEqual(index_before, json.load(fh),
+                                 "carried-over v1 index entries must survive byte-for-byte")
+        else:
+            self.assertFalse(os.path.exists(index_path),
+                             "the publisher must not recreate the disabled served index "
+                             "from a schema-2 pack (1fa3cfb: office renders while v2 lands)")
+        self.assertEqual(tree_before, served_tree(),
+                         "the served tree is byte-stable across the run (idempotent, non-mutating)")
 
         check = _run_publisher(extra_args=["--check"])
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)

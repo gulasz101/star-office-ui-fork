@@ -136,8 +136,20 @@ class LoaderParityTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def _served_rooms_or_skip(self):
+        """SOU-137: the v1 room pack is deliberately disabled on the
+        sou-flux-art-pipeline base (``frontend/rooms/index.json`` renamed to
+        ``index.json.disabled`` at 1fa3cfb, "so the office renders while v2
+        lands").  With nothing served there is no drift to catch - skip.  An
+        index that EXISTS but maps no room is still the old tripwire (fail)."""
+        if self.index is None:
+            raise unittest.SkipTest(
+                "v1 room pack disabled on this base (index.json.disabled); "
+                "parity has no served room to check")
+
     def test_grid_to_screen_parity_for_every_published_anchor(self):
         """AC3: anchor = grid_to_screen(gx+0.5, gy+0.5) on the room's OWN floor."""
+        self._served_rooms_or_skip()
         self.assertTrue(self.rooms, "no published room to test (run publish_room.py)")
         anchor_calls, expected = [], []
         for agent, room in self.rooms.items():
@@ -161,6 +173,7 @@ class LoaderParityTests(unittest.TestCase):
     def test_prop_plan_matches_pillow_semantics(self):
         """width = target_tiles * tile_w preserved-aspect, NEVER upscale, int
         truncation (exactly scripts/finish_room_props.py: s = min(want/w, 1.0))."""
+        self._served_rooms_or_skip()
         plans, expected = [], []
         for agent, room in self.rooms.items():
             tile_w = room["floor"]["tile_w"]

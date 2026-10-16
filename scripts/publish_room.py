@@ -220,7 +220,14 @@ def main(argv):
             }
         drift = []
         idx_path = SERVED / "index.json"
-        if not idx_path.exists() or json.loads(idx_path.read_text()) != expected_index:
+        if not idx_path.exists():
+            # SOU-137: the served index may be deliberately DISABLED (at
+            # sou-flux-art-pipeline 1fa3cfb it was renamed to
+            # index.json.disabled so the office renders while v2 lands).
+            # Absent index + nothing publishable is a coherent state, not drift.
+            if agents or expected_index["rooms"]:
+                drift.append("index.json")
+        elif json.loads(idx_path.read_text()) != expected_index:
             drift.append("index.json")
         for agent in agents:
             want = normalize_room(json.loads((GEN / agent / "room.json").read_text()))
@@ -248,6 +255,14 @@ def main(argv):
         kept = "carried over" if agent in entries else "not published"
         print(f"   skipped {agent}: schema 2 (renderer v2) has no v1 served "
               f"contract until SOU-128 - entry {kept}")
+    if not entries and not (SERVED / "index.json").exists():
+        # SOU-137: nothing to serve and no live index - do NOT create one.
+        # Writing an empty index here would resurrect the served state that
+        # sou-flux-art-pipeline 1fa3cfb deliberately disabled (the office
+        # renders while v2 lands) and re-arm the loader with zero rooms.
+        print("publish_room: served index absent/disabled and no schema-1 pack; "
+              "index.json NOT written")
+        return 0
     build_index(entries)
     print(f"publish_room: /static/rooms/index.json lists {len(entries)} room(s)")
     return 0

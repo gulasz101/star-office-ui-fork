@@ -76,7 +76,12 @@ function assertTriple(triple, ctx = '') {
   for (const banned of ['/', '\\', '..', '--', 'Bearer', 'bearer', '"', "'"]) {
     assert.ok(!bubble.includes(banned), `${ctx}: bubble ${JSON.stringify(bubble)} leaks ${JSON.stringify(banned)}`);
   }
-  assert.ok(!/token/i.test(bubble), `${ctx}: bubble ${JSON.stringify(bubble)} looks like a token leak`);
+  // token VALUES must never appear; a file merely named tokens.py is a legal
+  // basename bubble, so flag assignment shapes (?token=, token:, token=) only.
+  assert.ok(
+    !/[?&\s]token\s*[:=]|^token\s*[:=]/i.test(bubble),
+    `${ctx}: bubble ${JSON.stringify(bubble)} looks like a token assignment leak`,
+  );
 }
 
 test('invariant sanity: the checker itself rejects bad triples', () => {
@@ -345,7 +350,7 @@ for (const c of COMMAND_CASES) {
 const PRIVACY_CASES = [
   {
     name: 'bearer token never reaches the bubble',
-    event: ev('command_run', { command: 'curl -s -H "Authorization: Bearer abc123XYZ" https://api.voitech.dev/secrets' }),
+    event: ev('command_run', { command: 'curl -s -H "Authorization: Bearer abc123XYZ" https://api.voitech.dev/secrets' }), // gitleaks:allow synthetic privacy canary, not a credential
     bubble: '$ curl',
   },
   {
@@ -377,7 +382,7 @@ const PRIVACY_CASES = [
   },
   {
     name: 'grep pattern is never shown',
-    event: toolCall('Grep', { pattern: 'api_key="sk-live-abcdef123456"' }),
+    event: toolCall('Grep', { pattern: 'api_key="sk-live-abcdef123456"' }), // gitleaks:allow fake key shape; proves the pattern never reaches the bubble
     bubble: 'searching files',
   },
   {

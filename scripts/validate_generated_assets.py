@@ -308,10 +308,18 @@ def check_file(
     return findings, warnings
 
 
+# v3 art (assets/generated/v3/...) follows the v3 renderer's own contract and has its own
+# gate, scripts/v3/check_v3_assets.py. This validator checks the legacy v1 contract only.
+V3_SUBTREE = "v3"
+
+
 def walk_images(root: str) -> list[str]:
     found = []
     for directory, subdirectories, names in os.walk(root):
-        subdirectories[:] = sorted(d for d in subdirectories if not d.startswith("."))
+        top = os.path.normpath(directory) == os.path.normpath(root)
+        subdirectories[:] = sorted(
+            d for d in subdirectories if not d.startswith(".") and not (top and d == V3_SUBTREE)
+        )
         for name in sorted(names):
             if name.startswith("."):
                 continue

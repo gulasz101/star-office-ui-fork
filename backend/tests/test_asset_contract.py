@@ -642,6 +642,15 @@ class ValidatorTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
         self.assertIn("no packs yet", proc.stdout.lower())
 
+    def test_v3_subtree_is_left_to_the_v3_gate(self) -> None:
+        root = os.path.join(self.workdir, "with-v3")
+        os.makedirs(os.path.join(root, "v3", "office-01", "props"), exist_ok=True)
+        from PIL import Image
+        Image.new("RGBA", (96, 168)).save(os.path.join(root, "v3", "office-01", "props", "van.png"))
+        proc = self._validate(root)
+        self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
+        self.assertIn("no packs yet", proc.stdout.lower())
+
     def test_wrong_dimensions_fail(self) -> None:
         pack = os.path.join(self.workdir, "bad-dims")
         os.makedirs(pack, exist_ok=True)

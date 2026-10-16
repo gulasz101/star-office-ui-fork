@@ -3,6 +3,7 @@ import { Building } from './building.js';
 import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
 import { snowfall, CorridorCat } from './ambience.js';
+import { RoomCard } from './card.js';
 import { ROOM_TYPES, PROP_ART } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
@@ -49,6 +50,8 @@ class OfficeScene extends Phaser.Scene {
     this.building = new Building(this);
     for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 
+    this.card = new RoomCard();
+    this.events.on('room-focus', (o) => (o ? this.card.show(o) : this.card.hide()));
     this.rig = new CameraRig(this, this.building);
     this.snow = snowfall(this, this.building);
     this.events.on('building-grew', () => {

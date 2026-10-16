@@ -3,6 +3,11 @@
 
 export const ROOM_TYPES = ['garage', 'serverroom', 'factory', 'mystery', 'tokenden', 'career', 'writer'];
 
+export const ROOM_NAMES = {
+  garage: 'garage studio', serverroom: 'server room', factory: 'factory floor', mystery: 'mystery cabin',
+  tokenden: 'token den', career: 'career office', writer: "writer's loft",
+};
+
 // First match wins. Hermes profiles report as `hermes-<profile>`.
 const RULES = [
   [/^claude(-code)?$/, 'garage'],

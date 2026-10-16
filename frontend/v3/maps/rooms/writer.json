@@ -10,7 +10,7 @@
  "tileheight": 32,
  "infinite": false,
  "nextlayerid": 5,
- "nextobjectid": 19,
+ "nextobjectid": 23,
  "properties": [
   {
    "name": "room",
@@ -634,7 +634,7 @@
    "objects": [
     {
      "id": 1,
-     "name": "desk",
+     "name": "typewriter_desk",
      "type": "",
      "x": 64,
      "y": 96,
@@ -670,6 +670,42 @@
     },
     {
      "id": 3,
+     "name": "paper_stacks",
+     "type": "",
+     "x": 128,
+     "y": 96,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "paper_bin",
+     "type": "",
+     "x": 32,
+     "y": 160,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 5,
      "name": "bookshelf",
      "type": "",
      "x": 160,
@@ -687,7 +723,7 @@
      ]
     },
     {
-     "id": 4,
+     "id": 6,
      "name": "bookshelf",
      "type": "",
      "x": 224,
@@ -705,13 +741,13 @@
      ]
     },
     {
-     "id": 5,
-     "name": "bookshelf",
+     "id": 7,
+     "name": "book_tower",
      "type": "",
      "x": 288,
-     "y": 64,
-     "width": 64,
-     "height": 64,
+     "y": 96,
+     "width": 32,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [
@@ -723,7 +759,25 @@
      ]
     },
     {
-     "id": 6,
+     "id": 8,
+     "name": "cork_board",
+     "type": "",
+     "x": 320,
+     "y": 32,
+     "width": 64,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 9,
      "name": "rack",
      "type": "",
      "x": 416,
@@ -741,7 +795,25 @@
      ]
     },
     {
-     "id": 7,
+     "id": 10,
+     "name": "reading_chair",
+     "type": "",
+     "x": 320,
+     "y": 192,
+     "width": 32,
+     "height": 32,
+     "rotation": 0,
+     "visible": true,
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 11,
      "name": "rug",
      "type": "",
      "x": 192,
@@ -759,7 +831,7 @@
      ]
     },
     {
-     "id": 8,
+     "id": 12,
      "name": "couch",
      "type": "",
      "x": 96,
@@ -777,7 +849,7 @@
      ]
     },
     {
-     "id": 9,
+     "id": 13,
      "name": "coffee",
      "type": "",
      "x": 384,
@@ -795,8 +867,8 @@
      ]
     },
     {
-     "id": 10,
-     "name": "crate",
+     "id": 14,
+     "name": "paper_stacks",
      "type": "",
      "x": 448,
      "y": 320,
@@ -813,8 +885,8 @@
      ]
     },
     {
-     "id": 11,
-     "name": "spool",
+     "id": 15,
+     "name": "paper_stacks",
      "type": "",
      "x": 416,
      "y": 320,
@@ -843,7 +915,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 12,
+     "id": 16,
      "name": "work",
      "type": "",
      "x": 80,
@@ -862,7 +934,7 @@
      ]
     },
     {
-     "id": 13,
+     "id": 17,
      "name": "ops",
      "type": "",
      "x": 432,
@@ -881,7 +953,7 @@
      ]
     },
     {
-     "id": 14,
+     "id": 18,
      "name": "read",
      "type": "",
      "x": 240,
@@ -900,7 +972,7 @@
      ]
     },
     {
-     "id": 15,
+     "id": 19,
      "name": "wait",
      "type": "",
      "x": 400,
@@ -919,7 +991,7 @@
      ]
     },
     {
-     "id": 16,
+     "id": 20,
      "name": "rest",
      "type": "",
      "x": 144,
@@ -943,7 +1015,7 @@
      ]
     },
     {
-     "id": 17,
+     "id": 21,
      "name": "build",
      "type": "",
      "x": 400,
@@ -962,7 +1034,7 @@
      ]
     },
     {
-     "id": 18,
+     "id": 22,
      "name": "entry",
      "type": "",
      "x": 208,

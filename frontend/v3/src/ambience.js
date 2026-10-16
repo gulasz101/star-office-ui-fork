@@ -17,6 +17,18 @@ const LIGHTS = {
   couch: { fx: 0.15, fy: 0.1, r: 70, color: 0xffb060, a: 0.22 },
   van: { fx: 0.3, fy: 0.85, r: 60, color: 0xfff0c0, a: 0.18 },
   amp: { fx: 0.5, fy: 0.5, r: 30, color: 0xff7a3a, a: 0.25 },
+  // set C (SOU-214): the props that carry their own light
+  lantern_green: { fx: 0.5, fy: 0.35, r: 70, color: 0x6aff8a, a: 0.32 },
+  crystal_ball: { fx: 0.5, fy: 0.35, r: 44, color: 0xb48cff, a: 0.3 },
+  eye_painting: { fx: 0.5, fy: 0.45, r: 50, color: 0xffe066, a: 0.22 },
+  red_lanterns: { fx: 0.5, fy: 0.5, r: 64, color: 0xff4a3a, a: 0.3 },
+  token_stacks: { fx: 0.5, fy: 0.4, r: 30, color: 0xffd34a, a: 0.25 },
+  token_server: { fx: 0.5, fy: 0.45, r: 50, color: 0x4fe0b8, a: 0.2 },
+  ring_light: { fx: 0.5, fy: 0.2, r: 56, color: 0xfff6e0, a: 0.3 },
+  typewriter_desk: { fx: 0.7, fy: 0.2, r: 80, color: 0xffc070, a: 0.38 },
+  advisor_desk: { fx: 0.5, fy: 0.25, r: 80, color: 0xffd08a, a: 0.32 },
+  abacus_desk: { fx: 0.5, fy: 0.25, r: 70, color: 0xffc070, a: 0.32 },
+  reading_chair: { fx: 0.8, fy: 0.2, r: 44, color: 0xffb060, a: 0.3 },
 };
 
 export function ensureAmbienceTextures(scene) {

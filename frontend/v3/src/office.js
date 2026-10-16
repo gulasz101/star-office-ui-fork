@@ -5,7 +5,7 @@
 import { TILE, COLORS, CHAR_W, CHAR_H } from './config.js';
 import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
 import { AgentCharacter } from './character.js';
-import { FLAT_PROPS, SHEET_PROPS, hoodieFor } from './rooms.js';
+import { FLAT_PROPS, SHEET_PROPS, WALL_DECALS, hoodieFor } from './rooms.js';
 import { swapHoodie } from './palette.js';
 import { ROOM_W } from './world.js';
 import { lightRoom, roomShade } from './ambience.js';
@@ -99,7 +99,7 @@ export class OfficeModule {
       const img = animated
         ? this.scene.add.sprite(x, y, key, 0).setOrigin(0.5, 1).play({ key: `prop-anim-${o.name}`, startFrame: Math.floor(Math.random() * SHEET_PROPS[o.name][3]) })
         : this.scene.add.image(x, y, key).setOrigin(0.5, 1);
-      img.setDepth(FLAT_PROPS.has(o.name) ? -500 : y);
+      img.setDepth(WALL_DECALS.has(o.name) ? -900 : FLAT_PROPS.has(o.name) ? -500 : y);
       props.push({ name: o.name, image: img, x: o.x, y: o.y, w: o.width, h: o.height });
     }
     this._createBelts(belts);

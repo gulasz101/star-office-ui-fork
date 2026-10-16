@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Star Office v3</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #14161f; overflow: hidden; }
+    #game { width: 100vw; height: 100vh; }
+    #hud { position: fixed; left: 8px; bottom: 6px; font: 11px monospace; color: #8a8fa3; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="hud">v3 · D = debug overlay</div>
+  <script src="vendor/phaser-4.2.1.min.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

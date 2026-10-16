@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Star Office UI - Backend State Service"""
 
-from flask import Flask, jsonify, send_from_directory, make_response, request, session
+from flask import Flask, jsonify, send_from_directory, make_response, request, session, redirect
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -39,6 +39,7 @@ ALEMBIC_INI = os.path.join(BACKEND_DIR, "alembic.ini")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
 FRONTEND_INDEX_FILE = os.path.join(FRONTEND_DIR, "index.html")
 FRONTEND_ELECTRON_STANDALONE_FILE = os.path.join(FRONTEND_DIR, "electron-standalone.html")
+FRONTEND_V3_DIR = os.path.join(FRONTEND_DIR, "v3")
 JOIN_KEYS_FILE = os.path.join(ROOT_DIR, "join-keys.json")
 FRONTEND_PATH = Path(FRONTEND_DIR)
 ASSET_ALLOWED_EXTS = {".png", ".webp", ".jpg", ".jpeg", ".gif", ".svg", ".avif"}
@@ -283,6 +284,17 @@ def index():
     resp = make_response(_INDEX_HTML_CACHE)
     resp.headers["Content-Type"] = "text/html; charset=utf-8"
     return resp
+
+
+@app.route("/v3", methods=["GET"])
+@app.route("/v3/", methods=["GET"])
+@app.route("/v3/<path:filename>", methods=["GET"])
+def v3_renderer(filename="index.html"):
+    """Serve the v3 top-down renderer (SOU-153). Not under /static, so it is never cached
+    as immutable: edits show up on reload without a backend restart."""
+    if request.path == "/v3":
+        return redirect("/v3/", code=301)
+    return send_from_directory(FRONTEND_V3_DIR, filename)
 
 
 @app.route("/electron-standalone", methods=["GET"])

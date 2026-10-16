@@ -1,0 +1,206 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a right-angle corner section of a chunky steel conveyor belt seen from directly above: the belt enters flat through the LEFT edge of the frame in the lower half, runs straight to the right, turns one sharp 90 degree bend in the bottom-right corner and then runs straight up, leaving through the TOP edge on the right side. Both arms are strictly HORIZONTAL and VERTICAL - this is an L-shaped corner and NOT a diagonal belt and NOT a curved S. The outside of the bend is rounded by a curved steel guard plate; dark rubber tread slats follow the path between thick grey steel side rails with a warm amber rim light, and the upper-left area inside the bend is empty background. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 32:32 in width:height (the object's bounding box is square). Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Inside a cosy log-cabin workshop at night: chunky riveted steel machinery with warm brass and honey-brown timber fittings, warm amber task light falling from the top-left, deep blue shadow, and teal-green and orange machine indicator lights. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 19925,
+  "source_file": "belt_corner.raw.png",
+  "output_file": "props/belt_corner.png",
+  "output_dims": [
+    128,
+    32
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T18:52:23.343581+00:00",
+  "asset_key": "belt_corner",
+  "kind": "sheet",
+  "set": "factory",
+  "view": "top-down 3/4",
+  "footprint_px": [
+    32,
+    32
+  ],
+  "footprint_tiles": [
+    1.0,
+    1.0
+  ],
+  "texture_px": [
+    32,
+    32
+  ],
+  "declared_px": [
+    32,
+    32
+  ],
+  "lift_px": 0,
+  "fit_mode": "inside",
+  "fit": {
+    "content_px": [
+      599,
+      605
+    ],
+    "fitted_px": [
+      32,
+      32
+    ],
+    "canvas_px": [
+      32,
+      32
+    ],
+    "mode": "cover",
+    "scale": 0.0534,
+    "crop_bbox": [
+      0,
+      3,
+      599,
+      602
+    ],
+    "shared_across_frames": true,
+    "why": "centred square of the content, filling the tile (a belt section must meet its neighbour edge to edge)"
+  },
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+  "key_colour": [
+    254,
+    255,
+    253,
+    255
+  ],
+  "generation_mode": "text-only generation",
+  "frames": 4,
+  "frame_px": [
+    32,
+    32
+  ],
+  "sheet_px": [
+    128,
+    32
+  ],
+  "frame_derivation": {
+    "0": "the FLUX base (contact), unchanged",
+    "1": "lower-left arm scrolled 8px east and upper-right arm 8px north, each wrapped (cyclic), split on the bend bisector",
+    "2": "lower-left arm scrolled 16px east and upper-right arm 16px north, each wrapped (cyclic), split on the bend bisector",
+    "3": "lower-left arm scrolled 24px east and upper-right arm 24px north, each wrapped (cyclic), split on the bend bisector"
+  },
+  "post_process": "light",
+  "full_bleed": true,
+  "connects": [
+    "left",
+    "right",
+    "top",
+    "bottom"
+  ],
+  "edge_contact_per_frame": {
+    "left": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "right": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "top": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "bottom": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "edge_bleed_px": 59,
+  "content_bottom_row_per_frame": [
+    31,
+    31,
+    31,
+    31
+  ],
+  "opaque_bottom_row_per_frame": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "base_row_coverage": 1.0,
+  "colours": 29,
+  "off_palette": [],
+  "transparent_px_per_frame": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "note": "east->north bend; frames scroll the horizontal arm in x and the vertical arm in y. FULL-BLEED, and that is a ruling, not a guess: this belt is ONE tile wide, so it fills a tile top-to-bottom while running east and left-to-right while running north - which means the corner tile is belt all the way to its four edges and the inside of the bend is a curved guard plate, not floor. Two rolls were spent learning it: the first prompt produced a diagonal band that would not join belt_h/belt_v at all, and the assertion that failed in between (transparent px at the inside of the bend) was the wrong contract, not the wrong art."
+}

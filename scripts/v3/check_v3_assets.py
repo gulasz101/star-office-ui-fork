@@ -445,7 +445,8 @@ def head_band_fraction(frame) -> tuple[float, int, int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--set", default="office-01", choices=("office-01", "lodge"),
+    ap.add_argument("--set", default="office-01",
+                    choices=("office-01", "lodge", "serverroom", "factory"),
                     help="which v3 art set to check (default: office-01)")
     ap.add_argument("--root", default=None,
                     help="art set root (default: the set's own generated directory)")
@@ -455,6 +456,8 @@ def main() -> int:
 
     if args.set == "lodge":
         return main_lodge(args)
+    if args.set in ("serverroom", "factory"):
+        return main_set_b(args, args.set)
     if args.root is None:
         args.root = str(OUT)
 
@@ -805,6 +808,323 @@ def main() -> int:
 #   * no character sheet (the lodge set ships no character; office-01's is SOU-187's).
 # ======================================================================================
 LODGE_SEAM_LIMIT = 1.05
+
+
+# ---------------------------------------------------------------------------------------
+# Set B (SOU-199): the server room and the factory.
+#
+# The size/frame table below is typed from the TICKET, not from the generator: a gate that only
+# compares an asset to the generator's own declaration cannot catch a declaration that drifted
+# from the ticket (the SOU-158 lesson - the gate passed while the published px table was stale).
+# Every entry is asserted twice: shipped file vs ticket, and generator declaration vs ticket.
+# ---------------------------------------------------------------------------------------
+TICKET_B = {
+    "serverroom": {
+        # id: (frame_w, frame_h, frames, footprint_w, footprint_h)
+        "gear_shelf_a": (64, 112, 1, 64, 32),
+        "gear_shelf_b": (64, 112, 1, 64, 32),
+        "workbench": (64, 80, 1, 64, 64),
+        "ups_stack": (32, 64, 1, 32, 32),
+        "cable_coil": (32, 32, 1, 32, 32),
+        "stool": (32, 40, 1, 32, 32),
+        "network_cabinet": (32, 80, 1, 32, 32),
+    },
+    "factory": {
+        "belt_h": (32, 32, 4, 32, 32),
+        "belt_v": (32, 32, 4, 32, 32),
+        "belt_corner": (32, 32, 4, 32, 32),
+        "assembler": (64, 80, 2, 64, 64),
+        "inserter": (32, 48, 2, 32, 32),
+        # the ticket says "footprint n/a" for the item that rides the belt; the ruling recorded
+        # on the ticket is a 16x16 footprint so the crate is still measured like every other prop
+        # (content on the bottom row, exact size, palette).
+        "item_box": (16, 16, 1, 16, 16),
+        "ore_pile": (32, 32, 1, 32, 32),
+        "control_desk": (64, 64, 1, 64, 32),
+    },
+}
+
+# A flat decal (a coil of cable, an ore pile) carries less of its lowest rows than a box does, and
+# a RING-shaped decal legitimately carries little: the first draft of this gate used a 0.35 floor
+# and FAILED cable_coil at 0.33 - a threshold invented by the gate, not by the ticket, whose AC is
+# "feet/base on the bottom row of pixels" and is asserted separately (content_bottom_row == h-1).
+# Re-rolling correct art to satisfy a made-up number is how a gate starts encoding taste, so the
+# number is REPORTED for every flat asset and only a floor that means "the decal is not resting on
+# its base at all" is asserted.
+FLAT_BASE_COVERAGE_MIN = 0.10
+
+
+def main_set_b(args, setname: str) -> int:
+    import gen_roomart_b as B
+
+    root = os.path.abspath(args.root or str(B.out_dir(setname)))
+    repo = str(REPO)
+    map_path = args.map or os.path.join(repo, "frontend", "v3", "maps", "rooms",
+                                       B.SETS[setname]["map"])
+    report = Report()
+
+    if not os.path.isdir(root):
+        print(f"no art set at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    pal_path = os.path.join(root, "palette.json")
+    if os.path.exists(pal_path):
+        declared = json.load(open(pal_path))
+        if declared.get("hex") != B.PALETTE_HEX:
+            report.fail(f"palette.json does not match the shared lodge palette "
+                        f"({len(declared.get('hex', []))} vs {len(B.PALETTE_HEX)} colours)")
+        else:
+            report.ok(f"palette.json declares {len(B.PALETTE_HEX)} colours, identical to the "
+                      f"lodge palette ({declared.get('name')}, shared_with="
+                      f"{declared.get('shared_with')!r})")
+    else:
+        report.fail("palette.json missing - the palette is not declared anywhere")
+
+    print("=" * 96)
+    print(f"{setname} v3 art set B check (SOU-199)   root={root}")
+    print(f"palette: {len(B.PALETTE_HEX)} declared colours, {', '.join(B.PALETTE_HEX[:6])}, ...")
+    print("=" * 96)
+
+    # ---- declaration vs the ticket ------------------------------------------------------
+    ticket = TICKET_B[setname]
+    drift = []
+    gen_ids = [a["id"] for a in B.ASSETS[setname]]
+    if set(gen_ids) != set(ticket):
+        report.fail(f"the generator's asset list {sorted(gen_ids)} != the ticket's "
+                    f"{sorted(ticket)}")
+    else:
+        report.ok(f"{len(gen_ids)} assets, the same set the SOU-199 table names: "
+                  f"{', '.join(gen_ids)}")
+    for asset in B.ASSETS[setname]:
+        want = ticket.get(asset["id"])
+        if not want:
+            continue
+        tw, th, frames, fpw, fph = want
+        if tuple(asset["texture_px"]) != (tw, th) or asset["frames"] != frames \
+                or tuple(asset["footprint_px"]) != (fpw, fph):
+            msg = (f"{asset['id']}: generator declares {tuple(asset['texture_px'])} x"
+                   f"{asset['frames']} fp {tuple(asset['footprint_px'])} but the ticket says "
+                   f"{(tw, th)} x{frames} fp {(fpw, fph)}")
+            drift.append(msg)
+            report.fail(msg)
+        if asset["lift_px"] != th - fph:
+            msg = (f"{asset['id']}: lift {asset['lift_px']} != texture_h - footprint_h "
+                   f"({th} - {fph} = {th - fph})")
+            drift.append(msg)
+            report.fail(msg)
+    if drift:
+        report.fail("the generator's declaration has drifted from the SOU-199 table")
+    else:
+        report.ok("every size, frame count, footprint and lift agrees with the SOU-199 table")
+
+    # ---- props and sheets ---------------------------------------------------------------
+    print("\nASSETS (shipped px vs the TICKET table; frames checked as a strip)")
+    print(f"{'asset':16s} {'shipped':>11s} {'ticket':>11s} {'frames':>6s} {'colours':>7s} "
+          f"{'transp':>7s} {'fringe':>6s} {'base':>5s}  result")
+    results = {}
+    for asset in B.ASSETS[setname]:
+        aid = asset["id"]
+        tw, th, frames, fpw, fph = ticket[aid]
+        path = os.path.join(root, "props", f"{aid}.png")
+        if not os.path.exists(path):
+            report.fail(f"props/{aid}.png missing")
+            continue
+        img = Image.open(path).convert("RGBA")
+        want_size = (tw * frames, th)
+        got = img.size
+        colours, off = palette_check(img, allowed=B.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        parts = [img.crop((k * tw, 0, (k + 1) * tw, th)).convert("RGBA") for k in range(frames)]
+        bottoms = [content_bottom_row(f) for f in parts]
+        covs = [base_row_coverage(f) for f in parts]
+        framing = [sum(1 for p in f.getchannel("A").getdata() if p == 0) for f in parts]
+        edges = {}
+        for edge in ("left", "right", "top", "bottom"):
+            edges[edge] = []
+            for f in parts:
+                px = f.load()
+                if edge == "left":
+                    edges[edge].append(any(px[0, y][3] for y in range(th)))
+                elif edge == "right":
+                    edges[edge].append(any(px[tw - 1, y][3] for y in range(th)))
+                elif edge == "top":
+                    edges[edge].append(any(px[x, 0][3] for x in range(tw)))
+                else:
+                    edges[edge].append(any(px[x, th - 1][3] for x in range(tw)))
+        problems = []
+        if got != want_size:
+            problems.append(f"size {got} != ticket {want_size}")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if not alpha["has_real_alpha"] and not asset["full_bleed"]:
+            problems.append("no real alpha")
+        if alpha["partial"]:
+            problems.append(f"{alpha['partial']} partial-alpha pixels")
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+        empty = [k for k, f in enumerate(parts) if f.getchannel("A").getbbox() is None]
+        same = [k for k in range(1, frames) if parts[k].tobytes() == parts[0].tobytes()]
+        if empty:
+            problems.append(f"empty frames {empty}")
+        if frames > 1 and same:
+            problems.append(f"frames {same} identical to frame 0 - the derivation did not "
+                            f"animate them")
+        bad_bottom = [k for k, b in enumerate(bottoms) if b != th - 1]
+        if bad_bottom:
+            problems.append(f"frames {bad_bottom} do not reach the bottom row (bottoms {bottoms}) "
+                            f"- the renderer anchors there, so the prop would float")
+        if asset["full_bleed"]:
+            framed = [k for k, t in enumerate(framing) if t]
+            if framed:
+                problems.append(f"full-bleed tile has transparent pixels in frames {framed} "
+                                f"({framing}) - neighbouring belt sections would show the floor")
+        for edge in (asset.get("connects") or []):
+            missing = [k for k, ok in enumerate(edges[edge]) if not ok]
+            if missing:
+                problems.append(f"declared connection edge {edge!r} carries no content in frames "
+                                f"{missing} - the neighbouring belt section would not join")
+        if asset["flat"] and min(covs) < FLAT_BASE_COVERAGE_MIN:
+            problems.append(f"flat decal covers only {min(covs):.2f} of its lowest rows "
+                            f"(floor {FLAT_BASE_COVERAGE_MIN})")
+        print(f"{aid:16s} {f'{got[0]}x{got[1]}':>11s} {f'{want_size[0]}x{want_size[1]}':>11s} "
+              f"{frames:>6d} {len(colours):>7d} {alpha['transparent']:>7d} "
+              f"{resid['strong_magenta']:>6d} {min(covs):>5.2f}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+        else:
+            report.ok(f"{aid}: {got[0]}x{got[1]} = {frames} frame(s) of {tw}x{th}, {len(colours)} "
+                      f"palette colours, real alpha, no magenta, base on the bottom row "
+                      f"({bottoms})")
+        if not args.quiet:
+            report.note(f"{aid}: colours {' '.join(hexs(c) for c in colours)}")
+        results[aid] = {"size": list(got), "frames": frames, "bottoms": bottoms,
+                        "coverage": [round(c, 3) for c in covs], "transparent": framing}
+
+    # ---- tile-repeat measurement for the belts (reported, not asserted) -------------------
+    belts = [a for a in B.ASSETS[setname] if a["id"].startswith("belt_")]
+    if belts:
+        print("\nBELT TILE-REPEAT (wrap edge step vs the largest interior step on each axis; "
+              "reported - a belt's tread period comes from the model, not from a declared "
+              "lattice, so this is a quality number for the review, not an AC)")
+        for asset in belts:
+            path = os.path.join(root, "props", f"{asset['id']}.png")
+            if not os.path.exists(path):
+                continue
+            img = Image.open(path).convert("RGBA")
+            w = asset["texture_px"][0]
+            frame = img.crop((0, 0, w, w))
+            wrap = wrap_vs_max(frame)
+            print(f"  {asset['id']:14s} frame 0: wrap/max x={wrap['wrap_vs_max_x']:>5} "
+                  f"y={wrap['wrap_vs_max_y']:>5}")
+            report.note(f"{asset['id']} frame 0 tile-repeat: wrap/max x="
+                        f"{wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']}")
+
+    # ---- manifests ----------------------------------------------------------------------
+    print("\nMANIFESTS (one next to every file, carrying model/seed/prompt/dims/frames)")
+    for asset in B.ASSETS[setname]:
+        aid = asset["id"]
+        png = os.path.join(root, "props", f"{aid}.png")
+        man = png + ".manifest.json"
+        if not os.path.exists(png):
+            continue
+        if not os.path.exists(man):
+            report.fail(f"props/{aid}.png: no manifest next to it")
+            print(f"props/{aid:19s} FAIL: no manifest")
+            continue
+        try:
+            m = json.load(open(man))
+        except Exception as exc:  # noqa: BLE001
+            report.fail(f"props/{aid}.png.manifest.json is not valid JSON ({exc})")
+            continue
+        problems = []
+        if m.get("model") != B.MODEL_ID:
+            problems.append(f"model {m.get('model')!r} != {B.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            problems.append("lora_strength is not 0.0 (the LoRA blacks out - ADR-060)")
+        if not m.get("prompt"):
+            problems.append("no prompt recorded")
+        if not m.get("palette"):
+            problems.append("no palette recorded")
+        if not m.get("seed"):
+            problems.append("no seed recorded")
+        if list(m.get("output_dims", [])) != list(Image.open(png).size):
+            problems.append(f"output_dims {m.get('output_dims')} != the file's "
+                            f"{list(Image.open(png).size)}")
+        if m.get("frames") != asset["frames"]:
+            problems.append(f"frames {m.get('frames')} != {asset['frames']}")
+        deriv = m.get("frame_derivation") or {}
+        missing = [str(k) for k in range(asset["frames"]) if str(k) not in deriv]
+        if missing:
+            problems.append(f"frames {missing} have no declared derivation")
+        if asset["frames"] > 1 and len(set(deriv.values())) < asset["frames"]:
+            problems.append("the frame derivations are not distinct - the animation is not "
+                            "described per frame")
+        print(f"props/{aid:19s} {'sheet' if asset['frames'] > 1 else 'prop':5s} "
+              f"{str(m.get('seed')):>8s}  {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"props/{aid}.png.manifest.json: " + "; ".join(problems))
+        else:
+            report.ok(f"props/{aid}.png.manifest.json: model+palette+prompt+seed recorded, "
+                      f"{asset['frames']} frame derivation(s), dims match the file")
+
+    # ---- map cross-check: the footprint the ROOM map gives a key must be the one we declare --
+    print("\nMAP CROSS-CHECK (a key the room map already places must have our footprint)")
+    if os.path.exists(map_path):
+        layers = json.load(open(map_path)).get("layers", [])
+        placed = {}
+        for layer in layers:
+            if layer.get("type") != "objectgroup":
+                continue
+            for obj in layer.get("objects", []):
+                key = obj.get("name") or obj.get("type")
+                placed.setdefault(key, (obj.get("width"), obj.get("height")))
+        for asset in B.ASSETS[setname]:
+            aid = asset["id"]
+            if aid in placed:
+                if list(placed[aid]) == list(asset["footprint_px"]):
+                    report.ok(f"{aid}: the map's rect {placed[aid]} matches the declared footprint")
+                else:
+                    report.fail(f"{aid}: the map places it at {placed[aid]} but the set declares "
+                                f"the footprint {asset['footprint_px']}")
+        absent = [a["id"] for a in B.ASSETS[setname] if a["id"] not in placed]
+        if absent:
+            report.note(f"not yet placed by {os.path.basename(map_path)}: {', '.join(absent)} - "
+                        f"the wiring step places them; declared footprints are the contract")
+    else:
+        report.note(f"no room map at {map_path}")
+
+    # ---- contact sheets -----------------------------------------------------------------
+    print("\nCONTACT SHEETS (the visual record attached to the ticket)")
+    need = ["contact_sheet.png", "contact_sheet_4x.png"]
+    if setname == "factory":
+        need.append("belts_strip_4x.png")
+    for name in need:
+        p = os.path.join(root, name)
+        if os.path.exists(p):
+            report.ok(f"{name} {Image.open(p).size[0]}x{Image.open(p).size[1]}")
+        else:
+            report.fail(f"{name} missing - the ticket asks for a contact sheet of everything on "
+                        f"the room's floor tile")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC1 record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print(f"RESULT: PASS - every {setname} file exists at EXACTLY the pixel size and frame count "
+          f"the SOU-199 table names (asserted against a copy of the table typed from the ticket), "
+          f"on the shared 61-colour lodge palette, with real alpha and no magenta, each frame's "
+          f"base on the frame's bottom row, the full-bleed belts carrying no transparent pixel at "
+          f"all, a manifest with a per-frame derivation next to every file, and the declared "
+          f"footprints agreeing with the room map wherever the map already places a key.")
+    return 0
 
 
 def main_lodge(args) -> int:

@@ -1,0 +1,380 @@
+{
+  "pack": "factory-v1",
+  "set": "factory",
+  "issue": "SOU-199",
+  "title": "the OpenChamber / OpenCode factory",
+  "generated_from": "assets/generated/v3/factory",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/factory/palette.json",
+  "palette_shared_with": "lodge (SOU-198) - one palette for the whole lodge family",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "metal_grate",
+    "why": "set B is a room set, not a room: the server room and the factory are rooms of the same lodge building, so they reuse the lodge material tiles through their room maps rather than shipping a second 512x32 tileset."
+  },
+  "room_map": "frontend/v3/maps/rooms/factory.json",
+  "prop_lift_for_placeholders_js": {
+    "belt_h": 0,
+    "belt_v": 0,
+    "belt_corner": 0,
+    "assembler": 16,
+    "inserter": 16,
+    "item_box": 0,
+    "ore_pile": 0,
+    "control_desk": 32
+  },
+  "assets": [
+    {
+      "key": "belt_h",
+      "served_path": "assets/factory/props/belt_h.png",
+      "multi_frame": true,
+      "frames": 4,
+      "frame_px": [
+        32,
+        32
+      ],
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": true,
+      "flat": false,
+      "note": "4-frame loop: frames 1-3 are the base's tread scrolled 8/16/24px east and wrapped",
+      "texture_px_actual": [
+        128,
+        32
+      ],
+      "sheet_layout": "frames left to right, frame k at x = k * 32"
+    },
+    {
+      "key": "belt_v",
+      "served_path": "assets/factory/props/belt_v.png",
+      "multi_frame": true,
+      "frames": 4,
+      "frame_px": [
+        32,
+        32
+      ],
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": true,
+      "flat": false,
+      "note": "same section rotated 90 degrees; the frames scroll north",
+      "texture_px_actual": [
+        128,
+        32
+      ],
+      "sheet_layout": "frames left to right, frame k at x = k * 32"
+    },
+    {
+      "key": "belt_corner",
+      "served_path": "assets/factory/props/belt_corner.png",
+      "multi_frame": true,
+      "frames": 4,
+      "frame_px": [
+        32,
+        32
+      ],
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": true,
+      "flat": false,
+      "note": "east->north bend; frames scroll the horizontal arm in x and the vertical arm in y. FULL-BLEED, and that is a ruling, not a guess: this belt is ONE tile wide, so it fills a tile top-to-bottom while running east and left-to-right while running north - which means the corner tile is belt all the way to its four edges and the inside of the bend is a curved guard plate, not floor. Two rolls were spent learning it: the first prompt produced a diagonal band that would not join belt_h/belt_v at all, and the assertion that failed in between (transparent px at the inside of the bend) was the wrong contract, not the wrong art.",
+      "texture_px_actual": [
+        128,
+        32
+      ],
+      "sheet_layout": "frames left to right, frame k at x = k * 32"
+    },
+    {
+      "key": "assembler",
+      "served_path": "assets/factory/props/assembler.png",
+      "multi_frame": true,
+      "frames": 2,
+      "frame_px": [
+        64,
+        80
+      ],
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        64
+      ],
+      "footprint_tiles": [
+        2.0,
+        2.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "frame 2 is the same base with the energy colours stepped up their ramps (working glow)",
+      "texture_px_actual": [
+        128,
+        80
+      ],
+      "sheet_layout": "frames left to right, frame k at x = k * 64"
+    },
+    {
+      "key": "inserter",
+      "served_path": "assets/factory/props/inserter.png",
+      "multi_frame": true,
+      "frames": 2,
+      "frame_px": [
+        32,
+        48
+      ],
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "frame 2 lifts the arm region 4px (the working pose)",
+      "texture_px_actual": [
+        64,
+        48
+      ],
+      "sheet_layout": "frames left to right, frame k at x = k * 32"
+    },
+    {
+      "key": "item_box",
+      "served_path": "assets/factory/props/item_box.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        16,
+        16
+      ],
+      "texture_px_declared": [
+        16,
+        16
+      ],
+      "footprint_px": [
+        16,
+        16
+      ],
+      "footprint_tiles": [
+        0.5,
+        0.5
+      ],
+      "lift_px": 0,
+      "full_bleed": true,
+      "flat": true,
+      "note": "rides the belt: no floor footprint of its own, so the crate is assessed flat and full-bleed at 16x16 (one belt tile is 32px, i.e. two items per tile)",
+      "texture_px_actual": [
+        16,
+        16
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "ore_pile",
+      "served_path": "assets/factory/props/ore_pile.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        32
+      ],
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": true,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "control_desk",
+      "served_path": "assets/factory/props/control_desk.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        64
+      ],
+      "texture_px_declared": [
+        64,
+        64
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        64
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/factory/props/belt_h.png",
+      "source": "assets/generated/v3/factory/props/belt_h.png",
+      "sha256": "44c33c5aa0e1906af6b15e35e82ec74d5f98e1682fc5e9b59f8f14d48ac3b58e",
+      "bytes": 736
+    },
+    {
+      "served_path": "assets/factory/props/belt_h.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/belt_h.png.manifest.json",
+      "sha256": "8c7660786ca447b924f6d4235578d5892ce0cbe0d2e8ac20dc55bd90fc8804af",
+      "bytes": 6223
+    },
+    {
+      "served_path": "assets/factory/props/belt_v.png",
+      "source": "assets/generated/v3/factory/props/belt_v.png",
+      "sha256": "a89fcb11bc21e27d99733cfbb6019d5e8715bfb139a22126f9fed20b706fce96",
+      "bytes": 885
+    },
+    {
+      "served_path": "assets/factory/props/belt_v.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/belt_v.png.manifest.json",
+      "sha256": "f5202f8656daccd35f81ff2f3050932a98c12cd300ca5af8d6e088b28389f528",
+      "bytes": 6228
+    },
+    {
+      "served_path": "assets/factory/props/belt_corner.png",
+      "source": "assets/generated/v3/factory/props/belt_corner.png",
+      "sha256": "ec9a27570bda0ab1f69ca68cb343d2d060ba66a54da0174b5e8007ea26807433",
+      "bytes": 1609
+    },
+    {
+      "served_path": "assets/factory/props/belt_corner.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/belt_corner.png.manifest.json",
+      "sha256": "1dbe5879934e5f4514446e700ca08fd3ee9d0f5f882caf866544b3066a082420",
+      "bytes": 7268
+    },
+    {
+      "served_path": "assets/factory/props/assembler.png",
+      "source": "assets/generated/v3/factory/props/assembler.png",
+      "sha256": "4a04eff69ae2235f6190518ab50862407b063b0b7b2518a713c320a23efe52a0",
+      "bytes": 5038
+    },
+    {
+      "served_path": "assets/factory/props/assembler.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/assembler.png.manifest.json",
+      "sha256": "7b35019e075a45042b54c69513e590c51871946c77e744f83dec396fb1cecb93",
+      "bytes": 6041
+    },
+    {
+      "served_path": "assets/factory/props/inserter.png",
+      "source": "assets/generated/v3/factory/props/inserter.png",
+      "sha256": "8807f738aa70ffeb05e67c2a9d06b54d0947a8186322b482ba0459ac6270672f",
+      "bytes": 2223
+    },
+    {
+      "served_path": "assets/factory/props/inserter.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/inserter.png.manifest.json",
+      "sha256": "2cbc85e5b93d1ae3203738f9083f51a14f8af6b6e666ebf460bbc9252030deea",
+      "bytes": 5843
+    },
+    {
+      "served_path": "assets/factory/props/item_box.png",
+      "source": "assets/generated/v3/factory/props/item_box.png",
+      "sha256": "66462106c8524b1af29ed960424aaeecbbe063e5e22c11f84cf12e63f06c2e72",
+      "bytes": 517
+    },
+    {
+      "served_path": "assets/factory/props/item_box.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/item_box.png.manifest.json",
+      "sha256": "ebbb415f2372637bc3d9641f285f8cc6a97e870f4c5266271ebce940286ab79f",
+      "bytes": 5639
+    },
+    {
+      "served_path": "assets/factory/props/ore_pile.png",
+      "source": "assets/generated/v3/factory/props/ore_pile.png",
+      "sha256": "bc08a018779f5d508004fca88a2be4e4236b0e8e5e518927005d0ba1c723a92c",
+      "bytes": 1529
+    },
+    {
+      "served_path": "assets/factory/props/ore_pile.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/ore_pile.png.manifest.json",
+      "sha256": "1e3026f517e7fe40ddb7b14245708027f711125bd82f0c076c70c5f1ce1f10ef",
+      "bytes": 5490
+    },
+    {
+      "served_path": "assets/factory/props/control_desk.png",
+      "source": "assets/generated/v3/factory/props/control_desk.png",
+      "sha256": "1f9d0317c2cd989dedca9430b6cfaa9c1a4a05dd2ef6e0992d24d495a0da64b2",
+      "bytes": 3144
+    },
+    {
+      "served_path": "assets/factory/props/control_desk.png.manifest.json",
+      "source": "assets/generated/v3/factory/props/control_desk.png.manifest.json",
+      "sha256": "c87b999fe00fcc202b3a864c4554089a07e042f5df6420edba2a461d471bc484",
+      "bytes": 5594
+    }
+  ],
+  "created_at": "2026-10-16T18:52:58.702659+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-199 asks for the exact size given), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

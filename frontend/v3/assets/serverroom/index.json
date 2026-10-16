@@ -1,0 +1,336 @@
+{
+  "pack": "serverroom-v1",
+  "set": "serverroom",
+  "issue": "SOU-199",
+  "title": "Andrzej's server room",
+  "generated_from": "assets/generated/v3/serverroom",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/serverroom/palette.json",
+  "palette_shared_with": "lodge (SOU-198) - one palette for the whole lodge family",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "stone_floor",
+    "why": "set B is a room set, not a room: the server room and the factory are rooms of the same lodge building, so they reuse the lodge material tiles through their room maps rather than shipping a second 512x32 tileset."
+  },
+  "room_map": "frontend/v3/maps/rooms/serverroom.json",
+  "prop_lift_for_placeholders_js": {
+    "gear_shelf_a": 80,
+    "gear_shelf_b": 80,
+    "workbench": 16,
+    "ups_stack": 32,
+    "cable_coil": 0,
+    "stool": 8,
+    "network_cabinet": 48
+  },
+  "assets": [
+    {
+      "key": "gear_shelf_a",
+      "served_path": "assets/serverroom/props/gear_shelf_a.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        112
+      ],
+      "texture_px_declared": [
+        64,
+        112
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 80,
+      "full_bleed": false,
+      "flat": false,
+      "note": "tall shelf; footprint is the 2x1 floor rect it stands on, the extra height is lift",
+      "texture_px_actual": [
+        64,
+        112
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "gear_shelf_b",
+      "served_path": "assets/serverroom/props/gear_shelf_b.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        112
+      ],
+      "texture_px_declared": [
+        64,
+        112
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 80,
+      "full_bleed": false,
+      "flat": false,
+      "note": "variant of gear_shelf_a: different boxes, a lantern on a shelf",
+      "texture_px_actual": [
+        64,
+        112
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "workbench",
+      "served_path": "assets/serverroom/props/workbench.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        80
+      ],
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        64
+      ],
+      "footprint_tiles": [
+        2.0,
+        2.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        80
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "ups_stack",
+      "served_path": "assets/serverroom/props/ups_stack.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        64
+      ],
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        64
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "cable_coil",
+      "served_path": "assets/serverroom/props/cable_coil.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        32
+      ],
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": true,
+      "note": "flat floor decal; base_row_coverage is checked as a flat object",
+      "texture_px_actual": [
+        32,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "stool",
+      "served_path": "assets/serverroom/props/stool.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        40
+      ],
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        40
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "network_cabinet",
+      "served_path": "assets/serverroom/props/network_cabinet.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        80
+      ],
+      "texture_px_declared": [
+        32,
+        80
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 48,
+      "full_bleed": false,
+      "flat": false,
+      "note": "wall cabinet: 1x1 floor rect, 48px of lift carries it up the wall",
+      "texture_px_actual": [
+        32,
+        80
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/serverroom/props/gear_shelf_a.png",
+      "source": "assets/generated/v3/serverroom/props/gear_shelf_a.png",
+      "sha256": "46e7bd26269d544fbfa5a4ea3c27cce2f3ba72a5dab67b9df174aae4d8194a50",
+      "bytes": 2469
+    },
+    {
+      "served_path": "assets/serverroom/props/gear_shelf_a.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/gear_shelf_a.png.manifest.json",
+      "sha256": "ea8a7d0f662b89f35bfbd9d9798c61b8a69a362ccd181228e2c34f22f2fa1dc5",
+      "bytes": 5784
+    },
+    {
+      "served_path": "assets/serverroom/props/gear_shelf_b.png",
+      "source": "assets/generated/v3/serverroom/props/gear_shelf_b.png",
+      "sha256": "27af62cb98ccac2c9b9a38aebbee6bfcd7d6f279bf75b83968aecd8dc5a54245",
+      "bytes": 2111
+    },
+    {
+      "served_path": "assets/serverroom/props/gear_shelf_b.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/gear_shelf_b.png.manifest.json",
+      "sha256": "f710343e0d551c5cbd4158f370644f46ad9bfc73124cc23cdef7a341d17d320b",
+      "bytes": 5722
+    },
+    {
+      "served_path": "assets/serverroom/props/workbench.png",
+      "source": "assets/generated/v3/serverroom/props/workbench.png",
+      "sha256": "95a541bf92fac98a1fb76e60b6a234a581dd599442ce994dc92984f9e5a354ed",
+      "bytes": 4152
+    },
+    {
+      "served_path": "assets/serverroom/props/workbench.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/workbench.png.manifest.json",
+      "sha256": "b863845868864f6b986f41fc7fa54d46da68a9b855c34dc3b8923bf71c0cfc44",
+      "bytes": 5601
+    },
+    {
+      "served_path": "assets/serverroom/props/ups_stack.png",
+      "source": "assets/generated/v3/serverroom/props/ups_stack.png",
+      "sha256": "24729f0fcb6b42beffa4002c2eb10c4df25e7c7228632ca5eba72c949a1cb04e",
+      "bytes": 1432
+    },
+    {
+      "served_path": "assets/serverroom/props/ups_stack.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/ups_stack.png.manifest.json",
+      "sha256": "0211a0fbf0efa4db8475b24063c63fb4a6d018d9e73a92e11a0f872cb18ae3bf",
+      "bytes": 5564
+    },
+    {
+      "served_path": "assets/serverroom/props/cable_coil.png",
+      "source": "assets/generated/v3/serverroom/props/cable_coil.png",
+      "sha256": "aba2f2b1ff0c52b93b9319cefb367a03a77792f323fc79be542a574ce82dc38e",
+      "bytes": 854
+    },
+    {
+      "served_path": "assets/serverroom/props/cable_coil.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/cable_coil.png.manifest.json",
+      "sha256": "1e5292f14ee500b59f7e6a0bf2732571ea59f0c0047691a266b839d51aca660a",
+      "bytes": 5528
+    },
+    {
+      "served_path": "assets/serverroom/props/stool.png",
+      "source": "assets/generated/v3/serverroom/props/stool.png",
+      "sha256": "50d7198e1338428ae1a45aa7f98ddbdd737f80748c6fe44d8a64a09ff182980d",
+      "bytes": 744
+    },
+    {
+      "served_path": "assets/serverroom/props/stool.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/stool.png.manifest.json",
+      "sha256": "ac77d9b22782c76dfcedc1e5e42647d70147ca3ea6a6ccf6babb460fcf5d97f5",
+      "bytes": 5439
+    },
+    {
+      "served_path": "assets/serverroom/props/network_cabinet.png",
+      "source": "assets/generated/v3/serverroom/props/network_cabinet.png",
+      "sha256": "f65a2c392325d6e8f937e57c01b579887ff817c1010d0e5a97ce6c04b1f8817f",
+      "bytes": 2052
+    },
+    {
+      "served_path": "assets/serverroom/props/network_cabinet.png.manifest.json",
+      "source": "assets/generated/v3/serverroom/props/network_cabinet.png.manifest.json",
+      "sha256": "6bcd5631473ff23c5b1da077734ba0174ff46184fd8fe89abd080b5bbd586124",
+      "bytes": 5674
+    }
+  ],
+  "created_at": "2026-10-16T18:52:58.635857+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-199 asks for the exact size given), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

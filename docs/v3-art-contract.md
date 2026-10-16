@@ -59,7 +59,12 @@ characters, which is the most visible "different game" defect there is.
 * **`generate`** — FLUX pass. Needs torch + MPS + the cached weights (the `sou-flux`
   venv). Writes `<id>.raw.png` (the untouched model output) and `<id>.prompt.txt`.
   Generation runs at the **target aspect ratio**, not square, so the fit is a scale and
-  never a crop.
+  never a crop. Two asset kinds are exempt: DRAWN tiles (see §7) have no raw to
+  generate, and character facings with a `reference` key are generated as **reference
+  edits** — klein is a unified generate+edit model, so the pipeline is handed our own
+  `char_down.keyed.png` as a conditioning image. That is what holds one identity across
+  the facings; the rule it must not break is the one about upstream Star-Office/LimeZu
+  pixels, and those are never involved.
 * **`assemble`** — CPU-only, seconds, and a **pure function of the raws**: border-seeded
   magenta key + de-fringe (blue-vs-green discriminator, so warm browns survive) →
   content bbox → uniform NEAREST fit → palette quantise → per-file manifest → character
@@ -90,20 +95,49 @@ as well as FAIL:
   its row's idle frame** (this is what caught typing frames that were identical to idle
   in the narrow side-profile rows);
 * **tileset** — 8 slots of 32px in the order `office-01.json` itself declares, because
-  the map is the consumer and its order is the authority;
-* **seam** — for each tile, the wrap-around edge step against the mean interior step.
-  A generated texture is NOT seamless: the floor measured 5.4× before the crop search
-  and 2.9× after. Seamlessness is a measurement, never an adjective.
+  the map is the consumer and its order is the authority. (This check silently no-opped
+  until 2026-10-16: the map path was derived with three `dirname`s off the art set, which
+  lands on `assets/`. A check that passes by not running is not a check.)
+* **seam** — for each tile, the wrap-around edge step against the mean interior step, and
+  against the **largest interior step**. The mean is the historical number; the max is the
+  honest one for a tile whose periodic feature lands on the boundary (a plank joint every
+  8px), because when the tile repeats that transition happens inside it too.
+* **review fix assertions (2026-10-16)** — the three defects filed against the 15:27 build,
+  each as a measurement: one identity across the four facings (the dominant garment colour
+  of each row's idle frame must be the same colour), the van's dominant colour must be in
+  the declared beige family, and floor/floor_b/wall_cap must stay calm (colour count and
+  luminance-contrast limits) with the planks running horizontally
+  (`mean|Δy| > mean|Δx|`).
+* **walk-slide flag** — if the four walk frames of a facing share one lower-body alpha
+  x-range there is no in-frame step travel and the sprite slides. The gate prints this as a
+  FLAG and never fails on it: the 2026-10-16 review accepted the stride for M1 and asked for
+  it to be flagged rather than polished.
 
 ## 6. Known limitations (state them, do not bury them)
 
 * **Walk and typing columns are derived, not drawn.** Idle and sleep are direct model
-  outputs; the other columns are deterministic whole-pixel shifts of the same base
-  (leg halves ±2px with a bob; arm bands ±1px). The sheet manifest carries a per-frame
-  `derivation` map. A hand-animated cycle for the down row is the obvious next step.
-* **Floor tile seams.** `floor` wraps at 1.38×/2.94× and `floor_b` at 2.56×/4.39× the
-  interior step. The map alternates the two, which masks it, but a hand-drawn floor tile
-  is the honest fix if a seam shows on screen.
+  outputs (idle) or reference edits of the idle base (sleep); the other columns are
+  deterministic whole-pixel shifts of the same base (leg halves ±2px with a bob; arm bands
+  ±1px). The sheet manifest carries a per-frame `derivation` map. A hand-animated cycle for
+  the down row is the obvious next step, and the gate measures the slide it would fix.
 * **The side-profile rows are narrow** (11px inside a 32px frame) because the model drew
   thin profiles; the sheet is consistent, but a profile that reads flat at 1:1 is a
   fair criticism.
+
+## 7. Drawn tiles: when the thing IS geometry
+
+`floor`, `floor_b` and `wall_cap` are DRAWN from the declared palette
+(`DRAWN_TILES` in the generator), not generated, and their manifests say so. The reason is
+measured, not aesthetic: asked for "horizontal planks", the model returned a high-contrast
+vertical barcode — luminance contrast 209/255 with mean |Δx| 38.2 against mean |Δy| 2.4, the
+planks running across their own prompt — and it overpowered every prop and the character,
+which are supposed to be the brightest, most contrasted things on screen. The wall cap came
+back with 22 colours and cream speckles that read as confetti along the top of every wall.
+
+A flat floor is one direction plus a contrast budget, i.e. geometry, and this fork already
+has the ruling for that (ADR-064/065: geometry is declared, never generated). Drawing it
+makes the properties measurable instead of hoped for: 4 horizontal 8px planks and a 1px
+joint, staggered 1px board ends, period 32 on both axes, so it repeats exactly
+(wrap step / max interior step = 0.57). Contrast: floor 66/255, floor_b 58/255, wall_cap
+18/255, against 209/255 before. The rejected raws stay on disk as the record.
+

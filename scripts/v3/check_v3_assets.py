@@ -48,6 +48,7 @@ from gen_office01_art import (  # noqa: E402  (same directory)
     OUT,
     PALETTE_HEX,
     PALETTE_RGB,
+    REPO,
     TILESET_ORDER,
     content_bottom_row,
 )
@@ -160,6 +161,88 @@ def hexs(rgb) -> str:
     return "#%02x%02x%02x" % rgb
 
 
+def wrap_vs_max(img) -> dict:
+    """Wrap-around edge step against the LARGEST interior step on the same axis.
+
+    A periodic feature that lands on the tile boundary (a plank joint every 8px, a 1px cap edge
+    every 32px) is not a seam: when the tile repeats, that transition is exactly what happens
+    inside the tile too. The older ratio (wrap / MEAN interior step) flags such a tile even
+    though it is perfectly periodic, so this compares the wrap step to the MAX interior step:
+    <= 1.05 means the wrap is indistinguishable from an ordinary interior transition.
+    """
+    img = img.convert("RGB")
+    w, h = img.size
+    px = img.load()
+
+    def col_step(a, b):
+        return sum(abs(px[a, y][i] - px[b, y][i]) for y in range(h) for i in range(3)) / (h * 3)
+
+    def row_step(a, b):
+        return sum(abs(px[x, a][i] - px[x, b][i]) for x in range(w) for i in range(3)) / (w * 3)
+
+    inner_c = [col_step(x, x + 1) for x in range(w - 1)]
+    inner_r = [row_step(y, y + 1) for y in range(h - 1)]
+    wrap_c, wrap_r = col_step(w - 1, 0), row_step(h - 1, 0)
+    return {
+        "wrap_vs_max_x": round(wrap_c / max(inner_c), 2) if max(inner_c) else 0.0,
+        "wrap_vs_max_y": round(wrap_r / max(inner_r), 2) if max(inner_r) else 0.0,
+    }
+
+
+def luminance(img) -> list[float]:
+    img = img.convert("RGB")
+    return [0.299 * r + 0.587 * g + 0.114 * b for r, g, b in img.getdata()]
+
+
+def direction_and_contrast(img) -> dict:
+    """Plank direction and the contrast budget of a tile, as numbers.
+
+    mean |dx| / mean |dy|: with HORIZONTAL planks the variation is crossed by moving in y (the
+    joints are lines of constant y), so mean |dy| must exceed mean |dx|. The 2026-10-16
+    generated floor had mean |dx| 38.2 against mean |dy| 2.4 - planks running the wrong way -
+    and a 209/255 luminance contrast that made the floor louder than every prop on it.
+    """
+    img = img.convert("RGB")
+    w, h = img.size
+    px = img.load()
+    lum = luminance(img)
+    at = lambda x, y: lum[(y % h) * w + (x % w)]  # noqa: E731
+    dx = [abs(at(x, y) - at(x + 1, y)) for y in range(h) for x in range(w)]
+    dy = [abs(at(x, y) - at(x, y + 1)) for y in range(h) for x in range(w)]
+    return {
+        "mean_dx": round(sum(dx) / len(dx), 2),
+        "mean_dy": round(sum(dy) / len(dy), 2),
+        "contrast": round(max(lum) - min(lum), 1),
+        "horizontal_planks": (sum(dy) / len(dy)) > (sum(dx) / len(dx)),
+    }
+
+
+# The colours that make a vehicle read as the beige 90s van the owner signed off in the v2 run.
+BEIGE_FAMILY = {"#e2d3b4", "#eadcb8", "#d8c8a0", "#c1a46b", "#a8894f", "#ac9968"}
+
+
+def dominant_colour(img, exclude=("#14161f",)) -> tuple[str, int, float]:
+    """The most common opaque colour, ignoring outline/hair, with its count and share.
+
+    This is the identity measurement for the character sheet: the review found the four facings
+    were four different people (down a dark jacket, left/right a blue hoodie, up a navy
+    silhouette), which is exactly what "the dominant garment colour differs per row" detects.
+    """
+    img = img.convert("RGBA")
+    counts: dict[tuple[int, int, int], int] = {}
+    total = 0
+    for r, g, b, a in img.getdata():
+        if not a:
+            continue
+        total += 1
+        counts[(r, g, b)] = counts.get((r, g, b), 0) + 1
+    for rgb, n in sorted(counts.items(), key=lambda kv: -kv[1]):
+        h = hexs(rgb)
+        if h not in exclude:
+            return h, n, round(n / total, 3)
+    return "none", 0, 0.0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--root", default=str(OUT), help="art set root (default: assets/generated/v3/office-01)")
@@ -168,7 +251,11 @@ def main() -> int:
     args = ap.parse_args()
 
     root = os.path.abspath(args.root)
-    repo = os.path.dirname(os.path.dirname(os.path.dirname(root)))
+    # The office map is a repo path, not an art-set path: resolve it from the repo root the
+    # generator declares. Three `dirname`s off the art set landed on `assets/`, so the map was
+    # never found and the tileset-order check silently no-opped (found and fixed 2026-10-16
+    # during the SOU-158 review pass - a check that can pass by not running is not a check).
+    repo = str(REPO)
     map_path = args.map or os.path.join(repo, "frontend", "v3", "maps", "office-01.json")
     report = Report()
 
@@ -255,6 +342,7 @@ def main() -> int:
         colours, off = palette_check(img)
         alpha = alpha_profile(img)
         seam = seam_ratio(img)
+        wrap = wrap_vs_max(img)
         problems = []
         if img.size != (32, 32):
             problems.append(f"size {img.size} != (32, 32)")
@@ -262,16 +350,24 @@ def main() -> int:
             problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
         if alpha["transparent"]:
             problems.append(f"{alpha['transparent']} transparent pixels (a tile is full-bleed)")
+        if wrap["wrap_vs_max_x"] > 1.05 or wrap["wrap_vs_max_y"] > 1.05:
+            problems.append(f"wrap step is larger than any interior step "
+                            f"(x {wrap['wrap_vs_max_x']}, y {wrap['wrap_vs_max_y']} vs limit 1.05) "
+                            f"- that is a real seam")
         if not args.quiet:
-            report.note(f"{name}: {seam} ratio<=1.5 reads seamless")
+            report.note(f"{name}: seam {seam} (wrap/mean), wrap/MAX interior x="
+                        f"{wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']} - a periodic feature "
+                        f"landing on the boundary is not a seam")
         print(f"{name:14s} {f'{img.size[0]}x{img.size[1]}':>7s} colours={len(colours):>3d} "
-              f"seam x={seam['ratio_x']:>5} y={seam['ratio_y']:>5}  "
+              f"seam x={seam['ratio_x']:>5} y={seam['ratio_y']:>5} "
+              f"wrap/max x={wrap['wrap_vs_max_x']:>5} y={wrap['wrap_vs_max_y']:>5}  "
               f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
         if problems:
             report.fail(f"tiles/{name}: " + "; ".join(problems))
         else:
             report.ok(f"tiles/{name}: 32x32, {len(colours)} palette colours, opaque, "
-                      f"seam x={seam['ratio_x']} y={seam['ratio_y']}")
+                      f"seam x={seam['ratio_x']} y={seam['ratio_y']} "
+                      f"(wrap/max x={wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']})")
 
     # ---- tileset sheet order vs the map (the consumer is the authority) --------------
     print("\nTILESET SHEET vs office-01.json")
@@ -344,6 +440,81 @@ def main() -> int:
         report.note(f"colours: {' '.join(hexs(c) for c in colours)}")
     else:
         report.fail("character/office-01.png missing")
+
+    # ---- the 2026-10-16 review redo list, as machine checks --------------------------
+    # Claude Code reviewed the 15:27 build and filed three defects. Each one is asserted here
+    # against the bytes with the measurement printed, so "fixed" is checkable rather than
+    # claimed. Where a threshold is arbitrary it is stated next to the check.
+    print("\nREVIEW FIXES (Claude Code redo list, 2026-10-16)")
+    char_path = os.path.join(root, "character", "office-01.png")
+    if os.path.exists(char_path):
+        sheet = Image.open(char_path)
+        doms = {}
+        for row, facing in enumerate(("down", "left", "right", "up")):
+            frame = sheet.crop((0, row * 48, 32, row * 48 + 48))
+            doms[facing] = dominant_colour(frame)
+        table = ", ".join(f"{f}={h} ({s:.0%})" for f, (h, _n, s) in doms.items())
+        print(f"  identity   {table}")
+        if len({h for h, _n, _s in doms.values()}) == 1:
+            report.ok("1. character identity: the dominant garment colour is identical in all four "
+                      f"facings ({table})")
+        else:
+            report.fail("1. character identity: the facings disagree on the dominant garment "
+                        f"colour ({table}) - that is the 'three different people' defect")
+
+    van_path = os.path.join(root, "props", "van.png")
+    if os.path.exists(van_path):
+        van = Image.open(van_path)
+        h, n, share = dominant_colour(van)
+        print(f"  van        dominant={h} {share:.0%} of {n} px, canvas={van.size[0]}x{van.size[1]}")
+        if h in BEIGE_FAMILY:
+            report.ok(f"2. van reads as the beige 90s van: dominant colour {h} ({share:.0%}), "
+                      f"no silver/steel body")
+        else:
+            report.fail(f"2. van: dominant colour is {h} ({share:.0%}), not in the declared beige "
+                        f"family {sorted(BEIGE_FAMILY)}")
+
+    for name, max_colours, max_contrast in (("floor", 6, 96), ("floor_b", 6, 96),
+                                            ("wall_cap", 3, 48)):
+        path = os.path.join(root, "tiles", f"{name}.png")
+        if not os.path.exists(path):
+            continue
+        img = Image.open(path)
+        dc = direction_and_contrast(img)
+        colours, _off = palette_check(img)
+        problems = []
+        if len(colours) > max_colours:
+            problems.append(f"{len(colours)} colours > {max_colours}")
+        if dc["contrast"] > max_contrast:
+            problems.append(f"luminance contrast {dc['contrast']} > {max_contrast}")
+        if name.startswith("floor") and not dc["horizontal_planks"]:
+            problems.append(f"planks not horizontal (mean|dx| {dc['mean_dx']} >= "
+                            f"mean|dy| {dc['mean_dy']})")
+        print(f"  {name:10s} colours={len(colours)} contrast={dc['contrast']} "
+              f"mean|dx|={dc['mean_dx']} mean|dy|={dc['mean_dy']}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"3. {name}: " + "; ".join(problems))
+        else:
+            report.ok(f"3. {name}: calm - {len(colours)} colours, luminance contrast "
+                      f"{dc['contrast']}/255 (limits {max_colours}/{max_contrast})"
+                      + (f", planks horizontal (mean|dx| {dc['mean_dx']} < mean|dy| "
+                         f"{dc['mean_dy']})" if name.startswith("floor") else ""))
+
+    # 4. the walk stride, measured rather than described. The review ACCEPTED the slide for M1
+    #    ("don't polish it, flag it"), so this prints a FLAG and never fails the gate.
+    if os.path.exists(char_path):
+        sheet = Image.open(char_path)
+        for row, facing in enumerate(("down", "left", "right", "up")):
+            xs = []
+            for col in (1, 2, 3, 4):
+                frame = sheet.crop((col * 32, row * 48, (col + 1) * 32, (row + 1) * 48))
+                bbox = frame.getchannel("A").getbbox()
+                xs.append((bbox[0], bbox[2]) if bbox else None)
+            if len(set(xs)) == 1:
+                print(f"  FLAG       walk stride: {facing} frames share the same lower-body x-range "
+                      f"{xs[0]} - no in-frame step travel, the sprite slides (accepted for M1)")
+                report.note(f"walk slide (flag, accepted for M1): {facing} x-ranges all {xs[0]}")
 
     # ---- summary --------------------------------------------------------------------
     print("\n" + "=" * 96)

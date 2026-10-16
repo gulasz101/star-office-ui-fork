@@ -175,7 +175,12 @@ CATALOGUE = [
         "subject": "a seamless tileable texture of wide warm wooden floorboards of an office, "
                    "planks running horizontally, subtle grain, viewed from directly above",
         "texture_px": [32, 32],
-        "note": "tiles/floor.png, slot floor_wood_a in office-01.json",
+        "drawn": "floor_a",
+        "note": "tiles/floor.png, slot floor_wood_a in office-01.json. DRAWN from the declared "
+                "palette, not generated (see DRAWN_TILES): a generated material has no measurable "
+                "plank direction and the 2026-10-16 run returned a high-contrast vertical barcode "
+                "(measured contrast 209/255, mean |dx| 38.2 vs |dy| 2.4) that overpowered every "
+                "prop. The raw generation is kept on disk as the record of what was rejected.",
     },
     {
         "id": "floor_b",
@@ -183,7 +188,9 @@ CATALOGUE = [
         "subject": "the same seamless tileable wooden floorboard texture, a slightly darker and "
                    "more saturated plank tone, viewed from directly above",
         "texture_px": [32, 32],
-        "note": "tiles/floor_b.png, slot floor_wood_b (the map alternates the two)",
+        "drawn": "floor_b",
+        "note": "tiles/floor_b.png, slot floor_wood_b (the map alternates the two); same layout as "
+                "floor_wood_a, one step darker so the alternation reads without adding contrast",
     },
     {
         "id": "garage_floor",
@@ -207,7 +214,11 @@ CATALOGUE = [
         "subject": "a seamless tileable texture of the flat top surface of a low office wall, dark "
                    "blue-grey painted plaster, viewed from directly above",
         "texture_px": [32, 32],
-        "note": "tiles/wall_cap.png, slot wall_cap (what you see of the wall from above)",
+        "drawn": "wall_cap",
+        "note": "tiles/wall_cap.png, slot wall_cap (what you see of the wall from above). DRAWN: "
+                "plain dark cap, one flat colour plus a 1px darker bottom edge - the generated "
+                "version came back with 22 colours and cream speckles (a measured 212/255 "
+                "contrast) which read as confetti dots along the top of every wall",
     },
     # --- props: footprints and lifts exactly as the v3 renderer declares them ---------
     _prop("desk", "a work desk with a CRT monitor, a small desk lamp and a coffee mug",
@@ -236,8 +247,14 @@ CATALOGUE = [
     _prop("cat", "an orange tabby cat curled up asleep inside a small open cardboard box, tail "
                  "tucked around itself", 32, 32, 8,
           "decor: the owner's favourite, no footprint perspective expected"),
-    _prop("van", "a small boxy 1990s Japanese minivan, plain unbranded, seen from above and "
-                 "slightly in front so its roof, windscreen and front bumper are all visible",
+    _prop("van", "a small boxy 1990s Japanese minivan painted flat pale beige (a warm sand body "
+                 "#eadcb8 with #d8c8a0 and #c1a46b shading), plain unbranded, with dark blue-grey "
+                 "glass and a simple boxy silhouette: one long flat roof, an upright windscreen, "
+                 "slab-flat sides, a short blunt nose, thin pillars, squared-off body, small simple "
+                 "wheels. Seen from above and slightly in front so its roof, windscreen and front "
+                 "bumper are all visible with the nose pointing toward the camera. It is a plain "
+                 "boxy old van: NOT a car, NOT a sedan, NOT an SUV, NOT a sports car, no spoiler, "
+                 "no chrome, no alloy wheels, not silver, not grey, not metallic, no badges",
           96, 128, 40),
     _prop("spool", "an empty wooden cable spool lying on the floor with a few loose network cables "
                    "coiled around it", 32, 32, 12),
@@ -260,7 +277,9 @@ CATALOGUE = [
         "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
                    "jumper and trousers",
         "texture_px": [32, 48],
-        "note": "base for sheet row 'up'",
+        "reference": "char_down",
+        "note": "base for sheet row 'up' - generated as a REFERENCE EDIT of char_down, so the "
+                "identity (hood, hair, outfit colours) is carried over instead of re-invented",
     },
     {
         "id": "char_right",
@@ -269,7 +288,9 @@ CATALOGUE = [
         "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
                    "jumper and trousers",
         "texture_px": [32, 48],
-        "note": "base for sheet row 'right'; row 'left' is its mirror",
+        "reference": "char_down",
+        "note": "base for sheet row 'right'; row 'left' is its mirror. Reference edit of char_down "
+                "for the same identity",
     },
     {
         "id": "char_sleep",
@@ -278,7 +299,9 @@ CATALOGUE = [
         "subject": "a full body game character sprite of a small anime-style engineer in a hooded "
                    "jumper and trousers",
         "texture_px": [32, 48],
-        "note": "base for sheet column 7 (sleep) in every row",
+        "reference": "char_down",
+        "note": "base for sheet column 7 (sleep) in every row; reference edit of char_down so the "
+                "sleeping sprite is the same person as the standing one",
     },
 ]
 
@@ -347,6 +370,19 @@ def compose_prompt(asset):
             "top-down game: the character stands upright and reads as a complete standing figure. "
             "Do NOT draw the floor, a base, a platform or a contact shadow under the feet. "
         )
+        if asset.get("reference"):
+            # Reference edit (klein is a unified generate+edit model). The init image is OUR OWN
+            # klein output, never upstream/LimeZu/Star-Office art, which is what the ADR-061
+            # no-img2img rule protects - so identity is carried over instead of re-invented.
+            head += (
+                "This is an EDIT of the reference image: keep EXACTLY the same character - the same "
+                "person, same short black hair (colour #14161f), same pale skin (#e2d3b4), same dark "
+                "blue hooded jumper (#44618a) with the same hood, same dark slate grey trousers "
+                "(#3a4152), same brown boots (#6e4a2c), same proportions and same 1px dark outline. "
+                "Change ONLY the camera angle to the pose above: do not restyle the character, do "
+                "not change its colours, do not add or remove clothing, do not redraw the face as a "
+                "different person. "
+            )
         tail = (
             f"Palette limited to exactly these colours: {', '.join(CHARACTER_RAMP)}. "
             + STYLE + KEY + NO_TEXT +
@@ -378,7 +414,8 @@ def cmd_generate(args):
     if not todo:
         sys.exit(f"--only {args.only}: no such asset in the catalogue")
 
-    pipe, torch_mod = frg.load_pipe()  # LoRA off: it blacks out (ADR-060 field result)
+    pipe = None
+    torch_mod = None
     for index, asset in enumerate(CATALOGUE):
         if asset not in todo:
             continue
@@ -386,15 +423,59 @@ def cmd_generate(args):
         if raw.exists() and not args.force:
             print(f"[skip] {asset['id']:12s} raw already on disk")
             continue
+        if asset.get("drawn"):
+            print(f"[skip] {asset['id']:12s} DRAWN from the palette - no FLUX pass, see assemble")
+            continue
+        if pipe is None:
+            pipe, torch_mod = frg.load_pipe()  # LoRA off: it blacks out (ADR-060 field result)
         tw, th = asset["texture_px"]
         gw, gh = _gen_size(tw, th)
         seed = 15800 + index * 7
         prompt = compose_prompt(asset)
-        print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed}", flush=True)
-        image = frg.generate(pipe, torch_mod, prompt, gw, gh, seed=seed, steps=STEPS, guidance=GUIDANCE)
+        ref = None
+        if asset.get("reference"):
+            ref_path = OUT / f"{asset['reference']}.keyed.png"
+            if not ref_path.exists():
+                sys.exit(f"{asset['id']} wants a reference edit of {asset['reference']} but "
+                         f"{ref_path.name} does not exist - generate the reference first")
+            ref = Image.open(ref_path).convert("RGB")
+            print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed} REFERENCE EDIT of "
+                  f"{ref_path.name} ({ref.size[0]}x{ref.size[1]})", flush=True)
+        else:
+            print(f"[gen ] {asset['id']:12s} {gw}x{gh} seed={seed}", flush=True)
+        image = _generate(frg, pipe, torch_mod, prompt, gw, gh, seed=seed, reference=ref)
         image.save(raw)
         (OUT / f"{asset['id']}.prompt.txt").write_text(prompt + "\n")
     print("GENERATE_DONE")
+
+
+def _generate(frg, pipe, torch_mod, prompt, width, height, seed, reference=None):
+    """Text-only generation, or a reference edit of OUR OWN previously generated image.
+
+    klein is a unified generate+edit model, so the pipeline takes an `image` argument that is
+    concatenated into the transformer input as a conditioning image (there is no `strength`
+    knob). Passing one is what makes "the same character, different camera" hold: four
+    independent text-only generations returned four different people (measured 2026-10-16,
+    SOU-158 review). The reference is always a `.keyed.png` this pipeline produced itself -
+    never upstream Star-Office or LimeZu art, which is what the no-img2img rule protects.
+    """
+    if reference is None:
+        return frg.generate(pipe, torch_mod, prompt, width, height, seed=seed,
+                            steps=STEPS, guidance=GUIDANCE)
+    gen = torch_mod.Generator(device="cpu").manual_seed(seed)
+    t0 = __import__("time").time()
+    image = pipe(
+        image=reference,
+        prompt=prompt,
+        height=height,
+        width=width,
+        num_inference_steps=STEPS,
+        guidance_scale=GUIDANCE,
+        generator=gen,
+    ).images[0]
+    print(f"[gen] {width}x{height} seed={seed} steps={STEPS} reference-edit "
+          f"in {__import__('time').time() - t0:.1f}s", flush=True)
+    return image
 
 
 # --------------------------------------------------------------------------------------
@@ -833,8 +914,39 @@ def cmd_assemble(args):
     results = {}
     keyed = {}
     char_bases = {}
+    char_modes = {}
     for index, asset in enumerate(CATALOGUE):
         aid = asset["id"]
+        if asset.get("drawn"):
+            # DRAWN tile: a floor/wall cap is geometry plus two or three shades, so it is drawn
+            # from the declared palette instead of generated. Measured reason (SOU-158 review,
+            # 2026-10-16): the generated floor returned a high-contrast vertical barcode
+            # (contrast 209/255, mean |dx| 38.2 vs mean |dy| 2.4 - the stripes ran the WRONG way
+            # for the "horizontal planks" prompt) and visually overpowered every prop and the
+            # character. Drawing makes the plank direction, the contrast budget and the
+            # seamlessness measurable properties rather than hopes: period 32 in both axes, so
+            # the tile repeats exactly (seam ratio 1.0). Same ruling as ADR-064/065 - geometry is
+            # declared, never generated. The rejected raw generation stays on disk as the record.
+            quant = quantise(draw_tile(asset["drawn"]))
+            out_path = OUT / "tiles" / f"{aid}.png"
+            quant.save(out_path)
+            meta = {
+                "derivation": f"drawn from the declared palette ({asset['drawn']}), no FLUX pass",
+                "seam": seam_ratio(quant),
+                "seam_before_crop": None,
+                "note": asset.get("note", ""),
+            }
+            manifest = _manifest(asset, seed=None,
+                                 prompt="drawn from the declared palette - no FLUX pass "
+                                        "(see `derivation`)",
+                                 source_file="none - drawn, see DRAWN_TILES",
+                                 output_file=f"tiles/{aid}.png",
+                                 output_dims=asset["texture_px"], extra=meta)
+            (OUT / "tiles" / f"{aid}.png.manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+            results[aid] = {"kind": "tile", "path": f"tiles/{aid}.png", **meta}
+            s = meta["seam"]
+            print(f"[asm ] {aid:12s} tile 32x32 DRAWN seam x={s['ratio_x']} y={s['ratio_y']}")
+            continue
         raw = OUT / f"{aid}.raw.png"
         if not raw.exists():
             print(f"[miss] {aid}: no raw generation on disk")
@@ -874,9 +986,13 @@ def cmd_assemble(args):
             frame = quantise(canvas, palette=CHARACTER_RGB)
             frame.save(OUT / f"{aid}.frame.png")
             char_bases[asset["view"]] = frame
+            mode = (f"reference edit of {asset['reference']}.keyed.png (our own klein output)"
+                    if asset.get("reference") else "text-only generation")
+            char_modes[asset["view"]] = mode
             results[aid] = {"kind": "char", "path": f"{aid}.frame.png",
-                            "key_colour": list(key), "fit": fit}
-            print(f"[asm ] {aid:12s} char frame 32x48 fit={fit['fitted_px']} by {fit['fitted_by']}")
+                            "key_colour": list(key), "fit": fit, "generation_mode": mode}
+            print(f"[asm ] {aid:12s} char frame 32x48 fit={fit['fitted_px']} by {fit['fitted_by']} "
+                  f"({mode})")
             continue
         if asset.get("flat"):
             # a decal has no silhouette to scale: it IS the footprint (a rug lying on the floor),
@@ -938,6 +1054,7 @@ def cmd_assemble(args):
                           "columns": "0 idle, 1-4 walk, 5-6 work/typing, 7 sleep",
                           "consumer": "frontend/v3/src/placeholders.js SHEET_COLS/FACINGS/FRAME"},
                 "derivation": derivation,
+                "generation_mode": char_modes,
                 "character_ramp": CHARACTER_RAMP,
                 "character_ramp_why": "the sheet is quantised through this 11-colour subset of the "
                                       "declared palette, so all four facings share one outfit by "
@@ -945,7 +1062,11 @@ def cmd_assemble(args):
                                       "returned four different characters (measured 2026-10-16)",
                 "note": "The idle and sleep columns are direct FLUX outputs; the walk and typing "
                         "columns are deterministic pixel derivations of the same base (leg/arm "
-                        "region shifts + body bob), recorded per frame under `derivation`.",
+                        "region shifts + body bob), recorded per frame under `derivation`. The "
+                        "char_up / char_right / char_sleep bases are REFERENCE EDITS of char_down "
+                        "(klein's unified generate+edit mode, conditioning image = our own "
+                        "char_down.keyed.png), which is what holds one identity across the "
+                        "facings; no upstream or LimeZu pixels are involved anywhere.",
             })
         (OUT / "character" / "office-01.png.manifest.json").write_text(json.dumps(sheet_manifest, indent=2) + "\n")
         results["character"] = {"kind": "sheet", "path": "character/office-01.png", "dims": [256, 192]}
@@ -1032,6 +1153,58 @@ def _darken_bottom(tile, rows=10, factor=0.72):
             r, g, b, a = px[x, y]
             px[x, y] = (int(r * factor), int(g * factor), int(b * factor), a)
     return out
+
+
+def _rgb(hexv):
+    """The palette RGB of a declared hex - the only colour source a drawn tile may use."""
+    return PALETTE_RGB[PALETTE_HEX.index(hexv)]
+
+
+# --------------------------------------------------------------------------------------
+# Drawn tiles. A floor is geometry plus two or three shades, so it is DRAWN from the
+# declared palette rather than generated - the same ruling as ADR-064/065 ("geometry is
+# declared, never generated"), applied to the one asset whose whole job is a direction and a
+# contrast budget. Measured reason (SOU-158 review, 2026-10-16): the generated floor came back
+# as a high-contrast vertical barcode - contrast 209/255, mean |dx| 38.2 against mean |dy| 2.4,
+# i.e. the planks ran ACROSS the prompt's "horizontal planks" - and it visually overpowered
+# every prop and the character, which are supposed to be the brightest things on screen.
+# Drawing makes plank direction, contrast and seamlessness measurable: 4 horizontal planks of
+# 8px with a 1px joint, staggered 1px board ends, period 32 in both axes, so the tile repeats
+# exactly (seam ratio 1.0 by construction). The rejected raws stay on disk as the record.
+# --------------------------------------------------------------------------------------
+PLANK_H = 8
+DRAWN_TILES = {
+    # 3 close warm-brown shades per floor, then a 1px darker joint. floor_b is the same
+    # layout one step darker so the map's alternation reads without adding contrast.
+    "floor_a": {"planks": ["#a8894f", "#c1a46b", "#ac9968", "#a8894f"], "seam": "#8a5a34"},
+    "floor_b": {"planks": ["#8a5a34", "#a8894f", "#b07a48", "#8a5a34"], "seam": "#6e4a2c"},
+    "wall_cap": {"flat": "#3a4152", "edge": "#2a2f3e"},
+}
+
+
+def draw_tile(name):
+    """Draw one of DRAWN_TILES at 32x32, using declared palette colours only."""
+    from PIL import ImageDraw
+
+    spec = DRAWN_TILES[name]
+    for hexv in [spec.get("flat"), spec.get("edge"), spec.get("seam"), *spec.get("planks", [])]:
+        if hexv and hexv not in PALETTE_HEX:
+            raise ValueError(f"drawn tile {name}: {hexv} is not in the declared palette")
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if "flat" in spec:
+        # a plain dark cap: one flat colour plus a 1px darker bottom edge for definition
+        d.rectangle([0, 0, 31, 31], fill=_rgb(spec["flat"]))
+        d.rectangle([0, 31, 31, 31], fill=_rgb(spec["edge"]))
+        return img
+    seam = _rgb(spec["seam"])
+    for i, hexv in enumerate(spec["planks"]):
+        y0 = i * PLANK_H
+        d.rectangle([0, y0, 31, y0 + PLANK_H - 1], fill=_rgb(hexv))
+        d.rectangle([0, y0 + PLANK_H - 1, 31, y0 + PLANK_H - 1], fill=seam)  # the plank joint
+        x = 8 if i % 2 == 0 else 24  # staggered board ends, so planks do not read as stripes
+        d.rectangle([x, y0, x, y0 + PLANK_H - 2], fill=seam)
+    return img
 
 
 def _draw_slot(name):

@@ -166,6 +166,8 @@ const RUNNER_BUILD_VERBS = new Set(['build', 'test', 'lint', 'install', 'i', 'ad
 const RUNNER_PROGS = new Set(['npm', 'pnpm', 'yarn']);
 // Wrapper tokens that are not the real program.
 const COMMAND_WRAPPERS = new Set(['sudo', 'doas', 'env', 'time', 'nohup', 'command']);
+// Setup segments ("cd dir && …") that say nothing about the work when more follows.
+const SETUP_PROGS = new Set(['cd', 'pushd', 'popd', 'export', 'source', '.', 'set']);
 
 const SUB_IDENT = /^[a-z][a-z0-9_-]{0,11}$/; // bare verb, never a flag or path
 const PROG_SHAPE = /^[a-z0-9._-]{1,20}$/;
@@ -216,8 +218,10 @@ function shapeCommand(command) {
   if (typeof command !== 'string' || !command.trim()) {
     return triple('ops', 'terminal', '$ shell');
   }
-  const parsed = shellSegments(command).map(parseSegment).filter((p) => p.prog);
+  let parsed = shellSegments(command).map(parseSegment).filter((p) => p.prog);
   if (!parsed.length) return triple('ops', 'terminal', '$ shell');
+  const work = parsed.filter((p) => !SETUP_PROGS.has(p.prog));
+  if (work.length) parsed = work;
   const buildOne = parsed.find((p) => p.isBuild);
   if (buildOne) return triple('build', 'building', buildOne.bubble);
   return triple('ops', 'terminal', parsed[0].bubble);

@@ -6,8 +6,9 @@ import { mapEvent, idleState } from '../activity.js';
 // main agent, so it never gets an office.
 export const IGNORED_AGENTS = new Set(['Star']);
 
-// Agents whose newest event is older than this don't get an office on page load.
-export const ACTIVE_WINDOW_MS = 30 * 60_000;
+// Agents whose newest event is older than this don't get an office on page load. Within it
+// they keep their room, asleep with the lights off if they've been idle (SOU-197).
+export const ACTIVE_WINDOW_MS = 24 * 60 * 60_000;
 
 const ts = (e) => Date.parse(e.created_at) || 0;
 const byTime = (a, b) => ts(a) - ts(b) || a.id - b.id;

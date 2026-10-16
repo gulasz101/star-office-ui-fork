@@ -1,9 +1,18 @@
 import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
+import { FeedState } from './feed.js';
 
-// ?agents=claude,hermes shows one office per agent (M2 preview); default is one office.
+// Default: live. Offices appear as agents show up in GET /events/recent.
+// ?agents=a,b pins offices instead (no feed); ?demo=1 cycles zones on the pinned offices.
 const params = new URLSearchParams(location.search);
-const AGENTS = (params.get('agents') || 'claude-code').split(',').map((s) => s.trim()).filter(Boolean);
+const PINNED = (params.get('agents') || '').split(',').map((s) => s.trim()).filter(Boolean);
+const DEMO = params.get('demo') === '1';
+const LIVE = !PINNED.length && !DEMO;
+const POLL_MS = 1500;
+const hud = (text) => {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text;
+};
 
 class OfficeScene extends Phaser.Scene {
   constructor() {
@@ -18,7 +27,7 @@ class OfficeScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor(COLORS.background);
     this.building = new Building(this, 'office-01');
-    for (const id of AGENTS) this.building.addOffice(id);
+    for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id);
 
     this.fitCamera();
     this.scale.on('resize', () => this.fitCamera());
@@ -40,7 +49,48 @@ class OfficeScene extends Phaser.Scene {
         return o && o.character;
       },
     };
-    if (params.get('demo') === '1') this.demo();
+    if (DEMO) this.demo();
+    if (LIVE) this.startLive();
+  }
+
+  office(agent) {
+    if (!this.building.offices.has(agent)) {
+      this.building.addOffice(agent);
+      this.fitCamera();
+    }
+    return this.building.offices.get(agent);
+  }
+
+  apply(updates) {
+    for (const { agent, target } of updates) this.office(agent).character.do(target);
+  }
+
+  startLive() {
+    this.feed = new FeedState();
+    window.office.feed = this.feed;
+    let first = true;
+    let busy = false;
+    const poll = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const q = new URLSearchParams({ limit: '200' });
+        if (this.feed.cursor) q.set('since', this.feed.cursor);
+        const res = await fetch(`/events/recent?${q}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this.apply(this.feed.ingest(await res.json(), { initial: first }));
+        first = false;
+        const n = this.building.offices.size;
+        hud(n ? `live · ${n} agent${n > 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}` : 'live · waiting for the first agent event…');
+      } catch (err) {
+        hud(`feed error: ${err.message} (retrying)`);
+      } finally {
+        busy = false;
+      }
+    };
+    poll();
+    this.time.addEvent({ delay: POLL_MS, loop: true, callback: poll });
+    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.apply(this.feed.idle()) });
   }
 
   // ?demo=1 cycles the agent through every zone, for eyeballing and screenshots

@@ -40,8 +40,10 @@ Exit code 0 = all checks pass, 1 = at least one failure (each printed with the m
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import subprocess
 import sys
 from collections import deque
 
@@ -447,16 +449,23 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--set", default="office-01",
                     choices=("office-01", "lodge", "serverroom", "factory",
-                             "mystery", "tokenden", "career", "writer"),
+                             "mystery", "tokenden", "career", "writer", "garage", "polish"),
                     help="which v3 art set to check (default: office-01)")
     ap.add_argument("--root", default=None,
                     help="art set root (default: the set's own generated directory)")
     ap.add_argument("--map", default=None, help="v3 map whose tileset order is the authority")
+    ap.add_argument("--shipped-ref", default="origin/master",
+                    help="git ref the SHIPPED originals must still match (--set polish only): the "
+                         "'never overwrite shipped files in place' AC is asserted against it")
     ap.add_argument("--quiet", action="store_true", help="only print failures and the summary")
     args = ap.parse_args()
 
     if args.set == "lodge":
         return main_lodge(args)
+    if args.set == "garage":
+        return main_garage(args)
+    if args.set == "polish":
+        return main_polish(args)
     if args.set in ("serverroom", "factory"):
         return main_set_b(args, args.set)
     if args.set in TICKET_C:
@@ -1670,6 +1679,708 @@ def main_lodge(args) -> int:
           "61-colour palette, with opaque tiles showing no seam on the axes each slot declares, "
           "real alpha and no magenta on every prop, a manifest next to every file, and the "
           "512x32 strip holding the 16 declared slots in order.")
+    return 0
+
+
+# ---------------------------------------------------------------------------------------
+# SOU-216: the garage bay, and the polish pass on four shipped sets.
+#
+# Two `--set` values because they are two deliveries with two different oracles:
+#
+#   garage   six props and two drawn concrete tiles. The oracle is the TICKET's table, typed out
+#            again below (TICKET_D) - a gate that only compares an asset to the generator's own
+#            declaration cannot catch a declaration that drifted from the ticket (SOU-158).
+#   polish   five NEW files under NEW names that replace five SHIPPED ones. Their oracle is the
+#            FILE THEY REPLACE, read from the served tree: "softer than the checkerboard" and
+#            "fuller than the empty shelf" are COMPARISONS, and a gate that only measured the new
+#            file against itself would pass while the room looked exactly as wrong as before. The
+#            same section asserts, against a git ref, that nothing shipped was overwritten.
+# ---------------------------------------------------------------------------------------
+TICKET_D = {
+    # id: (texture_w, texture_h, frames, footprint_w, footprint_h, lift) - typed from the ticket
+    "van_parked": (96, 128, 1, 96, 96, 32),
+    "roller_door": (96, 48, 1, 96, 32, 16),
+    "pegboard": (64, 48, 1, 64, 32, 16),
+    "toolbox": (32, 40, 1, 32, 32, 8),
+    "tire_stack": (32, 40, 1, 32, 32, 8),
+    "oil_drum": (32, 48, 1, 32, 32, 16),
+}
+TICKET_D_TILES = (("garage_floor", "xy"), ("garage_floor_stain", "xy"))
+TICKET_D_STRIP = (64, 32)
+
+TICKET_D_POLISH = {
+    # id: (home, kind, w, h, footprint_w, footprint_h, replaces, the metric that must IMPROVE)
+    "stone_floor_soft": ("lodge", "tile", 32, 32, 32, 32, "stone_floor", "block_contrast"),
+    "wall_face_soft": ("lodge", "tile", 32, 32, 32, 32, "wall_face", "log_contrast"),
+    "gear_shelf_full_a": ("serverroom", "prop", 64, 112, 64, 32, "gear_shelf_a", "shelf_packing"),
+    "gear_shelf_full_b": ("serverroom", "prop", 64, 112, 64, 32, "gear_shelf_b", "shelf_packing"),
+    "paper_stacks_lined": ("writer", "prop", 32, 32, 32, 32, "paper_stacks", "line_marks"),
+}
+TICKET_D_POLISH_STRIP = {"tiles_soft": ("lodge", ["stone_floor_soft", "wall_face_soft"], (64, 32))}
+
+# The shipped files this pass must NOT have touched, and the new files that must not have existed
+# before it. Checked against a git ref (default origin/master) - "in place" is a claim about the
+# repository, so it is checked against the repository.
+SHIPPED_MUST_BE_UNTOUCHED = (
+    "frontend/v3/assets/lodge/tiles/stone_floor.png",
+    "frontend/v3/assets/lodge/tiles/wall_face.png",
+    "frontend/v3/assets/lodge/tiles.png",
+    "frontend/v3/assets/serverroom/props/gear_shelf_a.png",
+    "frontend/v3/assets/serverroom/props/gear_shelf_b.png",
+    "frontend/v3/assets/writer/props/paper_stacks.png",
+)
+
+
+def _git_blob(ref: str, rel_path: str):
+    """(bytes, None) for the file in `ref`'s tree, (None, error) when git cannot answer.
+
+    A failure here is a FAILURE, never a note: "we could not check" and "we checked and it is
+    clean" are different answers, and only one of them is evidence.
+    """
+    proc = subprocess.run(["git", "show", f"{ref}:{rel_path}"], cwd=str(REPO),
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        return None, proc.stderr.decode(errors="replace").strip().splitlines()[-1:]
+    return proc.stdout, None
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _sha256_file(path: str) -> str:
+    with open(path, "rb") as fh:
+        return _sha256_bytes(fh.read())
+
+
+def main_garage(args) -> int:
+    import gen_garage_polish as G
+
+    root = os.path.abspath(args.root or str(G.out_dir("garage")))
+    map_path = args.map or os.path.join(str(REPO), "frontend", "v3", "maps", "rooms",
+                                        G.SETS["garage"]["map"])
+    report = Report()
+
+    if not os.path.isdir(root):
+        print(f"no art set at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    pal_path = os.path.join(root, "palette.json")
+    if os.path.exists(pal_path):
+        declared = json.load(open(pal_path))
+        if declared.get("hex") != G.PALETTE_HEX:
+            report.fail(f"palette.json does not match the shared lodge palette "
+                        f"({len(declared.get('hex', []))} vs {len(G.PALETTE_HEX)} colours)")
+        else:
+            report.ok(f"palette.json declares {len(G.PALETTE_HEX)} colours, identical to the lodge "
+                      f"palette ({declared.get('name')}, shared_with={declared.get('shared_with')!r})")
+    else:
+        report.fail("palette.json missing - the palette is not declared anywhere")
+
+    print("=" * 96)
+    print(f"garage v3 art set check (SOU-216)   root={root}")
+    print(f"palette: {len(G.PALETTE_HEX)} declared colours, {', '.join(G.PALETTE_HEX[:6])}, ...")
+    print("=" * 96)
+
+    # ---- declaration vs the ticket ------------------------------------------------------
+    ticket = TICKET_D
+    gen_ids = [a["id"] for a in G.GARAGE_PROPS]
+    if set(gen_ids) != set(ticket):
+        report.fail(f"the generator's asset list {sorted(gen_ids)} != the ticket's "
+                    f"{sorted(ticket)}")
+    else:
+        report.ok(f"{len(gen_ids)} props, the same set the SOU-216 table names: {', '.join(gen_ids)}")
+    drift = []
+    for asset in G.GARAGE_PROPS:
+        tw, th, frames, fpw, fph, lift = ticket[asset["id"]]
+        if tuple(asset["texture_px"]) != (tw, th) or asset["lift_px"] != th - fph \
+                or tuple(asset["footprint_px"]) != (fpw, fph):
+            drift.append(asset["id"])
+            report.fail(f"{asset['id']}: generator declares {tuple(asset['texture_px'])} lift "
+                        f"{asset['lift_px']} fp {tuple(asset['footprint_px'])} but the ticket says "
+                        f"{(tw, th)} lift {lift} fp {(fpw, fph)}")
+    if not drift:
+        report.ok("every size, footprint and lift agrees with the SOU-216 table")
+
+    # ---- props --------------------------------------------------------------------------
+    print("\nPROPS (shipped px vs the TICKET table; base = content coverage of the bottom 2 rows)")
+    print(f"{'asset':16s} {'shipped':>11s} {'ticket':>11s} {'colours':>7s} {'transp':>7s} "
+          f"{'fringe':>6s} {'base':>5s}  result")
+    for asset in G.GARAGE_PROPS:
+        aid = asset["id"]
+        tw, th, _frames, fpw, fph, _lift = ticket[aid]
+        path = os.path.join(root, "props", f"{aid}.png")
+        if not os.path.exists(path):
+            report.fail(f"props/{aid}.png missing")
+            continue
+        img = Image.open(path).convert("RGBA")
+        colours, off = palette_check(img, allowed=G.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        cov = base_row_coverage(img)
+        bottom = content_bottom_row(img)
+        problems = []
+        if img.size != (tw, th):
+            problems.append(f"size {img.size} != ticket {(tw, th)}")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if not alpha["has_real_alpha"]:
+            problems.append("no real alpha")
+        if alpha["partial"]:
+            problems.append(f"{alpha['partial']} partial-alpha pixels")
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+        if bottom != th - 1:
+            problems.append(f"content stops at row {bottom} of {th} - the renderer anchors the "
+                            f"footprint's bottom edge there, so the prop would float")
+        if asset["flat"] and cov < 0.10:
+            problems.append(f"flat decal covers only {cov:.2f} of its lowest rows")
+        print(f"{aid:16s} {f'{img.size[0]}x{img.size[1]}':>11s} {f'{tw}x{th}':>11s} "
+              f"{len(colours):>7d} {alpha['transparent']:>7d} {resid['fringe']:>6d} {cov:>5.2f}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+        else:
+            report.ok(f"{aid}: {img.size[0]}x{img.size[1]}, {len(colours)} palette colours, real "
+                      f"alpha, no magenta, base on the bottom row ({bottom}), footprint "
+                      f"{fpw}x{fph} + {th - fph}px lift")
+        if not args.quiet:
+            report.note(f"{aid}: colours {' '.join(hexs(c) for c in colours)}")
+        # a reference edit must SAY it is one, and name the file it was conditioned on
+        man_path = path + ".manifest.json"
+        if os.path.exists(man_path):
+            m = json.load(open(man_path))
+            if asset.get("reference"):
+                if asset["reference"] not in str(m.get("generation_mode", "")):
+                    report.fail(f"{aid}: the manifest's generation_mode "
+                                f"{m.get('generation_mode')!r} does not name the reference "
+                                f"{asset['reference']} the ticket allows")
+                else:
+                    report.ok(f"{aid}: manifest records a reference edit of {asset['reference']} "
+                              f"(the same beige van - SOU-216 allows OUR OWN art as reference)")
+
+    # ---- tiles ---------------------------------------------------------------------------
+    print("\nTILES (32x32 drawn concrete; seam asserted on the declared axes; the ring assertion "
+          "is what makes seamlessness true BY CONSTRUCTION)")
+    order = [name for name, _axes in TICKET_D_TILES]
+    tiles = {}
+    for slot, (name, axes) in enumerate(TICKET_D_TILES):
+        path = os.path.join(root, "tiles", f"{name}.png")
+        if not os.path.exists(path):
+            report.fail(f"tiles/{name}.png missing (slot {slot})")
+            continue
+        img = Image.open(path).convert("RGBA")
+        tiles[name] = img
+        colours, off = palette_check(img, allowed=G.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        wrap = G.lodge.wrap_vs_max(img)
+        ring = {img.getpixel((x, y)) for x in range(32) for y in (0, 1, 30, 31)}
+        ring |= {img.getpixel((x, y)) for y in range(32) for x in (0, 1, 30, 31)}
+        problems = []
+        if img.size != (32, 32):
+            problems.append(f"size {img.size} != (32, 32)")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if alpha["transparent"]:
+            problems.append(f"{alpha['transparent']} transparent pixels (a tile is full-bleed)")
+        if "x" in axes and wrap["wrap_vs_max_x"] > LODGE_SEAM_LIMIT:
+            problems.append(f"x seam: wrap step is {wrap['wrap_vs_max_x']}x the largest interior "
+                            f"step (limit {LODGE_SEAM_LIMIT})")
+        if "y" in axes and wrap["wrap_vs_max_y"] > LODGE_SEAM_LIMIT:
+            problems.append(f"y seam: wrap step is {wrap['wrap_vs_max_y']}x the largest interior "
+                            f"step (limit {LODGE_SEAM_LIMIT})")
+        if len(ring) != 1:
+            problems.append(f"the border ring carries {len(ring)} colours - the drawn tile is "
+                            f"periodic because the 2px ring is one colour, so this tile is not "
+                            f"seamless by construction")
+        print(f"{slot:>4d} {name:19s} {str(img.size):>9s} {axes:>4s} {len(colours):>7d} "
+              f"{alpha['transparent']:>7d} {wrap['wrap_vs_max_x']:>10} {wrap['wrap_vs_max_y']:>6}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"tiles/{name}: " + "; ".join(problems))
+        else:
+            report.ok(f"tiles/{name} (slot {slot}): 32x32, {len(colours)} palette colours, opaque, "
+                      f"wrap/max x={wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']} checked={axes}, "
+                      f"border ring is a single colour (periodic by construction)")
+
+    # the stain tile is the plain tile PLUS one interior stain: it may not touch the ring
+    if "garage_floor" in tiles and "garage_floor_stain" in tiles:
+        plain, stain = tiles["garage_floor"], tiles["garage_floor_stain"]
+        changed = [(x, y) for y in range(32) for x in range(32)
+                   if plain.getpixel((x, y)) != stain.getpixel((x, y))]
+        outside = [p for p in changed if not (2 <= p[0] <= 29 and 2 <= p[1] <= 29)]
+        if outside:
+            report.fail(f"garage_floor_stain differs from garage_floor outside its interior in "
+                        f"{len(outside)} px e.g. {outside[:4]} - it is meant to be the same tile "
+                        f"plus ONE oil stain, and the ring must stay calm")
+        elif not changed:
+            report.fail("garage_floor_stain is identical to garage_floor - the oil stain is missing")
+        elif len(changed) > 200:
+            report.fail(f"garage_floor_stain changes {len(changed)} px (> 200) - that is not 'one "
+                        f"oil stain' on the same tile")
+        else:
+            report.ok(f"garage_floor_stain = garage_floor + one interior stain "
+                      f"({len(changed)} px changed, 0 outside the interior)")
+
+    # ---- tileset strip ------------------------------------------------------------------
+    print("\nTILESET STRIP (64x32, 2 slots of 32px) - order checked against the declared table")
+    sheet_path = os.path.join(root, "tiles.png")
+    declared_strip = TICKET_D_STRIP
+    if not os.path.exists(sheet_path):
+        report.fail("tiles.png missing - the wiring step needs the 2-tile strip")
+    else:
+        sheet = Image.open(sheet_path).convert("RGBA")
+        if sheet.size != declared_strip:
+            report.fail(f"tiles.png is {sheet.size}, expected {declared_strip}")
+        else:
+            report.ok(f"tiles.png is {sheet.size[0]}x{sheet.size[1]} = {len(order)} tiles of 32px")
+        colours, off = palette_check(sheet, allowed=G.PALETTE_RGB)
+        if off:
+            report.fail(f"tiles.png has {len(off)} off-palette colours e.g. {hexs(off[0])}")
+        mismatched = []
+        for slot, name in enumerate(order):
+            tile_path = os.path.join(root, "tiles", f"{name}.png")
+            if not os.path.exists(tile_path):
+                continue
+            tile = Image.open(tile_path).convert("RGBA")
+            if sheet.crop((slot * 32, 0, (slot + 1) * 32, 32)).tobytes() != tile.tobytes():
+                mismatched.append(f"slot {slot} != {name}.png")
+        if mismatched:
+            report.fail("tiles.png slot order/content does not match the declared order: "
+                        + "; ".join(mismatched))
+        else:
+            report.ok(f"both slots hold exactly the tile the declared order names "
+                      f"({', '.join(order)})")
+
+    # ---- manifests ----------------------------------------------------------------------
+    print("\nMANIFESTS (one next to every file, carrying model/seed/prompt/dims)")
+    pairs = [("tiles", f"{name}.png") for name in order] + [("", "tiles.png")] \
+        + [("props", f"{a['id']}.png") for a in G.GARAGE_PROPS]
+    for sub, fname in pairs:
+        png = os.path.join(root, sub, fname)
+        man = png + ".manifest.json"
+        if not os.path.exists(png):
+            continue
+        if not os.path.exists(man):
+            report.fail(f"{sub}/{fname}: no manifest next to it")
+            print(f"{sub}/{fname:24s} FAIL: no manifest")
+            continue
+        try:
+            m = json.load(open(man))
+        except Exception as exc:  # noqa: BLE001
+            report.fail(f"{sub}/{fname}.manifest.json is not valid JSON ({exc})")
+            continue
+        problems = []
+        if m.get("model") != G.MODEL_ID:
+            problems.append(f"model {m.get('model')!r} != {G.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            problems.append("lora_strength is not 0.0 (the LoRA blacks out - ADR-060)")
+        if not (m.get("prompt") or m.get("derivation")):
+            problems.append("no prompt and no derivation")
+        if not m.get("palette"):
+            problems.append("no palette recorded")
+        if list(m.get("output_dims", [])) != list(Image.open(png).size):
+            problems.append(f"output_dims {m.get('output_dims')} != the file's "
+                            f"{list(Image.open(png).size)}")
+        if m.get("kind") == "prop" and not m.get("seed"):
+            problems.append("generated prop with no seed")
+        print(f"{sub}/{fname:24s} {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{sub}/{fname}.manifest.json: " + "; ".join(problems))
+
+    # ---- index.json: the wiring contract ------------------------------------------------
+    print("\nINDEX (the wiring contract: lift per key, declared vs MEASURED px, tile slot order)")
+    index_path = os.path.join(root, "index.json")
+    if not os.path.exists(index_path):
+        report.fail("index.json missing - the wiring step re-derives nothing by design, so this "
+                    "file is the contract")
+    else:
+        index = json.load(open(index_path))
+        want_lift = {a["id"]: a["lift_px"] for a in G.GARAGE_PROPS}
+        if index.get("prop_lift_for_placeholders_js") != want_lift:
+            report.fail(f"index.json lift table {index.get('prop_lift_for_placeholders_js')} != "
+                        f"the declared {want_lift}")
+        else:
+            report.ok(f"index.json carries the lift for every prop key: {want_lift}")
+        bad = []
+        for row in index.get("assets", []):
+            actual = row.get("texture_px_actual")
+            path = os.path.join(root, "props", f"{row['key']}.png")
+            if actual is None or not os.path.exists(path):
+                bad.append(f"{row['key']}: no measured size")
+                continue
+            if list(actual) != list(Image.open(path).size):
+                bad.append(f"{row['key']}: index says {actual}, file is "
+                           f"{list(Image.open(path).size)}")
+            if list(row.get("texture_px_declared", [])) != list(TICKET_D[row["key"]][:2]):
+                bad.append(f"{row['key']}: declared {row.get('texture_px_declared')} != the ticket's "
+                           f"{list(TICKET_D[row['key']][:2])}")
+        if bad:
+            report.fail("index.json drifted from the files: " + "; ".join(bad))
+        else:
+            report.ok("every index entry's declared AND measured pixel size matches the file on "
+                      "disk and the ticket table")
+        if (index.get("tileset", {}).get("order") or []) != order:
+            report.fail(f"index.json tileset order {index.get('tileset', {}).get('order')} != "
+                        f"declared {order}")
+        else:
+            report.ok(f"index.json publishes the tile slot order {order}")
+
+    # ---- map cross-check ----------------------------------------------------------------
+    print("\nMAP CROSS-CHECK (a key the room map already places must have our footprint)")
+    if os.path.exists(map_path):
+        layers = json.load(open(map_path)).get("layers", [])
+        placed = {}
+        for layer in layers:
+            if layer.get("type") != "objectgroup":
+                continue
+            for obj in layer.get("objects", []):
+                key = obj.get("name") or obj.get("type")
+                placed.setdefault(key, (obj.get("width"), obj.get("height")))
+        for asset in G.GARAGE_PROPS:
+            aid = asset["id"]
+            if aid in placed and list(placed[aid]) != list(asset["footprint_px"]):
+                report.fail(f"{aid}: the map places it at {placed[aid]} but the set declares the "
+                            f"footprint {asset['footprint_px']}")
+            elif aid in placed:
+                report.ok(f"{aid}: the map's rect {placed[aid]} matches the declared footprint")
+        absent = [a["id"] for a in G.GARAGE_PROPS if a["id"] not in placed]
+        if absent:
+            report.note(f"not placed yet by {os.path.basename(map_path)}: {', '.join(absent)} - "
+                        f"SOU-216 hands the wiring to the next step; the declared footprints are "
+                        f"the contract it wires against")
+        legacy = {k: v for k, v in placed.items() if k in ("van", "spool")}
+        if legacy:
+            report.note(f"the map still places the pre-SOU-216 keys {legacy} - that layout is "
+                        f"being re-laid out in the same epic; our keys ({', '.join(a['id'] for a in
+                        G.GARAGE_PROPS)}) are what replaces them")
+    else:
+        report.fail(f"no room map at {map_path} - the garage room map is where these keys are "
+                    f"wired, and the check cannot run without it")
+
+    # ---- contact sheets -----------------------------------------------------------------
+    print("\nCONTACT SHEETS (the visual record attached to the ticket)")
+    for name in ("contact_sheet.png", "contact_sheet_4x.png"):
+        p = os.path.join(root, name)
+        if os.path.exists(p):
+            report.ok(f"{name} {Image.open(p).size[0]}x{Image.open(p).size[1]}")
+        else:
+            report.fail(f"{name} missing - the ticket asks for the garage props on garage_floor")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print("RESULT: PASS - every garage file exists at EXACTLY the pixel size the SOU-216 table "
+          "names (asserted against a copy of the table typed from the ticket), on the shared "
+          "61-colour lodge palette, with real alpha and no magenta, each prop's base on the bottom "
+          "row of its canvas, both concrete tiles opaque with a one-colour border ring and no seam "
+          "on either axis, the stain variant differing from the plain tile only inside its "
+          "interior, a manifest next to every file, an index.json whose lift and px tables match "
+          "the files, and the 64x32 strip holding the two declared slots in order.")
+    return 0
+
+
+def main_polish(args) -> int:
+    import gen_garage_polish as G
+
+    root = os.path.abspath(args.root or str(G.out_dir("polish")))
+    report = Report()
+
+    if not os.path.isdir(root):
+        print(f"no polish pack at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    print("=" * 96)
+    print(f"SOU-216 polish pass check   root={root}   shipped ref={args.shipped_ref}")
+    print(f"palette: {len(G.PALETTE_HEX)} declared colours (unchanged)")
+    print("=" * 96)
+
+    # ---- nothing shipped was overwritten, nothing new was already there ------------------
+    print("\nSHIPPED FILES vs THE REPOSITORY (\"new files under new names, never overwrite shipped "
+          "files in place\")")
+    for rel in SHIPPED_MUST_BE_UNTOUCHED:
+        blob, err = _git_blob(args.shipped_ref, rel)
+        live = os.path.join(str(REPO), rel)
+        if blob is None:
+            report.fail(f"cannot read {rel} from {args.shipped_ref} ({err}) - the "
+                        f"no-overwrite AC cannot be verified, and 'could not check' is not proof")
+            print(f"  {rel:60s} FAIL: git could not answer")
+            continue
+        if not os.path.exists(live):
+            report.fail(f"{rel} is missing from the working tree")
+            print(f"  {rel:60s} FAIL: missing from the tree")
+            continue
+        same = _sha256_bytes(blob) == _sha256_file(live)
+        print(f"  {rel:60s} {'unchanged' if same else 'FAIL: MODIFIED'}")
+        if same:
+            report.ok(f"{rel} is byte-identical to {args.shipped_ref} (untouched)")
+        else:
+            report.fail(f"{rel} DIFFERS from {args.shipped_ref} - the ticket says new files under "
+                        f"new names, never an edit of a shipped file")
+    for aid, (home, kind, *_rest) in TICKET_D_POLISH.items():
+        rel = (f"frontend/v3/assets/{home}/tiles/{aid}.png" if kind == "tile"
+               else f"frontend/v3/assets/{home}/props/{aid}.png")
+        blob, _err = _git_blob(args.shipped_ref, rel)
+        if blob is not None:
+            report.fail(f"{rel} already exists at {args.shipped_ref} - a polish file must be NEW, "
+                        f"otherwise it is an in-place edit")
+            print(f"  {rel:60s} FAIL: already exists at the ref")
+        else:
+            report.ok(f"{rel} is new (not present at {args.shipped_ref})")
+
+    # ---- per asset ----------------------------------------------------------------------
+    print("\nPOLISHED ASSETS (shipped px vs the ticket table, then the comparison that matters)")
+    print(f"{'asset':20s} {'home':10s} {'size':>9s} {'ticket':>9s} {'colours':>7s} {'transp':>7s} "
+          f"{'metric':22s} {'old':>8s} {'new':>8s}  result")
+    for aid, (home, kind, tw, th, fpw, fph, replaces, metric) in TICKET_D_POLISH.items():
+        src = os.path.join(root, home, "tiles" if kind == "tile" else "props", f"{aid}.png")
+        if not os.path.exists(src):
+            report.fail(f"{aid}: {os.path.relpath(src, str(REPO))} missing")
+            continue
+        img = Image.open(src).convert("RGBA")
+        colours, off = palette_check(img, allowed=G.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        problems = []
+        if img.size != (tw, th):
+            problems.append(f"size {img.size} != the ticket's {(tw, th)}")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if kind == "tile":
+            if alpha["transparent"]:
+                problems.append(f"{alpha['transparent']} transparent px (a tile is full-bleed)")
+            wrap = G.lodge.wrap_vs_max(img)
+            if wrap["wrap_vs_max_x"] > LODGE_SEAM_LIMIT or wrap["wrap_vs_max_y"] > LODGE_SEAM_LIMIT:
+                problems.append(f"seam on a declared axis: {wrap}")
+            old_metric = new_metric = None
+        else:
+            if not alpha["has_real_alpha"]:
+                problems.append("no real alpha")
+            if alpha["partial"]:
+                problems.append(f"{alpha['partial']} partial-alpha px")
+            bottom = content_bottom_row(img)
+            if bottom != th - 1:
+                problems.append(f"content stops at row {bottom} of {th} - the anchor would float")
+            # The base-coverage floor applies to FLAT decals only (SOU-200/213 lesson: a threshold
+            # the ticket never stated failed a correctly drawn ring-shaped decal). A standing prop's
+            # base is legitimately narrow - a shelf stands on two thin side uprights - so its
+            # coverage is REPORTED next to the file it replaces and not asserted.
+            spec = next((a for a in G.POLISH_PROPS if a["id"] == aid), {})
+            if spec.get("flat") and base_row_coverage(img) < 0.10:
+                problems.append(f"flat decal covers only {base_row_coverage(img):.2f} of its "
+                                f"lowest row - it would not rest on its base")
+            old_metric = new_metric = None
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+
+        ref_path = os.path.join(str(REPO), "frontend", "v3", "assets", home,
+                                "tiles" if kind == "tile" else "props", f"{replaces}.png")
+        if ref_path == src:
+            report.fail(f"{aid}: the polished file IS the file it replaces ({replaces})")
+        if not os.path.exists(ref_path):
+            report.fail(f"{aid}: the file it replaces ({replaces}) is missing from the served tree "
+                        f"- the comparison cannot be made")
+            old = None
+        else:
+            old = Image.open(ref_path).convert("RGBA")
+
+        # the comparison AC: the metric that this asset is supposed to improve
+        if old is not None:
+            if metric == "block_contrast":
+                old_metric, new_metric = G.block_contrast(old), G.block_contrast(img)
+                if not new_metric < old_metric:
+                    problems.append(f"block_contrast {new_metric} is NOT lower than the shipped "
+                                    f"{replaces}'s {old_metric} - the checkerboard is not softer")
+                else:
+                    report.ok(f"{aid}: block_contrast {old_metric} -> {new_metric} (the "
+                              f"checkerboard the owner complained about is measurably softer)")
+            elif metric == "log_contrast":
+                old_metric, new_metric = G.log_contrast(old), G.log_contrast(img)
+                if not new_metric < old_metric:
+                    problems.append(f"log_contrast {new_metric} is NOT lower than the shipped "
+                                    f"{replaces}'s {old_metric} - the log wall is not softer")
+                else:
+                    report.ok(f"{aid}: log_contrast {old_metric} -> {new_metric} (the stripes are "
+                              f"measurably softer)")
+            elif metric == "shelf_packing":
+                o = G.shelf_packing(old)
+                n = G.shelf_packing(img)
+                old_metric, new_metric = o["canvas_opaque_share"], n["canvas_opaque_share"]
+                if not n["canvas_opaque_share"] > o["canvas_opaque_share"]:
+                    problems.append(f"the shelf fills {n['canvas_opaque_share']} of its canvas vs "
+                                    f"the shipped {replaces}'s {o['canvas_opaque_share']} - it is "
+                                    f"not FULLER")
+                if not n["gear_px"] > o["gear_px"]:
+                    problems.append(f"{n['gear_px']} gear-coloured px vs the shipped "
+                                    f"{replaces}'s {o['gear_px']} - no more equipment on it")
+                if n["led_px"] < 8:
+                    problems.append(f"only {n['led_px']} status-light px (the ticket asks for rows "
+                                    f"of glowing teal/orange LEDs)")
+                if n["plant_px"] < 10:
+                    problems.append(f"{n['plant_px']} plant px (the ticket asks for 'and a plant')")
+                if not problems:
+                    report.ok(f"{aid}: canvas opaque {o['canvas_opaque_share']} -> "
+                              f"{n['canvas_opaque_share']}, gear px {o['gear_px']} -> "
+                              f"{n['gear_px']}, status-light px {o['led_px']} -> {n['led_px']}, "
+                              f"plant px {n['plant_px']} (fuller than the shelf it replaces)")
+            elif metric == "line_marks":
+                marks = G.line_marks(img)
+                old_metric = G.line_marks(old)["runs_count"]
+                new_metric = marks["runs_count"]
+                if marks["loose_dark_px"]:
+                    problems.append(f"{marks['loose_dark_px']} dark px on the paper are NOT part "
+                                    f"of a horizontal line run of >= {G.MARK_MIN_RUN}px - the "
+                                    f"ticket says lines, never letters")
+                if marks["runs_count"] < 3:
+                    problems.append(f"only {marks['runs_count']} line runs on the paper - the "
+                                    f"ticket asks for a hint of text LINES")
+                if len(marks["rows_with_lines"]) < 2:
+                    problems.append(f"the lines occupy {len(marks['rows_with_lines'])} row(s) - at "
+                                    f"least 2 are needed to read as a paragraph")
+                if not problems:
+                    report.ok(f"{aid}: {marks['runs_count']} horizontal line runs on "
+                              f"{len(marks['rows_with_lines'])} rows (rows "
+                              f"{marks['rows_with_lines']}), 0 dark px outside a line run - lines, "
+                              f"not letters (the shipped {replaces} has {old_metric} runs)")
+
+        print(f"{aid:20s} {home:10s} {f'{img.size[0]}x{img.size[1]}':>9s} {f'{tw}x{th}':>9s} "
+              f"{len(colours):>7d} {alpha['transparent']:>7d} {metric:22s} "
+              f"{str(old_metric):>8s} {str(new_metric):>8s}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+
+        # manifest next to every file, carrying the replaced file's hash
+        man = src + ".manifest.json"
+        if not os.path.exists(man):
+            report.fail(f"{aid}: no manifest next to it")
+            continue
+        m = json.load(open(man))
+        mprob = []
+        if m.get("model") != G.MODEL_ID:
+            mprob.append(f"model {m.get('model')!r} != {G.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            mprob.append("lora_strength is not 0.0")
+        if not (m.get("prompt") or m.get("derivation")):
+            mprob.append("no prompt and no derivation")
+        if not m.get("palette"):
+            mprob.append("no palette recorded")
+        if list(m.get("output_dims", [])) != list(img.size):
+            mprob.append(f"output_dims {m.get('output_dims')} != the file's {list(img.size)}")
+        rec = m.get("replaces_reference") or {}
+        if rec.get("replaces") != replaces or rec.get("missing"):
+            mprob.append(f"no usable record of the file it replaces ({rec})")
+        else:
+            blob, err = _git_blob(args.shipped_ref, rec["served_path"])
+            live_sha = _sha256_file(ref_path)
+            if rec.get("sha256") != live_sha:
+                mprob.append(f"the manifest's sha256 of {replaces} ({str(rec.get('sha256'))[:12]}) "
+                             f"!= the served file's ({live_sha[:12]}) - the recorded comparison "
+                             f"baseline is not the file on disk")
+            if blob is not None and _sha256_bytes(blob) != live_sha:
+                mprob.append(f"the served {replaces} differs from {args.shipped_ref} - the "
+                             f"comparison baseline is not the shipped art")
+        if kind == "tile" and (m.get("block_contrast") is None or m.get("log_contrast") is None):
+            mprob.append("no contrast metrics recorded")
+        if aid == "paper_stacks_lined":
+            if not m.get("ruled_lines"):
+                mprob.append("no `ruled_lines` record - the drawn lines must be declared, "
+                             "otherwise a reader cannot tell them from model output")
+            if m.get("page_cleanup") is None:
+                mprob.append("no `page_cleanup` record - the erased model marks must be declared "
+                             "with their pixel count, not silently dropped")
+            if "ruled_lines" not in json.dumps(m.get("frame_derivation", {})):
+                mprob.append("the derivation does not declare the drawn lines")
+            if m.get("paper_tone_lut") is None:
+                mprob.append("no `paper_tone_lut` record - a hue correction of the paper must be "
+                             "declared, not silently applied")
+            # A polish pass is about shape, not hue: the new file must sit on the SAME side of the
+            # warm/cool paper divide as the file it replaces (the first roll came back 164 px cool
+            # white against a 550 px warm cream original and a reviewer read it as another material).
+            if old is not None:
+                o_fam = G.paper_families(old)
+                n_fam = G.paper_families(img)
+                old_metric = o_fam["warm_paper_px"] - o_fam["cool_paper_px"]
+                new_metric = n_fam["warm_paper_px"] - n_fam["cool_paper_px"]
+                if o_fam["warm_paper_px"] > o_fam["cool_paper_px"] and \
+                        n_fam["warm_paper_px"] <= n_fam["cool_paper_px"]:
+                    mprob.append(f"paper hue regression: the shipped {replaces} is warm "
+                                 f"({o_fam}) but the new file is cool ({n_fam}) - the polish "
+                                 f"changed the material, not the shape")
+                else:
+                    report.ok(f"{aid}: warm-vs-cool paper px {o_fam} -> {n_fam} (the new file stays "
+                              f"on the shipped file's side of the warm/cool divide)")
+        if mprob:
+            report.fail(f"{aid}.manifest.json: " + "; ".join(mprob))
+        else:
+            report.ok(f"{aid}.manifest.json: model+palette+prompt+seed+dims recorded, the file it "
+                      f"replaces recorded WITH its sha256, and the comparison metrics stored")
+
+    # ---- strip + sheets ------------------------------------------------------------------
+    print("\nSTRIP, CONTACT SHEETS")
+    for name, (home, members, size) in TICKET_D_POLISH_STRIP.items():
+        p = os.path.join(root, home, f"{name}.png")
+        if not os.path.exists(p):
+            report.fail(f"{name}.png missing at {os.path.relpath(p, str(REPO))}")
+            continue
+        strip = Image.open(p).convert("RGBA")
+        problems = []
+        if strip.size != tuple(size):
+            problems.append(f"size {strip.size} != {tuple(size)}")
+        colours, off = palette_check(strip, allowed=G.PALETTE_RGB)
+        if off:
+            problems.append(f"{len(off)} off-palette colours")
+        for slot, member in enumerate(members):
+            tile_path = os.path.join(root, home, "tiles", f"{member}.png")
+            if not os.path.exists(tile_path):
+                problems.append(f"slot {slot}: tiles/{member}.png missing")
+                continue
+            if strip.crop((slot * 32, 0, (slot + 1) * 32, 32)).tobytes() != \
+                    Image.open(tile_path).convert("RGBA").tobytes():
+                problems.append(f"slot {slot} != {member}.png")
+        if problems:
+            report.fail(f"{name}: " + "; ".join(problems))
+            print(f"{name:22s} FAIL: " + "; ".join(problems))
+        else:
+            report.ok(f"{name}: {strip.size[0]}x{strip.size[1]}, slots hold exactly "
+                      f"{', '.join(members)} in the declared order")
+            print(f"{name:22s} ok   {strip.size[0]}x{strip.size[1]} slots {members}")
+    for home in ("lodge", "serverroom", "writer"):
+        for name in ("contact_sheet.png", "contact_sheet_4x.png"):
+            p = os.path.join(root, home, name)
+            if os.path.exists(p):
+                report.ok(f"{home}/{name} {Image.open(p).size[0]}x{Image.open(p).size[1]}")
+            elif any(v[0] == home for v in TICKET_D_POLISH.values()):
+                report.fail(f"{home}/{name} missing - the ticket asks for each polished asset NEXT "
+                            f"TO the one it replaces")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print("RESULT: PASS - five NEW files under NEW names at exactly the sizes the SOU-216 table "
+          "names, on the unchanged 61-colour palette; every shipped original still byte-identical "
+          "to the shipped ref and every polish file absent from it; the soft tiles measurably LESS "
+          "contrast than the files they replace on the metric that the owner's complaint is about; "
+          "the two shelves measurably FULLER (a larger share of the 64x112 canvas opaque, "
+          "measurably more gear-coloured pixels, status lights present and a plant present) than "
+          "the shelves they replace; the paper carries >= 3 horizontal 1px line runs on >= 2 rows, "
+          "each inside one contiguous page band, with no dark pixel outside a line run; a manifest "
+          "next to every file recording the replaced file's sha256 and the comparison metrics; the "
+          "strip in declared slot order; and a before/after contact sheet per home set.")
     return 0
 
 

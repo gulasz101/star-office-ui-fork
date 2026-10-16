@@ -1,0 +1,418 @@
+{
+  "issue": "SOU-216",
+  "set": "polish",
+  "title": "polish pass on shipped sets",
+  "generated_from": "assets/generated/v3/polish216",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "palette": "assets/generated/v3/polish216/palette.json",
+  "why": "the owner read four shipped assets as wrong at room scale; these are NEW files under NEW names - nothing shipped is overwritten, so the wiring step can switch a key over and roll back by switching it back",
+  "assets": {
+    "stone_floor_soft": {
+      "path": "tiles/stone_floor_soft.png",
+      "kind": "tile",
+      "tile_class": "material",
+      "seam_axes": "xy",
+      "derivation": "drawn from the declared palette (stone_floor_soft), no FLUX pass",
+      "seam": {
+        "wrap_x": 29.84,
+        "mean_inner_x": 3.22,
+        "ratio_x": 9.28,
+        "wrap_y": 29.84,
+        "mean_inner_y": 3.15,
+        "ratio_y": 9.46
+      },
+      "wrap_vs_max": {
+        "wrap_vs_max_x": 1.0,
+        "wrap_vs_max_y": 1.0
+      },
+      "seam_checked_axes": "xy",
+      "opaque": true,
+      "colours": 3,
+      "off_palette": [],
+      "block_contrast": 5.77,
+      "log_contrast": 31.87,
+      "home": "lodge",
+      "replaces": "stone_floor",
+      "replaces_reference": {
+        "replaces": "stone_floor",
+        "served_path": "frontend/v3/assets/lodge/tiles/stone_floor.png",
+        "sha256": "f53b985942d0b0e06f7354fb1f4860798860c067597ed40ed622cebfde9fbf4a",
+        "block_contrast": 32.91,
+        "log_contrast": 46.51,
+        "wrap_vs_max": {
+          "wrap_vs_max_x": 1.02,
+          "wrap_vs_max_y": 0.64
+        }
+      }
+    },
+    "wall_face_soft": {
+      "path": "tiles/wall_face_soft.png",
+      "kind": "tile",
+      "tile_class": "material",
+      "seam_axes": "xy",
+      "derivation": "drawn from the declared palette (wall_face_soft), no FLUX pass",
+      "seam": {
+        "wrap_x": 0.0,
+        "mean_inner_x": 0.0,
+        "ratio_x": 0.0,
+        "wrap_y": 91.0,
+        "mean_inner_y": 20.55,
+        "ratio_y": 4.43
+      },
+      "wrap_vs_max": {
+        "wrap_vs_max_x": 0.0,
+        "wrap_vs_max_y": 1.0
+      },
+      "seam_checked_axes": "xy",
+      "opaque": true,
+      "colours": 4,
+      "off_palette": [],
+      "block_contrast": 0.0,
+      "log_contrast": 98.17,
+      "home": "lodge",
+      "replaces": "wall_face",
+      "replaces_reference": {
+        "replaces": "wall_face",
+        "served_path": "frontend/v3/assets/lodge/tiles/wall_face.png",
+        "sha256": "a3a46fc8b4f7dcc0344ee9c1981c95688a23e8a31efa51db9cb4fdda56421e1c",
+        "block_contrast": 0.0,
+        "log_contrast": 144.32,
+        "wrap_vs_max": {
+          "wrap_vs_max_x": 0.0,
+          "wrap_vs_max_y": 1.0
+        }
+      }
+    },
+    "tiles_soft": {
+      "kind": "strip",
+      "home": "lodge",
+      "order": [
+        "stone_floor_soft",
+        "wall_face_soft"
+      ]
+    },
+    "gear_shelf_full_a": {
+      "path": "props/gear_shelf_full_a.png",
+      "kind": "prop",
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "texture_px": [
+        64,
+        112
+      ],
+      "declared_px": [
+        64,
+        112
+      ],
+      "lift_px": 80,
+      "fit_mode": "inside",
+      "fit": {
+        "content_px": [
+          234,
+          610
+        ],
+        "fitted_px": [
+          43,
+          112
+        ],
+        "canvas_px": [
+          64,
+          112
+        ],
+        "mode": "inside",
+        "scale": 0.1838,
+        "crop_bbox": [
+          67,
+          11,
+          301,
+          621
+        ],
+        "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199/200 rule, restated for SOU-216)"
+      },
+      "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+      "key_colour": [
+        219,
+        219,
+        213,
+        255
+      ],
+      "generation_mode": "text-only generation",
+      "reference_edit_source": null,
+      "frames": 1,
+      "frame_px": [
+        64,
+        112
+      ],
+      "sheet_px": [
+        64,
+        112
+      ],
+      "frame_derivation": {
+        "0": "the FLUX base (contact), unchanged - single-frame asset"
+      },
+      "ruled_lines": null,
+      "page_cleanup": null,
+      "paper_tone_lut": null,
+      "post_process": "light",
+      "post_process_meta": {
+        "despeckled_px": 0,
+        "interior_holes_filled_px": 0
+      },
+      "prompt_ruling": null,
+      "content_bottom_row": 111,
+      "base_row_coverage": 0.094,
+      "opaque_bottom_rows_coverage": 0.094,
+      "transparent_px": 3042,
+      "colours": 40,
+      "off_palette": [],
+      "home": "serverroom",
+      "replaces": "gear_shelf_a",
+      "note": "SOU-216 polish: the shipped gear_shelf_a reads as an almost empty wooden frame; this one is packed to the top. Same 64x112 canvas and 2x1 footprint as the file it replaces, so wiring is a name swap.",
+      "replaces_reference": {
+        "replaces": "gear_shelf_a",
+        "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_a.png",
+        "sha256": "46e7bd26269d544fbfa5a4ea3c27cce2f3ba72a5dab67b9df174aae4d8194a50",
+        "missing": false
+      }
+    },
+    "gear_shelf_full_b": {
+      "path": "props/gear_shelf_full_b.png",
+      "kind": "prop",
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "texture_px": [
+        64,
+        112
+      ],
+      "declared_px": [
+        64,
+        112
+      ],
+      "lift_px": 80,
+      "fit_mode": "inside",
+      "fit": {
+        "content_px": [
+          306,
+          617
+        ],
+        "fitted_px": [
+          56,
+          112
+        ],
+        "canvas_px": [
+          64,
+          112
+        ],
+        "mode": "inside",
+        "scale": 0.183,
+        "crop_bbox": [
+          38,
+          10,
+          344,
+          627
+        ],
+        "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199/200 rule, restated for SOU-216)"
+      },
+      "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+      "key_colour": [
+        254,
+        255,
+        255,
+        255
+      ],
+      "generation_mode": "text-only generation",
+      "reference_edit_source": null,
+      "frames": 1,
+      "frame_px": [
+        64,
+        112
+      ],
+      "sheet_px": [
+        64,
+        112
+      ],
+      "frame_derivation": {
+        "0": "the FLUX base (contact), unchanged - single-frame asset"
+      },
+      "ruled_lines": null,
+      "page_cleanup": null,
+      "paper_tone_lut": null,
+      "post_process": "light",
+      "post_process_meta": {
+        "despeckled_px": 0,
+        "interior_holes_filled_px": 3
+      },
+      "prompt_ruling": null,
+      "content_bottom_row": 111,
+      "base_row_coverage": 0.039,
+      "opaque_bottom_rows_coverage": 0.039,
+      "transparent_px": 1781,
+      "colours": 55,
+      "off_palette": [],
+      "home": "serverroom",
+      "replaces": "gear_shelf_b",
+      "note": "variant of gear_shelf_full_a: silver server stack, beige box, cable basket, lantern",
+      "replaces_reference": {
+        "replaces": "gear_shelf_b",
+        "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_b.png",
+        "sha256": "27af62cb98ccac2c9b9a38aebbee6bfcd7d6f279bf75b83968aecd8dc5a54245",
+        "missing": false
+      }
+    },
+    "paper_stacks_lined": {
+      "path": "props/paper_stacks_lined.png",
+      "kind": "prop",
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "texture_px": [
+        32,
+        32
+      ],
+      "declared_px": [
+        32,
+        32
+      ],
+      "lift_px": 0,
+      "fit_mode": "inside",
+      "fit": {
+        "content_px": [
+          576,
+          381
+        ],
+        "fitted_px": [
+          32,
+          21
+        ],
+        "canvas_px": [
+          32,
+          32
+        ],
+        "mode": "inside",
+        "scale": 0.0556,
+        "crop_bbox": [
+          31,
+          143,
+          607,
+          524
+        ],
+        "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199/200 rule, restated for SOU-216)"
+      },
+      "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+      "key_colour": [
+        158,
+        144,
+        131,
+        255
+      ],
+      "generation_mode": "text-only generation",
+      "reference_edit_source": null,
+      "frames": 1,
+      "frame_px": [
+        32,
+        32
+      ],
+      "sheet_px": [
+        32,
+        32
+      ],
+      "frame_derivation": {
+        "0": "the FLUX base (contact) with a THREE-STEP declared derivation: (1) the cool paper tones are remapped onto the warm cream family the shipped prop uses (`paper_tone_lut`, so the polish cannot re-tint the room), (2) the marks the model painted on the pages that are not line runs are ERASED (`page_cleanup`, each taking the surrounding paper tone) and (3) the ticket's \"hint of text lines\" is DRAWN after quantise as 1px horizontal runs (`ruled_lines`). The ticket says lines, never letters, and a diffusion model asked for blank pages paints glyph-shaped marks instead"
+      },
+      "ruled_lines": [
+        [
+          4,
+          13,
+          8
+        ],
+        [
+          20,
+          16,
+          8
+        ],
+        [
+          4,
+          19,
+          8
+        ]
+      ],
+      "page_cleanup": {
+        "erased_px": 4,
+        "positions": [
+          [
+            15,
+            28
+          ],
+          [
+            16,
+            28
+          ],
+          [
+            4,
+            30
+          ],
+          [
+            4,
+            31
+          ]
+        ],
+        "why": "dark marks the model painted on the page surfaces that are not line runs; each was replaced by the surrounding paper tone"
+      },
+      "paper_tone_lut": {
+        "lut": {
+          "snow_mid": "cat_cream",
+          "snow_trodden": "skin",
+          "snow_shadow": "skin",
+          "steel_200": "skin",
+          "steel_100": "skin",
+          "snow": "cat_cream"
+        },
+        "remapped_px": 150,
+        "warm_vs_cool_after": {
+          "warm_paper_px": 495,
+          "cool_paper_px": 0
+        },
+        "why": "the base came back cool white; the prop this replaces is warm cream (550 px cat_cream + 78 px skin). A polish pass is about shape, not hue, so the cool paper tones are remapped onto the warm family in declared palette space."
+      },
+      "post_process": "light",
+      "post_process_meta": {
+        "despeckled_px": 0,
+        "interior_holes_filled_px": 1
+      },
+      "prompt_ruling": null,
+      "content_bottom_row": 31,
+      "base_row_coverage": 0.5,
+      "opaque_bottom_rows_coverage": 0.5,
+      "transparent_px": 464,
+      "colours": 17,
+      "off_palette": [],
+      "home": "writer",
+      "replaces": "paper_stacks",
+      "note": "SOU-216 polish: the shipped paper_stacks reads as blank white blocks. Flat 1x1 decal. The 'hint of text lines' is DRAWN after quantise, not generated - see `ruled_lines` in the manifest: a diffusion model asked for tiny text at 32px paints glyph-shaped squiggles, which the ticket's 'lines, never letters' explicitly forbids, so the lines are 1px horizontal runs drawn in declared palette space instead.",
+      "replaces_reference": {
+        "replaces": "paper_stacks",
+        "served_path": "frontend/v3/assets/writer/props/paper_stacks.png",
+        "sha256": "7d54465b2b490b08411b7424df6489f33296874734fa1b142e8632757d2fdb6c",
+        "missing": false
+      }
+    }
+  },
+  "created_at": "2026-10-16T22:25:55.745687+00:00"
+}

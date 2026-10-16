@@ -1,0 +1,1 @@
+reference edit of assets/generated/v3/office-01/props/van.png (sha256 7f31a6ef8f5d28ad), composited on the magenta field

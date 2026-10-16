@@ -1,0 +1,315 @@
+{
+  "issue": "SOU-216",
+  "set": "polish",
+  "generated_from": "assets/generated/v3/polish216",
+  "rule": "new files, new names: NOTHING shipped is overwritten, so wiring a key over is reversible by wiring it back",
+  "tiles": [
+    {
+      "key": "stone_floor_soft",
+      "home_set": "lodge",
+      "served_path": "assets/lodge/tiles/stone_floor_soft.png",
+      "texture_px": [
+        32,
+        32
+      ],
+      "replaces": "stone_floor",
+      "replaces_sha256": "f53b985942d0b0e06f7354fb1f4860798860c067597ed40ed622cebfde9fbf4a",
+      "block_contrast": 5.77,
+      "log_contrast": 31.87,
+      "replaces_block_contrast": 32.91,
+      "replaces_log_contrast": 46.51,
+      "seam_checked_axes": "xy",
+      "note": ""
+    },
+    {
+      "key": "wall_face_soft",
+      "home_set": "lodge",
+      "served_path": "assets/lodge/tiles/wall_face_soft.png",
+      "texture_px": [
+        32,
+        32
+      ],
+      "replaces": "wall_face",
+      "replaces_sha256": "a3a46fc8b4f7dcc0344ee9c1981c95688a23e8a31efa51db9cb4fdda56421e1c",
+      "block_contrast": 0.0,
+      "log_contrast": 98.17,
+      "replaces_block_contrast": 0.0,
+      "replaces_log_contrast": 144.32,
+      "seam_checked_axes": "xy",
+      "note": ""
+    }
+  ],
+  "strips": [
+    {
+      "key": "tiles_soft",
+      "home_set": "lodge",
+      "served_path": "assets/lodge/tiles_soft.png",
+      "tile_px": 32,
+      "columns": 2,
+      "firstgid": 1,
+      "order": [
+        "stone_floor_soft",
+        "wall_face_soft"
+      ],
+      "why": "the soft tiles are NEW slots in their OWN strip: appending them to assets/lodge/tiles.png would rewrite a file the shipped wiring already consumes and shift slot ids under it"
+    }
+  ],
+  "props": [
+    {
+      "key": "gear_shelf_full_a",
+      "home_set": "serverroom",
+      "served_path": "assets/serverroom/props/gear_shelf_full_a.png",
+      "texture_px": [
+        64,
+        112
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 80,
+      "flat": false,
+      "replaces": "gear_shelf_a",
+      "replaces_sha256": "46e7bd26269d544fbfa5a4ea3c27cce2f3ba72a5dab67b9df174aae4d8194a50",
+      "packing": {
+        "old": {
+          "canvas_opaque_share": 0.4289,
+          "interior_opaque_share": 0.9969,
+          "gear_px": 168,
+          "led_px": 1,
+          "plant_px": 0
+        },
+        "new": {
+          "canvas_opaque_share": 0.5756,
+          "interior_opaque_share": 0.9486,
+          "gear_px": 1965,
+          "led_px": 15,
+          "plant_px": 62
+        },
+        "why": "SOU-216 reads the shipped shelves as 'nearly empty wooden frames'. The measures are how much of the 64x112 CANVAS the shelf fills (a packed shelf fills its frame) and how many GEAR-coloured pixels it carries, plus the status-light count (the declared cool-glow family + led_orange) and the plant count. The gate asserts canvas share AND gear px both went up, status lights >= 8 px, and a plant present."
+      },
+      "line_marks": null,
+      "ruled_lines": null,
+      "note": "SOU-216 polish: the shipped gear_shelf_a reads as an almost empty wooden frame; this one is packed to the top. Same 64x112 canvas and 2x1 footprint as the file it replaces, so wiring is a name swap."
+    },
+    {
+      "key": "gear_shelf_full_b",
+      "home_set": "serverroom",
+      "served_path": "assets/serverroom/props/gear_shelf_full_b.png",
+      "texture_px": [
+        64,
+        112
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 80,
+      "flat": false,
+      "replaces": "gear_shelf_b",
+      "replaces_sha256": "27af62cb98ccac2c9b9a38aebbee6bfcd7d6f279bf75b83968aecd8dc5a54245",
+      "packing": {
+        "old": {
+          "canvas_opaque_share": 0.2309,
+          "interior_opaque_share": 0.3362,
+          "gear_px": 26,
+          "led_px": 2,
+          "plant_px": 0
+        },
+        "new": {
+          "canvas_opaque_share": 0.7515,
+          "interior_opaque_share": 0.9762,
+          "gear_px": 1838,
+          "led_px": 36,
+          "plant_px": 48
+        },
+        "why": "SOU-216 reads the shipped shelves as 'nearly empty wooden frames'. The measures are how much of the 64x112 CANVAS the shelf fills (a packed shelf fills its frame) and how many GEAR-coloured pixels it carries, plus the status-light count (the declared cool-glow family + led_orange) and the plant count. The gate asserts canvas share AND gear px both went up, status lights >= 8 px, and a plant present."
+      },
+      "line_marks": null,
+      "ruled_lines": null,
+      "note": "variant of gear_shelf_full_a: silver server stack, beige box, cable basket, lantern"
+    },
+    {
+      "key": "paper_stacks_lined",
+      "home_set": "writer",
+      "served_path": "assets/writer/props/paper_stacks_lined.png",
+      "texture_px": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "flat": true,
+      "replaces": "paper_stacks",
+      "replaces_sha256": "7d54465b2b490b08411b7424df6489f33296874734fa1b142e8632757d2fdb6c",
+      "packing": {
+        "old": {
+          "canvas_opaque_share": 0.6982,
+          "interior_opaque_share": 0.9167,
+          "gear_px": 2,
+          "led_px": 0,
+          "plant_px": 0
+        },
+        "new": {
+          "canvas_opaque_share": 0.5469,
+          "interior_opaque_share": 0.9231,
+          "gear_px": 42,
+          "led_px": 0,
+          "plant_px": 0
+        },
+        "why": "SOU-216 reads the shipped shelves as 'nearly empty wooden frames'. The measures are how much of the 64x112 CANVAS the shelf fills (a packed shelf fills its frame) and how many GEAR-coloured pixels it carries, plus the status-light count (the declared cool-glow family + led_orange) and the plant count. The gate asserts canvas share AND gear px both went up, status lights >= 8 px, and a plant present."
+      },
+      "line_marks": {
+        "rows_with_lines": [
+          13,
+          16,
+          19
+        ],
+        "runs": [
+          [
+            13,
+            4,
+            8
+          ],
+          [
+            16,
+            20,
+            8
+          ],
+          [
+            19,
+            4,
+            8
+          ]
+        ],
+        "runs_count": 3,
+        "loose_dark_px": 0
+      },
+      "ruled_lines": [
+        [
+          4,
+          13,
+          8
+        ],
+        [
+          20,
+          16,
+          8
+        ],
+        [
+          4,
+          19,
+          8
+        ]
+      ],
+      "note": "SOU-216 polish: the shipped paper_stacks reads as blank white blocks. Flat 1x1 decal. The 'hint of text lines' is DRAWN after quantise, not generated - see `ruled_lines` in the manifest: a diffusion model asked for tiny text at 32px paints glyph-shaped squiggles, which the ticket's 'lines, never letters' explicitly forbids, so the lines are 1px horizontal runs drawn in declared palette space instead."
+    }
+  ],
+  "prop_lift_for_placeholders_js": {
+    "gear_shelf_full_a": 80,
+    "gear_shelf_full_b": 80,
+    "paper_stacks_lined": 0
+  },
+  "files": [
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles/stone_floor_soft.png",
+      "source": "assets/generated/v3/polish216/lodge/tiles/stone_floor_soft.png",
+      "home_set": "lodge",
+      "sha256": "96d00ca7bfaed89e7b99304e48fd826830d6d9cfcd51a1d8ff5527684d2c2dee",
+      "bytes": 213
+    },
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles/stone_floor_soft.png.manifest.json",
+      "source": "assets/generated/v3/polish216/lodge/tiles/stone_floor_soft.png.manifest.json",
+      "home_set": "lodge",
+      "sha256": "36094fefaf42cfcfe0d9b1a4e587b2b789f853041863d86aa771ca75fd40d5c3",
+      "bytes": 2436
+    },
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles/wall_face_soft.png",
+      "source": "assets/generated/v3/polish216/lodge/tiles/wall_face_soft.png",
+      "home_set": "lodge",
+      "sha256": "ad8831808b9100c5f7f1d1889e8022a4436973d2d588daaa4994e7957c534a67",
+      "bytes": 155
+    },
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles/wall_face_soft.png.manifest.json",
+      "source": "assets/generated/v3/polish216/lodge/tiles/wall_face_soft.png.manifest.json",
+      "home_set": "lodge",
+      "sha256": "3a4af70d5b35c11f7a480766f9bd1a477cd3f2fbe12b24a3289886d523ded7a1",
+      "bytes": 2416
+    },
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles_soft.png",
+      "source": "assets/generated/v3/polish216/lodge/tiles_soft.png",
+      "home_set": "lodge",
+      "sha256": "bcd75c61f7a006ade2197c8390b3ce6f227ff428e90273f2103f9c05cbd2c7e4",
+      "bytes": 293
+    },
+    {
+      "served_path": "frontend/v3/assets/lodge/tiles_soft.png.manifest.json",
+      "source": "assets/generated/v3/polish216/lodge/tiles_soft.png.manifest.json",
+      "home_set": "lodge",
+      "sha256": "ef6cb9cb39997ddbd835dad0fb4d9bcc8f0606c974878b2c87c2c21bfc755301",
+      "bytes": 1677
+    },
+    {
+      "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_full_a.png",
+      "source": "assets/generated/v3/polish216/serverroom/props/gear_shelf_full_a.png",
+      "home_set": "serverroom",
+      "sha256": "cd4c3e0654c484a60b07a1bcc65bbb019cbd078c4db2335fddd4c7a5933c7bc6",
+      "bytes": 5068
+    },
+    {
+      "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_full_a.png.manifest.json",
+      "source": "assets/generated/v3/polish216/serverroom/props/gear_shelf_full_a.png.manifest.json",
+      "home_set": "serverroom",
+      "sha256": "d47cbaad662785d3f776993c18c41a3854b7f4fca23c9296587b50d110221ae3",
+      "bytes": 7340
+    },
+    {
+      "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_full_b.png",
+      "source": "assets/generated/v3/polish216/serverroom/props/gear_shelf_full_b.png",
+      "home_set": "serverroom",
+      "sha256": "8749567eff4874ae2e5e2318429d8b7bb9a540e20274f566542221a3c26382e8",
+      "bytes": 8654
+    },
+    {
+      "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_full_b.png.manifest.json",
+      "source": "assets/generated/v3/polish216/serverroom/props/gear_shelf_full_b.png.manifest.json",
+      "home_set": "serverroom",
+      "sha256": "a9f84b5ad7eb1bf9ff55fe22c412214f40398d9d0a95b68164dc989d192c1e5f",
+      "bytes": 7201
+    },
+    {
+      "served_path": "frontend/v3/assets/writer/props/paper_stacks_lined.png",
+      "source": "assets/generated/v3/polish216/writer/props/paper_stacks_lined.png",
+      "home_set": "writer",
+      "sha256": "5330422033cf8c3033ebadb4fa98bdc3a0d3051d4c8656fb33d6888b1e36088d",
+      "bytes": 466
+    },
+    {
+      "served_path": "frontend/v3/assets/writer/props/paper_stacks_lined.png.manifest.json",
+      "source": "assets/generated/v3/polish216/writer/props/paper_stacks_lined.png.manifest.json",
+      "home_set": "writer",
+      "sha256": "25f50ebda3a9c049e9f00c7d96f9404f8ffcb26ce1afc5f16f752bb5f0b9803a",
+      "bytes": 9360
+    }
+  ],
+  "created_at": "2026-10-16T22:25:55.955226+00:00"
+}

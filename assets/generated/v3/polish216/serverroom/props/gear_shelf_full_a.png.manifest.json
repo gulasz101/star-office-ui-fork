@@ -1,0 +1,188 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a tall narrow wooden open shelving unit seen from above and slightly in front, PACKED from the floor to the top shelf with homelab gear - the shelves are FULL, with almost no empty space between the boxes: black and dark grey network appliances, flat silver and black servers stacked two and three deep, a small beige vintage computer box, a small fan grille, short cables looping between the units, coils of cable hanging off the side, rows and rows of tiny glowing teal-green and orange status LEDs on the front of almost every box, and a small potted green plant sitting on the very top shelf. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 64:112 in width:height (the object's bounding box is about half as wide as it is tall). Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Inside a cosy log-cabin lodge at night: honey-brown timber surfaces, warm amber lamplight falling from the top-left, deep blue shadow, and teal-green and orange LED accents on the electronic gear. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. Every shelf level must be visibly FULL of stacked electronic boxes - this is a packed equipment shelf, NOT an empty wooden frame with a few items on it. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 21650,
+  "source_file": "gear_shelf_full_a.raw.png",
+  "output_file": "props/gear_shelf_full_a.png",
+  "output_dims": [
+    64,
+    112
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T22:25:55.261863+00:00",
+  "asset_key": "gear_shelf_full_a",
+  "kind": "prop",
+  "set": "serverroom",
+  "view": "top-down 3/4",
+  "ticket": "SOU-216",
+  "footprint_px": [
+    64,
+    32
+  ],
+  "footprint_tiles": [
+    2.0,
+    1.0
+  ],
+  "texture_px": [
+    64,
+    112
+  ],
+  "declared_px": [
+    64,
+    112
+  ],
+  "lift_px": 80,
+  "fit_mode": "inside",
+  "fit": {
+    "content_px": [
+      234,
+      610
+    ],
+    "fitted_px": [
+      43,
+      112
+    ],
+    "canvas_px": [
+      64,
+      112
+    ],
+    "mode": "inside",
+    "scale": 0.1838,
+    "crop_bbox": [
+      67,
+      11,
+      301,
+      621
+    ],
+    "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199/200 rule, restated for SOU-216)"
+  },
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+  "key_colour": [
+    219,
+    219,
+    213,
+    255
+  ],
+  "generation_mode": "text-only generation",
+  "reference_edit_source": null,
+  "frames": 1,
+  "frame_px": [
+    64,
+    112
+  ],
+  "sheet_px": [
+    64,
+    112
+  ],
+  "frame_derivation": {
+    "0": "the FLUX base (contact), unchanged - single-frame asset"
+  },
+  "ruled_lines": null,
+  "page_cleanup": null,
+  "paper_tone_lut": null,
+  "post_process": "light",
+  "post_process_meta": {
+    "despeckled_px": 0,
+    "interior_holes_filled_px": 0
+  },
+  "prompt_ruling": null,
+  "content_bottom_row": 111,
+  "base_row_coverage": 0.094,
+  "opaque_bottom_rows_coverage": 0.094,
+  "transparent_px": 3042,
+  "colours": 40,
+  "off_palette": [],
+  "home": "serverroom",
+  "replaces": "gear_shelf_a",
+  "note": "SOU-216 polish: the shipped gear_shelf_a reads as an almost empty wooden frame; this one is packed to the top. Same 64x112 canvas and 2x1 footprint as the file it replaces, so wiring is a name swap.",
+  "replaces_reference": {
+    "replaces": "gear_shelf_a",
+    "served_path": "frontend/v3/assets/serverroom/props/gear_shelf_a.png",
+    "sha256": "46e7bd26269d544fbfa5a4ea3c27cce2f3ba72a5dab67b9df174aae4d8194a50",
+    "missing": false
+  },
+  "packing": {
+    "old": {
+      "canvas_opaque_share": 0.4289,
+      "interior_opaque_share": 0.9969,
+      "gear_px": 168,
+      "led_px": 1,
+      "plant_px": 0
+    },
+    "new": {
+      "canvas_opaque_share": 0.5756,
+      "interior_opaque_share": 0.9486,
+      "gear_px": 1965,
+      "led_px": 15,
+      "plant_px": 62
+    },
+    "why": "SOU-216 reads the shipped shelves as 'nearly empty wooden frames'. The measures are how much of the 64x112 CANVAS the shelf fills (a packed shelf fills its frame) and how many GEAR-coloured pixels it carries, plus the status-light count (the declared cool-glow family + led_orange) and the plant count. The gate asserts canvas share AND gear px both went up, status lights >= 8 px, and a plant present."
+  }
+}

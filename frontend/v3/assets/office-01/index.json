@@ -1,0 +1,237 @@
+{
+  "pack": "office-01-v1",
+  "issue": "SOU-158",
+  "generated_from": "assets/generated/v3/office-01",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "palette": "assets/generated/v3/office-01/palette.json",
+  "prop_keys": [
+    "desk",
+    "chair",
+    "rack",
+    "bookshelf",
+    "coffee",
+    "rug",
+    "couch",
+    "bass",
+    "amp",
+    "cat",
+    "van",
+    "spool",
+    "crate"
+  ],
+  "character_sheet": {
+    "path": "assets/office-01/character/office-01.png",
+    "cols": 8,
+    "rows": 4,
+    "frame_px": [
+      32,
+      48
+    ],
+    "facings": [
+      "down",
+      "left",
+      "right",
+      "up"
+    ],
+    "columns": "0 idle, 1-4 walk, 5-6 work/typing, 7 sleep"
+  },
+  "tileset": {
+    "path": "assets/office-01/tiles.png",
+    "tile_px": 32,
+    "columns": 8,
+    "firstgid": 1,
+    "order": [
+      "floor_wood_a",
+      "floor_wood_b",
+      "garage_concrete",
+      "wall_cap",
+      "wall_face",
+      "wall_base",
+      "door_mat",
+      "garage_stripe"
+    ]
+  },
+  "files": [
+    {
+      "served_path": "assets/office-01/tiles.png",
+      "source": "assets/generated/v3/office-01/tiles/tileset.png",
+      "sha256": "56ecab9c0decad5a162b652bdae4b4bd9e9db6cc88378da5e726a5eb326a486f",
+      "bytes": 1112
+    },
+    {
+      "served_path": "assets/office-01/tiles.png.manifest.json",
+      "source": "assets/generated/v3/office-01/tiles/tileset.png.manifest.json",
+      "sha256": "cb9a52b9683a4879589e3e31ddd147982d5d39ca2dd6228eb1d7afd4910b80af",
+      "bytes": 2092
+    },
+    {
+      "served_path": "assets/office-01/character/office-01.png",
+      "source": "assets/generated/v3/office-01/character/office-01.png",
+      "sha256": "776ff825b50bc78468b1910caf0d5d181f6ddbce533002fabe6a4a526dd8a5f8",
+      "bytes": 7319
+    },
+    {
+      "served_path": "assets/office-01/character/office-01.png.manifest.json",
+      "source": "assets/generated/v3/office-01/character/office-01.png.manifest.json",
+      "sha256": "27fd6562dc2bd9535b246408fe1b41109c72e5130a3b3f250457c3810b0b4ea7",
+      "bytes": 5215
+    },
+    {
+      "served_path": "assets/office-01/props/desk.png",
+      "source": "assets/generated/v3/office-01/props/desk.png",
+      "sha256": "1c968d2320e8d2082127a2576de6203d710fb6bbc846036c36c74bf1fa39cde9",
+      "bytes": 2519
+    },
+    {
+      "served_path": "assets/office-01/props/chair.png",
+      "source": "assets/generated/v3/office-01/props/chair.png",
+      "sha256": "6ccb532f9981c86d856e653c37c636e05d1b3f393e9df965e4848a281e9ea973",
+      "bytes": 828
+    },
+    {
+      "served_path": "assets/office-01/props/rack.png",
+      "source": "assets/generated/v3/office-01/props/rack.png",
+      "sha256": "8e378daa71667f11ffb23b854206db77c9ab65350f26c795ed4aa8f86133729b",
+      "bytes": 1691
+    },
+    {
+      "served_path": "assets/office-01/props/bookshelf.png",
+      "source": "assets/generated/v3/office-01/props/bookshelf.png",
+      "sha256": "c6ccd57d4045227f46eba94a1d099961e61d67e9e0dfb02ecac89735a1115a55",
+      "bytes": 4109
+    },
+    {
+      "served_path": "assets/office-01/props/coffee.png",
+      "source": "assets/generated/v3/office-01/props/coffee.png",
+      "sha256": "08e3ffa29f2677c0fcbd4842b729b0268e6fd86059dd022030ca0badb3f54f4a",
+      "bytes": 2244
+    },
+    {
+      "served_path": "assets/office-01/props/rug.png",
+      "source": "assets/generated/v3/office-01/props/rug.png",
+      "sha256": "a9be491b8043ffca96521908c90562ad7ae69ae646587b70f5baba33f130cb46",
+      "bytes": 1902
+    },
+    {
+      "served_path": "assets/office-01/props/couch.png",
+      "source": "assets/generated/v3/office-01/props/couch.png",
+      "sha256": "f855858c5d13a421a61fbf33675e462e2453ff7f29e69f01edd750ddf9bb5225",
+      "bytes": 2409
+    },
+    {
+      "served_path": "assets/office-01/props/bass.png",
+      "source": "assets/generated/v3/office-01/props/bass.png",
+      "sha256": "87f8af91edc68153628d36e3fe692c6db798b17db2c09e68888a197b87515eb7",
+      "bytes": 1592
+    },
+    {
+      "served_path": "assets/office-01/props/amp.png",
+      "source": "assets/generated/v3/office-01/props/amp.png",
+      "sha256": "4a7c280aaeb24bdd83628e7c3615df5aa7d17aaf37c342516eb463ed108a317a",
+      "bytes": 643
+    },
+    {
+      "served_path": "assets/office-01/props/cat.png",
+      "source": "assets/generated/v3/office-01/props/cat.png",
+      "sha256": "8ceee3a4bf73004f4e7b7c5b9cb16764447b409f88d231f355e4e5bbabf36477",
+      "bytes": 979
+    },
+    {
+      "served_path": "assets/office-01/props/van.png",
+      "source": "assets/generated/v3/office-01/props/van.png",
+      "sha256": "7f31a6ef8f5d28ad439c1c4f4b85e951125468832d6f7e6200a199c97c241196",
+      "bytes": 6422
+    },
+    {
+      "served_path": "assets/office-01/props/spool.png",
+      "source": "assets/generated/v3/office-01/props/spool.png",
+      "sha256": "3b27159b2bd2151bc4956a4d8bed8a30394f7f07feba8f8949d2a38e511815e5",
+      "bytes": 1141
+    },
+    {
+      "served_path": "assets/office-01/props/crate.png",
+      "source": "assets/generated/v3/office-01/props/crate.png",
+      "sha256": "ddf47454b26c1a357ccea2a601dfd4600c75436808c547e55945bd71b4121934",
+      "bytes": 1541
+    },
+    {
+      "served_path": "assets/office-01/props/amp.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/amp.png.manifest.json",
+      "sha256": "be0218b1c5aeccc59bccfd4a7737d11937e88ac2e2db6018041c3d59268edd02",
+      "bytes": 3399
+    },
+    {
+      "served_path": "assets/office-01/props/bass.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/bass.png.manifest.json",
+      "sha256": "0f0799d6672976c732349b1a6e8f0cb7975a07b9f126cbb2f39533932b02d24e",
+      "bytes": 3585
+    },
+    {
+      "served_path": "assets/office-01/props/bookshelf.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/bookshelf.png.manifest.json",
+      "sha256": "98902417e5a1ef9ca8dedd4348a40d257ab9e7217bbcf118827ad53138362149",
+      "bytes": 3637
+    },
+    {
+      "served_path": "assets/office-01/props/cat.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/cat.png.manifest.json",
+      "sha256": "4dd0bf46d6f8bd76dfb23b25d96682bf6a3166158bd3709b40a7ac5e118af3d7",
+      "bytes": 3493
+    },
+    {
+      "served_path": "assets/office-01/props/chair.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/chair.png.manifest.json",
+      "sha256": "fd0250bed332ebf070927b5761af7c28745bb9257225127a5402769f7ebf8e13",
+      "bytes": 3442
+    },
+    {
+      "served_path": "assets/office-01/props/coffee.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/coffee.png.manifest.json",
+      "sha256": "3a7176ade3706df3dae9344903f67f4dbca795577881e0cec47523d333f87ee3",
+      "bytes": 3769
+    },
+    {
+      "served_path": "assets/office-01/props/couch.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/couch.png.manifest.json",
+      "sha256": "90719f7d3072c55693cad399d6b55ee09a6a9384b57f4a4db49588e07a0f0fb8",
+      "bytes": 3617
+    },
+    {
+      "served_path": "assets/office-01/props/crate.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/crate.png.manifest.json",
+      "sha256": "708ee4fbaca614e5a1fb8ec4eae77733321772752f84dd2b0c21a43895adbd8c",
+      "bytes": 3400
+    },
+    {
+      "served_path": "assets/office-01/props/desk.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/desk.png.manifest.json",
+      "sha256": "a7af9c2bcb1581d0e9ae9dcc20e6e5bbffdec044cb991c27b364e0e2b86900d1",
+      "bytes": 3388
+    },
+    {
+      "served_path": "assets/office-01/props/rack.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/rack.png.manifest.json",
+      "sha256": "a1d6707807e53791727db976e7885d199fb4ed6a98132642fa57a6d1610c1b10",
+      "bytes": 3653
+    },
+    {
+      "served_path": "assets/office-01/props/rug.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/rug.png.manifest.json",
+      "sha256": "6cb17bd6a933fb60cbc522a11724f3b8a255b441c4e2a43c440291196028f06c",
+      "bytes": 3583
+    },
+    {
+      "served_path": "assets/office-01/props/spool.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/spool.png.manifest.json",
+      "sha256": "cb1706a2f33f81e995cc80ada5e1b32d6b0d5512934dfce47dae6bf44f1e866e",
+      "bytes": 3420
+    },
+    {
+      "served_path": "assets/office-01/props/van.png.manifest.json",
+      "source": "assets/generated/v3/office-01/props/van.png.manifest.json",
+      "sha256": "26e979eea76d9592b98e0d711375f195fb3194626dcb2399271c35893e671f45",
+      "bytes": 3957
+    }
+  ],
+  "created_at": "2026-10-16T14:23:43.884921+00:00"
+}

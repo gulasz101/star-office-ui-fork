@@ -1,0 +1,169 @@
+{
+  "name": "office-01-v1",
+  "colors": 32,
+  "named": [
+    {
+      "name": "outline",
+      "hex": "#14161f"
+    },
+    {
+      "name": "ink",
+      "hex": "#1f232e"
+    },
+    {
+      "name": "slate_900",
+      "hex": "#2a2f3e"
+    },
+    {
+      "name": "slate_700",
+      "hex": "#3a4152"
+    },
+    {
+      "name": "slate_500",
+      "hex": "#505a70"
+    },
+    {
+      "name": "slate_300",
+      "hex": "#6b7590"
+    },
+    {
+      "name": "steel_200",
+      "hex": "#9aa4bb"
+    },
+    {
+      "name": "steel_100",
+      "hex": "#c3cad9"
+    },
+    {
+      "name": "paper",
+      "hex": "#f4ead2"
+    },
+    {
+      "name": "cream",
+      "hex": "#e2d3b4"
+    },
+    {
+      "name": "sand",
+      "hex": "#d8c8a0"
+    },
+    {
+      "name": "sand_light",
+      "hex": "#eadcb8"
+    },
+    {
+      "name": "tan",
+      "hex": "#c1a46b"
+    },
+    {
+      "name": "tan_dark",
+      "hex": "#a8894f"
+    },
+    {
+      "name": "ochre",
+      "hex": "#ac9968"
+    },
+    {
+      "name": "wood_light",
+      "hex": "#b07a48"
+    },
+    {
+      "name": "wood",
+      "hex": "#8a5a34"
+    },
+    {
+      "name": "wood_dark",
+      "hex": "#6e4a2c"
+    },
+    {
+      "name": "wood_deep",
+      "hex": "#52341f"
+    },
+    {
+      "name": "gold",
+      "hex": "#ffea99"
+    },
+    {
+      "name": "amber",
+      "hex": "#e8a33d"
+    },
+    {
+      "name": "rust",
+      "hex": "#b5651d"
+    },
+    {
+      "name": "cat_light",
+      "hex": "#e0a35c"
+    },
+    {
+      "name": "cat",
+      "hex": "#c8a070"
+    },
+    {
+      "name": "cat_dark",
+      "hex": "#b08a5a"
+    },
+    {
+      "name": "moss",
+      "hex": "#a3be8c"
+    },
+    {
+      "name": "moss_dark",
+      "hex": "#6f8a5e"
+    },
+    {
+      "name": "teal",
+      "hex": "#3d6b73"
+    },
+    {
+      "name": "teal_light",
+      "hex": "#4f8790"
+    },
+    {
+      "name": "ice",
+      "hex": "#88c0d0"
+    },
+    {
+      "name": "shell_blue",
+      "hex": "#44618a"
+    },
+    {
+      "name": "crt_green",
+      "hex": "#7fbf6a"
+    }
+  ],
+  "hex": [
+    "#14161f",
+    "#1f232e",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#6b7590",
+    "#9aa4bb",
+    "#c3cad9",
+    "#f4ead2",
+    "#e2d3b4",
+    "#d8c8a0",
+    "#eadcb8",
+    "#c1a46b",
+    "#a8894f",
+    "#ac9968",
+    "#b07a48",
+    "#8a5a34",
+    "#6e4a2c",
+    "#52341f",
+    "#ffea99",
+    "#e8a33d",
+    "#b5651d",
+    "#e0a35c",
+    "#c8a070",
+    "#b08a5a",
+    "#a3be8c",
+    "#6f8a5e",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#44618a",
+    "#7fbf6a"
+  ],
+  "why": "One palette for the whole set (SOU-158 AC3). Extends the v2 room palette the owner signed off with the wood/beige/amber/crt ramps the new props need; every asset is quantised to exactly these colours by scripts/v3/gen_office01_art.py assemble."
+}

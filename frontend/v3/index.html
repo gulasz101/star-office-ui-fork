@@ -34,6 +34,10 @@
   <div id="caption"></div>
   <div id="card"></div>
   <div id="hud">v3 · <span id="status">starting…</span> · drag/WASD pan · wheel/± zoom · click a room · F next room · Esc overview · G grid</div>
+  <script>
+    // a touchpad pinch arrives as ctrl+wheel: keep it for the camera, not the browser's page zoom
+    window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  </script>
   <script src="vendor/phaser-4.2.1.min.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>

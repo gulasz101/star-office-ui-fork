@@ -83,7 +83,14 @@ SHELL_TOOLS = {"bash", "powershell"}
 PATH_KEYS = ("file_path", "notebook_path", "path", "target_file", "absolute_path")
 
 # Wrappers that are not the program the agent actually ran.
-COMMAND_WRAPPERS = {"sudo", "doas", "env", "time", "nohup", "command", "nice"}
+COMMAND_WRAPPERS = {"sudo", "doas", "env", "time", "nohup", "command", "nice", "timeout"}
+# `timeout 300 cmd` / `timeout 5m cmd`: the duration is the wrapper's argument, not the program.
+DURATION = re.compile(r"^[0-9]+(\.[0-9]+)?[smhd]?$")
+# Directory changes chained in front of the real work (`cd /repo && git push`) are skipped;
+# a command that is only a `cd` still reports as `cd`. The directory is never sent.
+DIR_CHANGERS = {"cd", "pushd"}
+SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|]")
+PYTHONS = re.compile(r"^python[0-9.]*$")
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PROGRAM = re.compile(r"^[A-Za-z0-9._+-]{1,32}$")
 TOKEN_SPLIT = re.compile(r"\s+")
@@ -144,28 +151,46 @@ def enum(value) -> str:
 
 
 def command_parts(command):
-    """First command segment -> ``(program, [arguments after it])``.
+    """First real command -> ``(program, [arguments after it])``.
 
-    Env prefixes (``FOO=bar``), wrapper tokens (``sudo``, ``env`` …) and flags
-    are skipped while finding the program; the arguments keep their original
-    tokens so the caller can pick a subcommand out of them. Nothing usable ->
-    ``("shell", [])``.
+    Leading ``cd``/``pushd`` segments are skipped when something follows them. Env
+    prefixes (``FOO=bar``), wrapper tokens (``sudo``, ``env``, ``timeout 300`` …) and
+    flags are skipped while finding the program; ``python -m <module>`` reports the
+    module. The arguments keep their original tokens so the caller can pick a
+    subcommand out of them. Nothing usable -> ``("shell", [])``.
     """
     raw = text_of(command, 4096)
     if not raw:
         return "", []
-    first = re.split(r"&&|\|\||[;|]", raw, maxsplit=1)[0]
-    tokens = [token for token in TOKEN_SPLIT.split(first.strip()) if token]
+    segments = [seg for seg in SEGMENT_SPLIT.split(raw) if seg.strip()]
+    parsed = None
+    for seg in segments:
+        parsed = _segment_parts(seg)
+        if parsed[0] not in DIR_CHANGERS:
+            return parsed
+    return parsed or ("shell", [])
+
+
+def _segment_parts(segment):
+    tokens = [token for token in TOKEN_SPLIT.split(segment.strip()) if token]
+    skip_duration = False
     for index, token in enumerate(tokens):
+        if skip_duration and DURATION.match(token):
+            skip_duration = False
+            continue
         if ASSIGNMENT.match(token) or token.startswith("-"):
             continue  # env assignment or a flag of the wrapper
         name = basename(token.replace("\\", "/")) or token
         name = name.split("/")[-1]
         if name in COMMAND_WRAPPERS:
+            skip_duration = name == "timeout"
             continue
         if not PROGRAM.match(name) or ":" in name:
             return "shell", []
-        return name, tokens[index + 1:]
+        rest = tokens[index + 1:]
+        if PYTHONS.match(name) and len(rest) >= 2 and rest[0] == "-m" and PROGRAM.match(rest[1]):
+            return rest[1], rest[2:]
+        return name, rest
     return "shell", []
 
 

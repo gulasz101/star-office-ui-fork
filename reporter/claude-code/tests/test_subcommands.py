@@ -110,14 +110,15 @@ NOT_ALLOWED = [
     ("ssh deploy@host", "ssh"),
     ("bash deploy.sh", "bash"),
     ("./deploy.sh", "deploy.sh"),
-    ("timeout 30 git status", "timeout"),
+    ("timeout 30 git status", "git status"),  # timeout + its duration are a wrapper (SOU-173 addendum)
     ("git", "git"),
 ]
 
-# Only the first segment before a pipe/&& chain gets the label (behaviour SOU-157
-# already pinned; kept so the subcommand scan cannot wander into later segments).
+# Only the first real segment gets the label, so the scan never wanders into later
+# segments. The one exception (SOU-173 addendum): leading `cd`/`pushd` segments are
+# skipped, because Claude Code prefixes most commands with `cd <dir> &&`.
 SEGMENTS = [
-    ("cd build && make test", "cd"),
+    ("cd build && make test", "make test"),
     ("echo hi && git push", "echo"),
 ]
 
@@ -142,3 +143,27 @@ def test_label_stays_single_line_and_small(harness):
         value = label(harness, command)
         assert "\n" not in value
         assert len(value) <= 120, (command, value)
+
+
+
+# Claude Code commands usually start with `cd <dir> &&` (SOU-173 addendum, Claude Code).
+CD_AND_WRAPPERS = [
+    ("cd /home/me/repo && git push origin main", "git push"),
+    ("cd /tmp; docker build -t x .", "docker build"),
+    ("cd a && cd b && npm run build", "npm run build"),
+    ("pushd /x && make test", "make test"),
+    ("cd /only/here", "cd"),
+    ("timeout 300 .venv/bin/python -m pytest -q", "pytest"),
+    ("timeout 5m git pull", "git pull"),
+    ("python3 -m pip install x", "pip install"),
+    ("uv run pytest backend/tests", "uv run"),
+    ("cd /x && PGPASSWORD=s3cr3t psql -h db", "psql"),
+]
+
+
+@pytest.mark.parametrize("command,expected", CD_AND_WRAPPERS)
+def test_cd_prefix_and_wrappers(harness, command, expected):
+    got = label(harness, command)
+    assert got == expected
+    for secret in ("/home/me/repo", "/tmp", "s3cr3t", "/only/here", ".venv"):
+        assert secret not in got

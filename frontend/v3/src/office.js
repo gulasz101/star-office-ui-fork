@@ -2,10 +2,11 @@
 // layer can't be created twice from one map), its props, zones and character, placed at its
 // slot's origin. The character walks on the Building's world grid (corridor included), so
 // it can arrive from outside and leave again; zones stay this room's.
-import { TILE, COLORS } from './config.js';
+import { TILE, COLORS, CHAR_W, CHAR_H } from './config.js';
 import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
 import { AgentCharacter } from './character.js';
-import { FLAT_PROPS } from './rooms.js';
+import { FLAT_PROPS, hoodieFor } from './rooms.js';
+import { swapHoodie } from './palette.js';
 import { ROOM_W } from './world.js';
 import { lightRoom, roomShade } from './ambience.js';
 
@@ -139,10 +140,10 @@ export class OfficeModule {
   }
 
   _createCharacter(color, start) {
-    // one generated character for M1; per-agent characters come with M2 (SOU-161)
-    const sheetKey = this.scene.textures.exists('sheet-office-01')
-      ? 'sheet-office-01'
-      : ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
+    const base = 'sheet-office-01';
+    let sheetKey = this.scene.textures.exists(base) ? base : ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
+    const hoodie = hoodieFor(this.agentId);
+    if (sheetKey === base && hoodie) sheetKey = recolouredSheet(this.scene, base, `${base}-${this.agentId}`, hoodie);
     return new AgentCharacter(this.nav, { agentId: this.agentId, sheetKey, start });
   }
 
@@ -189,4 +190,22 @@ export class OfficeModule {
     }
     this.debug = { destroy: () => { g.destroy(); texts.forEach((t) => t.destroy()); } };
   }
+}
+
+// A canvas copy of the generated sheet with the hoodie recoloured (SOU-202), sliced into the
+// same numbered frames the animations use.
+function recolouredSheet(scene, baseKey, key, hoodie) {
+  if (scene.textures.exists(key)) return key;
+  const src = scene.textures.get(baseKey).getSourceImage();
+  const tex = scene.textures.createCanvas(key, src.width, src.height);
+  const ctx = tex.context;
+  ctx.drawImage(src, 0, 0);
+  const img = ctx.getImageData(0, 0, src.width, src.height);
+  swapHoodie(img.data, hoodie);
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+  const cols = Math.floor(src.width / CHAR_W);
+  const rows = Math.floor(src.height / CHAR_H);
+  for (let i = 0; i < cols * rows; i++) tex.add(i, 0, (i % cols) * CHAR_W, Math.floor(i / cols) * CHAR_H, CHAR_W, CHAR_H);
+  return key;
 }

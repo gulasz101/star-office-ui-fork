@@ -1,5 +1,5 @@
 {
-  "$comment": "Claude Code hooks wiring for the Star Office UI reporter (SOU-157). Copy the \"hooks\" block into ~/.claude/settings.json (every project, local to the machine) or .claude/settings.json (this project, committable). Hook entries merge across settings levels rather than replacing each other, so install it in ONE place or every event is sent twice. ${CLAUDE_PROJECT_DIR} resolves to the project root the session started in; for a user-level install replace it with the absolute path of this checkout. See README.md.",
+  "$comment": "Claude Code hooks wiring for the Star Office UI reporter (SOU-157, exec form verified SOU-173). Copy the \"hooks\" block into ~/.claude/settings.json (every project, local to the machine) or .claude/settings.json (this project, committable). Hook entries merge across settings levels rather than replacing each other, so install it in ONE place or every event is sent twice. ${CLAUDE_PROJECT_DIR} resolves to the project root the session started in; for a user-level install replace it with the absolute path of this checkout. command+args is the documented exec form (no shell involved); if your Claude Code predates args use the shell form \"python3 /abs/path/star_office_hook.py\" instead. See README.md.",
   "hooks": {
     "SessionStart": [
       {

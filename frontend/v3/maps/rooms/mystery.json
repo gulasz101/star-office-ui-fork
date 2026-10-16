@@ -23,12 +23,12 @@
    "firstgid": 1,
    "name": "lodge",
    "image": "../../assets/lodge/tiles.png",
-   "imagewidth": 512,
+   "imagewidth": 640,
    "imageheight": 32,
    "tilewidth": 32,
    "tileheight": 32,
-   "tilecount": 16,
-   "columns": 16,
+   "tilecount": 20,
+   "columns": 20,
    "margin": 0,
    "spacing": 0,
    "tiles": [
@@ -205,6 +205,50 @@
        "name": "collides",
        "type": "bool",
        "value": false
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "type": "garage_floor",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 17,
+     "type": "garage_floor_stain",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "type": "stone_floor_soft",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 19,
+     "type": "wall_face_soft",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
       }
      ]
     }
@@ -445,20 +489,20 @@
     6,
     6,
     6,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
     6,
     6,
     8,
@@ -637,9 +681,9 @@
      "name": "curiosity_shelf",
      "type": "",
      "x": 32,
-     "y": 64,
+     "y": 96,
      "width": 64,
-     "height": 64,
+     "height": 32,
      "rotation": 0,
      "visible": true,
      "properties": [

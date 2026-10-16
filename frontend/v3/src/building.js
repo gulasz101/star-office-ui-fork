@@ -87,8 +87,8 @@ export class Building {
     // no rooms yet: close the corridor's north side so the empty lodge is a whole building
     if (!this.offices.size) strip('wall_cap', x0, ROOM_H - 1, span, 1, -999);
     // the outside face of the front wall (logs), with the doorway left open
-    night(strip('wall_face', x0, FRONT_Y + 1, DOOR_COLS[0] - x0, 1, -2980), 0xb4aac4);
-    night(strip('wall_face', DOOR_COLS[1] + 1, FRONT_Y + 1, x1 - DOOR_COLS[1], 1, -2980), 0xb4aac4);
+    night(strip('wall_face_soft', x0, FRONT_Y + 1, DOOR_COLS[0] - x0, 1, -2980), 0xb4aac4);
+    night(strip('wall_face_soft', DOOR_COLS[1] + 1, FRONT_Y + 1, x1 - DOOR_COLS[1], 1, -2980), 0xb4aac4);
     night(strip('stone_step', DOOR_COLS[0], FRONT_Y + 1, 2, 1, -2980), 0xb4aac4);
     // warm light spilling out of the doorway onto the snow
     add(glow(s, (DOOR_COLS[0] + 1) * TILE, (FRONT_Y + 1.6) * TILE, 90, 0xffb35a, 0.3, -2900));

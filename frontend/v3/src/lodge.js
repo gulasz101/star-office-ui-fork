@@ -8,6 +8,14 @@ export const LODGE_TILES = [
   'wall_base', 'stone_step', 'room_plank_a', 'room_plank_b', 'stone_floor', 'metal_grate',
   'door_mat', 'snow_edge', 'spare',
 ];
+// Extra room tiles appended after the 16 lodge slots (SOU-231): the garage concrete and the
+// softened stone/log tiles from the SOU-216 polish pass, each from its own published strip.
+export const EXTRA_TILES = [
+  ['garage_floor', 'garage-tiles', 0], ['garage_floor_stain', 'garage-tiles', 1],
+  ['stone_floor_soft', 'lodge-soft-tiles', 0], ['wall_face_soft', 'lodge-soft-tiles', 1],
+];
+export const ROOM_TILES = LODGE_TILES.concat(EXTRA_TILES.map(([name]) => name));
+
 export const LODGE_PROPS = {
   pine_a: [64, 96], pine_b: [64, 128], pine_small: [32, 64], lantern_post: [32, 64],
   woodpile: [64, 48], fireplace: [64, 96], armchair: [48, 48], wall_lamp: [32, 32],
@@ -44,10 +52,22 @@ export function ensureLodgeTextures(scene) {
     }
   });
   // the strip rooms use as their tileset: the generated one, or the drawn tiles side by side
-  if (!scene.textures.exists('lodge-strip')) {
-    const tex = scene.textures.createCanvas('lodge-strip', 32 * LODGE_TILES.length, 32);
+  // the extra tiles: sliced from their strips, or a stand-in copied from the nearest lodge tile
+  const STAND_IN = { garage_floor: 'stone_floor', garage_floor_stain: 'stone_floor', stone_floor_soft: 'stone_floor', wall_face_soft: 'wall_face' };
+  for (const [name, stripKey, slot] of EXTRA_TILES) {
+    const key = tileKey(name);
+    if (scene.textures.exists(key)) continue;
+    const src = scene.textures.exists(stripKey) ? scene.textures.get(stripKey).getSourceImage() : null;
+    const tex = scene.textures.createCanvas(key, 32, 32);
     tex.context.imageSmoothingEnabled = false;
-    LODGE_TILES.forEach((name, i) => tex.context.drawImage(scene.textures.get(tileKey(name)).getSourceImage(), i * 32, 0));
+    if (src && src.width >= (slot + 1) * 32) tex.context.drawImage(src, slot * 32, 0, 32, 32, 0, 0, 32, 32);
+    else tex.context.drawImage(scene.textures.get(tileKey(STAND_IN[name])).getSourceImage(), 0, 0);
+    tex.refresh();
+  }
+  if (!scene.textures.exists('lodge-strip')) {
+    const tex = scene.textures.createCanvas('lodge-strip', 32 * ROOM_TILES.length, 32);
+    tex.context.imageSmoothingEnabled = false;
+    ROOM_TILES.forEach((name, i) => tex.context.drawImage(scene.textures.get(tileKey(name)).getSourceImage(), i * 32, 0));
     tex.refresh();
   }
   for (const [name, [w, h]] of Object.entries(LODGE_PROPS)) {

@@ -41,12 +41,14 @@ export const PROP_ART = Object.fromEntries(
       mystery: ['curiosity_shelf', 'eye_painting', 'crystal_ball', 'journal_stand', 'strange_rug', 'lantern_green'],
       tokenden: ['token_stacks', 'lucky_cat', 'red_lanterns', 'tea_table', 'token_server', 'abacus_desk'],
       career: ['coat_stand', 'whiteboard', 'ring_light', 'advisor_desk', 'framed_certs', 'ficus'],
-      writer: ['typewriter_desk', 'paper_stacks', 'paper_bin', 'reading_chair', 'cork_board', 'book_tower'],
+      writer: ['typewriter_desk', 'paper_stacks', 'paper_bin', 'reading_chair', 'cork_board', 'book_tower', 'paper_stacks_lined'],
+      garage: ['van_parked', 'roller_door', 'pegboard', 'toolbox', 'tire_stack', 'oil_drum'],
+      serverroom: ['gear_shelf_full_a', 'gear_shelf_full_b'],
     }).flatMap(([set, names]) => names.map((n) => [n, `assets/${set}/props/${n}.png`]))),
 );
 export const FLAT_PROPS = new Set(['rug', 'belt', 'cable_coil', 'strange_rug']);
 // Hung on the back wall (SOU-214): drawn just above the wall tiles, never in front of anything.
-export const WALL_DECALS = new Set(['eye_painting', 'red_lanterns', 'framed_certs', 'cork_board']);
+export const WALL_DECALS = new Set(['eye_painting', 'red_lanterns', 'framed_certs', 'cork_board', 'roller_door', 'pegboard']);
 
 // Animated props (SOU-213): name -> [file, frame w, frame h, frames, fps]. Loaded as
 // spritesheets under prop-<name>; the room plays prop-anim-<name> on them.

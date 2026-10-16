@@ -42,6 +42,8 @@ class OfficeScene extends Phaser.Scene {
       // the Lodge set (SOU-198) is optional until it lands; lodge.js draws what's missing
       if (params.get('lodge') !== '0') {
         this.load.image('lodge-tiles', 'assets/lodge/tiles.png');
+        this.load.image('lodge-soft-tiles', 'assets/lodge/tiles_soft.png');
+        this.load.image('garage-tiles', 'assets/garage/tiles.png');
         for (const name of Object.keys(LODGE_PROPS)) this.load.image(lodgePropKey(name), `assets/lodge/props/${name}.png`);
         this.load.spritesheet('lodge-cat-walk', 'assets/lodge/props/cat_walk.png', { frameWidth: 32, frameHeight: 32 });
       }

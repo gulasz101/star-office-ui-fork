@@ -24,8 +24,15 @@ LODGE_TILES = [
     "snow_a", "snow_b", "snow_path", "corridor_floor", "corridor_runner", "wall_cap", "wall_face",
     "wall_base", "stone_step", "room_plank_a", "room_plank_b", "stone_floor", "metal_grate",
     "door_mat", "snow_edge", "spare",
+    # appended (SOU-231): garage concrete + the SOU-216 polish tiles, see lodge.js EXTRA_TILES
+    "garage_floor", "garage_floor_stain", "stone_floor_soft", "wall_face_soft",
 ]
-COLLIDES = {"wall_cap", "wall_face", "wall_base"}
+COLLIDES = {"wall_cap", "wall_face", "wall_base", "wall_face_soft"}
+# Tall props against the back wall whose art declares a one-row footprint (SOU-232): the maps
+# list them as (x, 2, w, 2) for readability; they are written as (x, 3, w, 1), which keeps the
+# bottom edge (so the drawing) and the blocking (row 2 is wall) exactly the same.
+ONE_ROW_BACK = {"gear_shelf_a", "gear_shelf_b", "gear_shelf_full_a", "gear_shelf_full_b", "ups_stack",
+                "network_cabinet", "curiosity_shelf", "whiteboard", "token_server", "rack_v2"}
 GID = {name: i + 1 for i, name in enumerate(LODGE_TILES)}
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -37,29 +44,33 @@ ROOMS = {
     "garage": {
         "floor": "room_plank_a", "garage": True,
         "props": [
+            # the studio half (columns 1-8)
             ("desk", 2, 3, 2, 2, True), ("chair", 2, 5, 1, 1, False),
-            ("rack_v2", 5, 2, 2, 2, True),
-            ("bookshelf", 8, 2, 2, 2, True), ("coffee", 1, 8, 2, 1, True),
-            ("rug", 4, 6, 3, 2, False), ("couch", 3, 9, 3, 1, True),
-            ("bass", 8, 9, 1, 1, True), ("amp", 9, 9, 1, 1, True), ("cat_box", 12, 10, 2, 1, True),
-            ("van", 12, 3, 3, 4, True), ("spool", 11, 3, 1, 1, True), ("crate", 14, 10, 1, 1, True),
+            ("rack_v2", 4, 2, 2, 2, True), ("bookshelf", 7, 2, 2, 2, True),
+            ("coffee", 1, 8, 2, 1, True), ("rug", 4, 6, 3, 2, False), ("couch", 3, 9, 3, 1, True),
+            ("bass", 7, 9, 1, 1, True), ("amp", 8, 9, 1, 1, True),
+            # the garage bay (columns 10-14): roller door, pegboard, the van parked nose-out
+            ("roller_door", 10, 1, 3, 1, False), ("pegboard", 13, 1, 2, 1, False),
+            ("van_parked", 10, 5, 3, 3, True),
+            ("toolbox", 13, 3, 1, 1, True), ("oil_drum", 14, 3, 1, 1, True), ("tire_stack", 14, 5, 1, 1, True),
+            ("cat_box", 13, 9, 2, 1, True), ("spool", 10, 9, 1, 1, True),
         ],
-        "zones": {"work": (2, 5, "up", None), "ops": (5, 4, "up", None), "read": (8, 4, "up", None),
+        "zones": {"work": (2, 5, "up", None), "ops": (4, 4, "up", None), "read": (7, 4, "up", None),
                   "wait": (2, 9, "up", None), "rest": (4, 10, "down", "up"),
-                  "build": (11, 8, "right", None), "entry": (6, 10, "down", None)},
+                  "build": (13, 6, "left", None), "entry": (6, 10, "down", None)},
     },
     # hermes-andrzej: the homelab manager's server room
     "serverroom": {
-        "floor": "stone_floor",
+        "floor": "stone_floor_soft",
         "props": [
             # back wall: racks, gear shelves, the patch cabinet and the UPS
-            ("rack_v2", 1, 2, 2, 2, True), ("gear_shelf_a", 3, 2, 2, 2, True), ("network_cabinet", 5, 2, 1, 2, True),
-            ("gear_shelf_b", 10, 2, 2, 2, True), ("rack_v2", 12, 2, 2, 2, True), ("ups_stack", 14, 2, 1, 2, True),
+            ("rack_v2", 1, 2, 2, 2, True), ("gear_shelf_full_a", 3, 2, 2, 2, True), ("network_cabinet", 5, 2, 1, 2, True),
+            ("gear_shelf_full_b", 10, 2, 2, 2, True), ("rack_v2", 12, 2, 2, 2, True), ("ups_stack", 14, 2, 1, 2, True),
             # the workbench is Andrzej's desk
             ("workbench", 7, 3, 2, 2, True), ("stool", 7, 5, 1, 1, False),
             # middle row with an aisle down the centre
             ("rack_v2", 2, 6, 2, 2, True), ("rack", 4, 6, 1, 2, True),
-            ("gear_shelf_a", 10, 6, 2, 2, True), ("rack", 12, 6, 1, 2, True),
+            ("gear_shelf_full_a", 10, 6, 2, 2, True), ("rack", 12, 6, 1, 2, True),
             ("cable_coil", 5, 9, 1, 1, False), ("cable_coil", 9, 5, 1, 1, False),
             ("coffee", 1, 9, 2, 1, True), ("couch", 11, 9, 3, 1, True),
             ("crate", 14, 6, 1, 1, True), ("crate", 14, 7, 1, 1, True), ("spool", 13, 6, 1, 1, True),
@@ -135,11 +146,11 @@ ROOMS = {
         "floor": "room_plank_b",
         "props": [
             ("typewriter_desk", 2, 3, 2, 2, True), ("chair", 2, 5, 1, 1, False),
-            ("paper_stacks", 4, 3, 1, 1, True), ("paper_bin", 1, 5, 1, 1, True),
+            ("paper_stacks_lined", 4, 3, 1, 1, True), ("paper_bin", 1, 5, 1, 1, True),
             ("bookshelf", 5, 2, 2, 2, True), ("bookshelf", 7, 2, 2, 2, True), ("book_tower", 9, 3, 1, 1, True),
             ("cork_board", 10, 1, 2, 1, False), ("rack", 13, 2, 1, 2, True),
             ("reading_chair", 10, 6, 1, 1, True), ("rug", 6, 6, 3, 2, False), ("couch", 3, 9, 3, 1, True),
-            ("coffee", 12, 8, 2, 1, True), ("paper_stacks", 14, 10, 1, 1, True), ("paper_stacks", 13, 10, 1, 1, True),
+            ("coffee", 12, 8, 2, 1, True), ("paper_stacks_lined", 14, 10, 1, 1, True), ("paper_stacks_lined", 13, 10, 1, 1, True),
         ],
         "zones": {"work": (2, 5, "up", None), "ops": (13, 4, "up", None), "read": (7, 4, "up", None),
                   "wait": (12, 9, "up", None), "rest": (4, 10, "down", "up"),
@@ -147,7 +158,7 @@ ROOMS = {
     },
 }
 
-PARTITION_X, GARAGE_X0 = 10, 11
+PARTITION_X, GARAGE_X0 = 9, 10
 
 
 def build_layers(room):
@@ -156,12 +167,12 @@ def build_layers(room):
     for y in range(1, H - 1):
         for x in range(1, W - 1):
             if room.get("garage") and x >= GARAGE_X0:
-                floor[y][x] = GID["stone_floor"]
+                floor[y][x] = GID["garage_floor_stain"] if (x, y) in ((11, 9), (13, 7)) else GID["garage_floor"]
             else:
                 floor[y][x] = GID[room["floor"]]
     for x in range(W):
         walls[0][x] = GID["wall_cap"]
-        walls[1][x] = GID["wall_face"]
+        walls[1][x] = GID["wall_face_soft"]
         walls[2][x] = GID["wall_base"] if 1 <= x <= W - 2 else GID["wall_cap"]
         walls[H - 1][x] = GID["wall_cap"]
     for y in range(H):
@@ -170,7 +181,7 @@ def build_layers(room):
         walls[H - 1][x] = 0
         floor[H - 1][x] = GID["door_mat"]
     if room.get("garage"):
-        for y in range(3, 7):
+        for y in range(3, 6):  # a short partition: the bay opens wide onto the studio
             walls[y][PARTITION_X] = GID["wall_cap"]
     return floor, walls
 
@@ -180,6 +191,8 @@ def build_map(name, room):
     oid = 1
     prop_objs, zone_objs = [], []
     for key, tx, ty, tw, th, collides in room["props"]:
+        if key in ONE_ROW_BACK and ty == 2 and th == 2:
+            ty, th = 3, 1
         prop_objs.append(obj(oid, key, tx * T, ty * T, tw * T, th * T, {"collides": collides}))
         oid += 1
     for key, (tx, ty, face, seat) in room["zones"].items():

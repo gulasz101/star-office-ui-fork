@@ -1,0 +1,80 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "seamless tileable pixel art texture: a seamless tileable texture of worn grey concrete garage floor with a few small stains and fine cracks, viewed from directly above. Orthographic top-down view, flat and evenly lit, the pattern repeats without seams in every direction, no perspective, no single object, no border. Palette limited to exactly these colours: #14161f, #1f232e, #2a2f3e, #3a4152, #505a70, #6b7590, #9aa4bb, #c3cad9, #f4ead2, #e2d3b4, #d8c8a0, #eadcb8, #c1a46b, #a8894f, #ac9968, #b07a48, #8a5a34, #6e4a2c, #52341f, #ffea99, #e8a33d, #b5651d, #e0a35c, #c8a070, #b08a5a, #a3be8c, #6f8a5e, #3d6b73, #4f8790, #88c0d0, #44618a, #7fbf6a. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. Fill the entire frame edge to edge with the texture - no background, no margin, no transparent area. 32-bit pixel art texture, game tile.",
+  "seed": 15814,
+  "source_file": "garage_floor.raw.png",
+  "output_file": "tiles/garage_floor.png",
+  "output_dims": [
+    32,
+    32
+  ],
+  "palette_colors": 32,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#6b7590",
+    "#9aa4bb",
+    "#c3cad9",
+    "#f4ead2",
+    "#e2d3b4",
+    "#d8c8a0",
+    "#eadcb8",
+    "#c1a46b",
+    "#a8894f",
+    "#ac9968",
+    "#b07a48",
+    "#8a5a34",
+    "#6e4a2c",
+    "#52341f",
+    "#ffea99",
+    "#e8a33d",
+    "#b5651d",
+    "#e0a35c",
+    "#c8a070",
+    "#b08a5a",
+    "#a3be8c",
+    "#6f8a5e",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#44618a",
+    "#7fbf6a"
+  ],
+  "created_at": "2026-10-16T13:37:29.478304+00:00",
+  "asset_key": "garage_floor",
+  "kind": "tile",
+  "view": "top-down 3/4",
+  "seam": {
+    "wrap_x": 1.43,
+    "mean_inner_x": 10.69,
+    "ratio_x": 0.13,
+    "wrap_y": 1.43,
+    "mean_inner_y": 10.79,
+    "ratio_y": 0.13
+  },
+  "seam_before_crop": {
+    "wrap_x": 8.82,
+    "mean_inner_x": 8.87,
+    "ratio_x": 0.99,
+    "wrap_y": 12.94,
+    "mean_inner_y": 9.13,
+    "ratio_y": 1.42
+  },
+  "crop_offset": [
+    10,
+    6
+  ],
+  "inter_px": [
+    64,
+    64
+  ],
+  "wrap_ratio_chosen": 0.3,
+  "note": "the tile is a 32x32 crop of the generated texture chosen for its repeat (see crop_offset); seam_before_crop is the same measurement on the naive full-texture downscale, so the improvement is checkable"
+}

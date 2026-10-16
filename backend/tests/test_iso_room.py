@@ -367,20 +367,24 @@ class GeneratedPackTests(unittest.TestCase):
             self.assertIn(0, [gx, gy, w - 1 - gx, (f["grid"]["y"] - 1) - gy])
             self.assertEqual(collision["data"][gy * w + gx], 0)
 
-        # collision layer equals the footprint rule derived from descriptor props
+        # collision layer equals the footprint rule derived from descriptor props.
+        # SOU-137: a declared footprint may OVERHANG the near floor edge (the bay
+        # van: 6x6 from (6,15) reaches gy 20 > 17); the collision layer is the
+        # on-floor part of it - blocked_cells() filters, so the test must too.
         n = m["tilesets"][0]["tilecount"]
         gid = 1 + n
+        gx_max, gy_max = f["grid"]["x"], f["grid"]["y"]
         want_blocked = set()
         for p in d["props"]:
             fside = max(1, int(round(p["tiles"])))
             gx, gy = p["grid"]
             for cx in range(gx, gx + fside):
                 for cy in range(gy, gy + fside):
-                    want_blocked.add((cx, cy))
+                    if 0 <= cx < gx_max and 0 <= cy < gy_max:
+                        want_blocked.add((cx, cy))
         got_blocked = {(i % w, i // w) for i, g in enumerate(collision["data"]) if g == gid}
-        self.assertEqual(got_blocked, want_blocked & got_blocked | want_blocked,
-                         "collision cells must be exactly the prop footprints")
-        self.assertEqual(got_blocked, want_blocked)
+        self.assertEqual(got_blocked, want_blocked,
+                         "collision cells must be exactly the on-floor prop footprints")
 
     def test_walls_image_is_lattice_derived(self):
         d = self.desc

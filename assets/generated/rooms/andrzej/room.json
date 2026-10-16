@@ -4,20 +4,20 @@
   "generated_by": "scripts/gen_iso_room.py (SOU-123, ADR-067 renderer v2)",
   "source_profile": "profiles/rooms/andrzej_room.json",
   "canvas": {
-    "w": 1280,
-    "h": 720
+    "w": 1568,
+    "h": 1100
   },
   "lattice": {
     "module": "scripts/iso_lattice.py",
     "origin": [
-      640,
+      928,
       250
     ],
     "tile_w": 96,
     "tile_h": 55,
     "slope": 0.5729166666666666,
     "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)",
-    "authority": "Phaser IsometricTileToWorldXY (src/tilemaps/components/IsometricTileToWorldXY.js, vendored 3.80.1)",
+    "authority": "Phaser 4.2.1 IsometricTileToWorldXY (frontend/static/vendor/phaser-4.2.1.min.js, sha256 66348b1b5141e49b7d5ebbe688cddcb502eab1cb00f21c538686a5b2c5abe4de; identity proven, not assumed - the live 4.2.1 headless probe in tools/lattice_probe/ returned engine == declared formula for 8 cells including all four floor corners, max |delta| = 0)",
     "rise_px": 250
   },
   "map": "room.map.json",
@@ -32,7 +32,7 @@
   },
   "grid": {
     "w": 12,
-    "h": 12,
+    "h": 18,
     "tile_m": 0.7
   },
   "rooms": [],
@@ -43,8 +43,8 @@
         3,
         3
       ],
-      "tiles": 2.0,
-      "real_m": 1.4,
+      "tiles": 2.107,
+      "real_m": 1.475,
       "footprint": [
         [
           3,
@@ -74,12 +74,24 @@
         8,
         2
       ],
-      "tiles": 1.4,
-      "real_m": 0.98,
+      "tiles": 2.312,
+      "real_m": 1.618,
       "footprint": [
         [
           8,
           2
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
         ]
       ],
       "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable",
@@ -93,8 +105,8 @@
         3,
         5
       ],
-      "tiles": 1.0,
-      "real_m": 0.7,
+      "tiles": 0.797,
+      "real_m": 0.558,
       "footprint": [
         [
           3,
@@ -112,8 +124,8 @@
         6,
         5
       ],
-      "tiles": 1.0,
-      "real_m": 0.7,
+      "tiles": 1.453,
+      "real_m": 1.017,
       "footprint": [
         [
           6,
@@ -131,8 +143,8 @@
         9,
         6
       ],
-      "tiles": 1.0,
-      "real_m": 0.7,
+      "tiles": 1.22,
+      "real_m": 0.854,
       "footprint": [
         [
           9,
@@ -150,8 +162,8 @@
         10,
         4
       ],
-      "tiles": 1.2,
-      "real_m": 0.84,
+      "tiles": 0.952,
+      "real_m": 0.666,
       "footprint": [
         [
           10,
@@ -167,15 +179,15 @@
     {
       "id": "cat",
       "grid": [
-        5,
-        8
+        0,
+        15
       ],
-      "tiles": 0.9,
-      "real_m": 0.63,
+      "tiles": 0.703,
+      "real_m": 0.492,
       "footprint": [
         [
-          5,
-          8
+          0,
+          15
         ]
       ],
       "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself",
@@ -189,27 +201,155 @@
     {
       "id": "jdm_van",
       "grid": [
-        2,
-        8
+        6,
+        15
       ],
-      "tiles": 1.6,
-      "real_m": 1.12,
+      "tiles": 5.682,
+      "real_m": 3.977,
       "footprint": [
         [
-          2,
-          8
+          6,
+          15
         ],
         [
-          2,
-          9
+          6,
+          16
         ],
         [
-          3,
-          8
+          6,
+          17
         ],
         [
-          3,
-          9
+          6,
+          18
+        ],
+        [
+          6,
+          19
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          7,
+          15
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          7,
+          17
+        ],
+        [
+          7,
+          18
+        ],
+        [
+          7,
+          19
+        ],
+        [
+          7,
+          20
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          19
+        ],
+        [
+          8,
+          20
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          9,
+          17
+        ],
+        [
+          9,
+          18
+        ],
+        [
+          9,
+          19
+        ],
+        [
+          9,
+          20
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          10,
+          19
+        ],
+        [
+          10,
+          20
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          11,
+          16
+        ],
+        [
+          11,
+          17
+        ],
+        [
+          11,
+          18
+        ],
+        [
+          11,
+          19
+        ],
+        [
+          11,
+          20
         ]
       ],
       "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo",
@@ -247,7 +387,7 @@
       "facing": "se",
       "grid": [
         5,
-        11
+        14
       ]
     },
     {
@@ -297,7 +437,7 @@
       "facing": "sw",
       "grid": [
         1,
-        11
+        14
       ]
     }
   ],
@@ -341,11 +481,11 @@
       "facing": "se",
       "anchor": [
         5,
-        11
+        14
       ],
       "rect": [
         5,
-        9,
+        12,
         3,
         3
       ]
@@ -360,9 +500,9 @@
         6
       ],
       "rect": [
+        5,
         6,
-        6,
-        3,
+        4,
         3
       ]
     },
@@ -421,13 +561,13 @@
       "facing": "sw",
       "anchor": [
         1,
-        11
+        14
       ],
       "rect": [
-        0,
-        10,
+        1,
+        14,
         3,
-        2
+        3
       ]
     }
   ],
@@ -464,8 +604,8 @@
       -8
     ],
     "size": [
-      1168,
-      596
+      1456,
+      761
     ],
     "rise_px": 250,
     "baseboard_px": 14,
@@ -481,12 +621,8 @@
   },
   "blocked": [
     [
-      2,
-      8
-    ],
-    [
-      2,
-      9
+      0,
+      15
     ],
     [
       3,
@@ -501,40 +637,112 @@
       5
     ],
     [
-      3,
-      8
-    ],
-    [
-      3,
-      9
-    ],
-    [
       4,
       3
     ],
     [
       4,
       4
-    ],
-    [
-      5,
-      8
     ],
     [
       6,
       5
     ],
     [
+      6,
+      15
+    ],
+    [
+      6,
+      16
+    ],
+    [
+      6,
+      17
+    ],
+    [
+      7,
+      15
+    ],
+    [
+      7,
+      16
+    ],
+    [
+      7,
+      17
+    ],
+    [
       8,
       2
+    ],
+    [
+      8,
+      3
+    ],
+    [
+      8,
+      15
+    ],
+    [
+      8,
+      16
+    ],
+    [
+      8,
+      17
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      9,
+      3
     ],
     [
       9,
       6
     ],
     [
+      9,
+      15
+    ],
+    [
+      9,
+      16
+    ],
+    [
+      9,
+      17
+    ],
+    [
       10,
       4
+    ],
+    [
+      10,
+      15
+    ],
+    [
+      10,
+      16
+    ],
+    [
+      10,
+      17
+    ],
+    [
+      11,
+      15
+    ],
+    [
+      11,
+      16
+    ],
+    [
+      11,
+      17
     ]
   ],
   "snap_findings": [
@@ -588,7 +796,7 @@
     },
     {
       "id": "build",
-      "note": "anchor [5, 14] is outside the declared 12x12 floor (no garage wing yet), clamped to [5, 11]",
+      "note": "rect [5, 13, 3, 3] -> [5, 12, 3, 3] (cleared blocked cells, kept anchor [5, 14] inside)",
       "declared_anchor": [
         5,
         14
@@ -601,42 +809,18 @@
       ],
       "anchor": [
         5,
-        11
-      ],
-      "rect": [
-        5,
-        9,
-        3,
-        3
-      ]
-    },
-    {
-      "id": "build",
-      "note": "rect [5, 13, 3, 3] -> [5, 9, 3, 3] (cleared blocked cells, kept anchor [5, 11] inside)",
-      "declared_anchor": [
-        5,
         14
       ],
-      "declared_rect": [
-        5,
-        13,
-        3,
-        3
-      ],
-      "anchor": [
-        5,
-        11
-      ],
       "rect": [
         5,
-        9,
+        12,
         3,
         3
       ]
     },
     {
       "id": "read",
-      "note": "rect [6, 5, 4, 3] -> [6, 6, 3, 3] (cleared blocked cells, kept anchor [7, 6] inside)",
+      "note": "rect [6, 5, 4, 3] -> [5, 6, 4, 3] (cleared blocked cells, kept anchor [7, 6] inside)",
       "declared_anchor": [
         7,
         6
@@ -652,9 +836,9 @@
         6
       ],
       "rect": [
+        5,
         6,
-        6,
-        3,
+        4,
         3
       ]
     },
@@ -684,7 +868,7 @@
     },
     {
       "id": "decor",
-      "note": "anchor [1, 14] is outside the declared 12x12 floor (no garage wing yet), clamped to [1, 11]",
+      "note": "rect [0, 14, 3, 3] -> [1, 14, 3, 3] (cleared blocked cells, kept anchor [1, 14] inside)",
       "declared_anchor": [
         1,
         14
@@ -697,37 +881,13 @@
       ],
       "anchor": [
         1,
-        11
-      ],
-      "rect": [
-        0,
-        10,
-        3,
-        2
-      ]
-    },
-    {
-      "id": "decor",
-      "note": "rect [0, 14, 3, 3] -> [0, 10, 3, 2] (cleared blocked cells, kept anchor [1, 11] inside)",
-      "declared_anchor": [
-        1,
         14
       ],
-      "declared_rect": [
-        0,
+      "rect": [
+        1,
         14,
         3,
         3
-      ],
-      "anchor": [
-        1,
-        11
-      ],
-      "rect": [
-        0,
-        10,
-        3,
-        2
       ]
     }
   ],

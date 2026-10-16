@@ -44,7 +44,9 @@ AC5 walkability: blocked cells exist (one per prop footprint cell), every anchor
 AC6 the descriptor carries NO pixel coordinates: no ``x``/``y`` key at any depth
     (origins are arrays, sizes are ``w``/``h``).
 AC7 deterministic: no clock, no RNG, no absolute paths in the payload, fixed
-    insertion order - same profile, byte-identical files.
+    insertion order - same profile, byte-identical JSON and PIXEL-identical
+    PNGs (the raster bytes themselves track the Pillow/zlib build; SOU-137
+    AC5 states this precisely, and the suite asserts it the same way).
 AC8 the walls and the lattice are ``room_geometry``'s and ``iso_lattice``'s.
 
 Usage
@@ -105,9 +107,10 @@ ZONES = [
     {"id": "decor", "label": "Cat corner", "kind": "decor", "facing": "sw",
      "anchor": [1, 14], "rect": [0, 14, 3, 3]},
 ]
-# These two declared intents point past the declared 12x12 floor (the room has
-# no garage wing yet), so they are clamped into it before the walkability snap.
-FAR_INTENTS = {"build", "decor"}
+# Snap findings stay possible wherever a rect meets a blocked cell, and they
+# stay recorded (never silent).  The old FAR_INTENTS clamp (SOU-123, for the
+# 12x12 base T1 ran against) is gone: on the declared 12x18 floor (SOU-137)
+# both ``build`` and ``decor`` anchors are ordinary on-floor bay cells.
 
 # Floor tileset: three procedural variants, none of them collides.
 FLOOR_TILES = [
@@ -197,12 +200,6 @@ def _bias(facing):
     return {"ne": (1, -1), "se": (1, 1), "nw": (-1, -1), "sw": (-1, 1)}[facing]
 
 
-def _clamp_to_floor(cell):
-    _, _, gx_max, gy_max = _floor()
-    return [min(max(int(cell[0]), 0), gx_max - 1),
-            min(max(int(cell[1]), 0), gy_max - 1)]
-
-
 def _snap_anchor(anchor, walkable, bias):
     """Nearest walkable cell; ties broken towards the declared facing, then
     lexicographically, so the result never depends on set iteration order."""
@@ -258,12 +255,6 @@ def snap_zones(props):
     for spec in ZONES:
         notes: list[str] = []
         anchor = [int(spec["anchor"][0]), int(spec["anchor"][1])]
-        if spec["id"] in FAR_INTENTS and tuple(anchor) not in walkable:
-            clamped = _clamp_to_floor(anchor)
-            if clamped != anchor:
-                notes.append(f"anchor {anchor} is outside the declared 12x12 "
-                             f"floor (no garage wing yet), clamped to {clamped}")
-                anchor = clamped
         anchor = _snap_anchor(tuple(anchor), walkable, _bias(spec["facing"]))
         rect = [int(v) for v in spec["rect"]]
         if anchor not in _cells_in_rect(rect) or _cells_in_rect(rect) & blocked:
@@ -498,8 +489,13 @@ def build_descriptor(profile, zones, anchors, findings, blocked, walls, doors,
             "tile_h": TILE_H,
             "slope": TILE_H / TILE_W,
             "screen": SCREEN_FORMULA,
-            "authority": "Phaser IsometricTileToWorldXY (src/tilemaps/components/"
-                         "IsometricTileToWorldXY.js, vendored 3.80.1)",
+            "authority": "Phaser 4.2.1 IsometricTileToWorldXY (frontend/"
+                         "static/vendor/phaser-4.2.1.min.js, sha256 66348b1b"
+                         "5141e49b7d5ebbe688cddcb502eab1cb00f21c538686a5b2c5"
+                         "abe4de; identity proven, not assumed - the live 4.2.1 "
+                         "headless probe in tools/lattice_probe/ returned engine "
+                         "== declared formula for 8 cells including all four "
+                         "floor corners, max |delta| = 0)",
             "rise_px": room_geometry.ROOM["wall"]["rise_px"],
         },
         "map": "room.map.json",

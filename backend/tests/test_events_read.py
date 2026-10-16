@@ -194,8 +194,9 @@ class EventsRecentTest(unittest.TestCase):
         # newest-first: the file_edit (offset +10s) must lead the tool_call (+0s)
         self.assertEqual(newest["event_type"], "file_edit")
         self.assertEqual(older["event_type"], "tool_call")
-        # the payload round-trips byte-for-byte through the feed
-        self.assertEqual(newest["payload"], {"path": "backend/app.py", "lines": 12})
+        # SOU-218: the feed serves the stored projection — paths basenames,
+        # unlisted keys gone ("lines" was never on the allow-list)
+        self.assertEqual(newest["payload"], {"path": "app.py"})
         self.assertEqual(parse_instant(newest["created_at"]),
                          BASE + dt.timedelta(seconds=10))
         # ids are the database's own, and unique
@@ -302,11 +303,13 @@ class EventsRecentTest(unittest.TestCase):
         self.assertIn("state", seeds[0]["payload"])
 
     def test_seed_then_push_matches_the_status_read_path(self) -> None:
-        """The renderer's contract (AC 3's proof): a state_change pushed via
-        POST /events is what GET /status serves, and it is also in the feed.
-        The event must carry a NOW timestamp: created_at is the agent's
-        event time and the feed is ordered by it (see test_events_api's
-        now_iso) - a past-pinned stamp sorts behind the seed on purpose."""
+        """The renderer's contract (AC 3's proof), under SOU-218: a
+        state_change pushed via POST /events is what GET /status acts on and
+        what the feed serves — as the safe projection. v1's free-text
+        detail/progress are /set_state's own round-trip now. The event must
+        carry a NOW timestamp: created_at is the agent's event time and the
+        feed is ordered by it (see test_events_api's now_iso) - a past-pinned
+        stamp sorts behind the seed on purpose."""
         now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
         state = {
             "state": "writing",
@@ -319,9 +322,10 @@ class EventsRecentTest(unittest.TestCase):
                    "timestamp": now, "payload": state})
         served = self.client.get("/status")
         self.assertEqual(served.status_code, 200)
-        self.assertEqual(served.get_json()["detail"], "phase3 smoke")
+        self.assertEqual(served.get_json()["state"], "writing")
+        self.assertNotEqual(served.get_json()["detail"], "phase3 smoke")
         feed = self.body(self.get_recent(agent="Star", event_type="state_change"))
-        self.assertEqual(feed[0]["payload"]["detail"], "phase3 smoke")
+        self.assertEqual(feed[0]["payload"], {"state": "writing"})
 
 
 # The exact key set SOU-201 spells for one /events/agents entry.

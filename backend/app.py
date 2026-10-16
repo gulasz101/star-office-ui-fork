@@ -16,6 +16,7 @@ from pathlib import Path
 from security_utils import is_production_mode, is_strong_secret, is_strong_drawer_pass
 import db
 import event_schema
+import sanitize
 from store_utils import (
     load_asset_positions as _store_load_asset_positions,
     save_asset_positions as _store_save_asset_positions,
@@ -241,6 +242,10 @@ def save_state(state: dict):
             "payload": dict(state),
         },
         dedupe=True,
+        # SOU-218 ruling: v1's own state machine round-trips its dict through
+        # /status (detail, progress, ttl) and is not a reporter door. It never
+        # faces the public side (P13-C strips the route; P13-I deletes v1).
+        safe_projection=False,
     )
 
 
@@ -519,9 +524,14 @@ def find_agent_by_name(session, name: str):
     return None
 
 
-def ingest_event(data, dedupe: bool = False):
+def ingest_event(data, dedupe: bool = False, safe_projection: bool = True):
     """Validate one ADR-035 envelope and persist it; returns the event row.
 
+    ``safe_projection`` (SOU-218): the reporter door stores only
+    ``sanitize.sanitize_payload(event_type, payload)`` — the ticket's rules,
+    ported from the Claude Code reporter. Reporters can be old or buggy, so
+    the server is the gate and a DB dump leaks nothing. Validation runs
+    *first* so every existing 400 contract keeps its exact message.
     ``dedupe`` skips the write when the newest event of that type for that
     agent already carries an identical payload — the no-op-on-refresh rule the
     SOU-19 state paths grew, now shared by every door. Raises
@@ -529,6 +539,11 @@ def ingest_event(data, dedupe: bool = False):
     about; the caller turns that into a 400.
     """
     envelope = event_schema.validate_event(data)
+    payload = (
+        sanitize.sanitize_payload(envelope.event_type, envelope.payload)
+        if safe_projection
+        else envelope.payload
+    )
     with db.session_scope() as session:
         agent = find_agent_by_name(session, envelope.agent)
         if agent is None:
@@ -537,13 +552,13 @@ def ingest_event(data, dedupe: bool = False):
             latest = db.list_events(
                 session, agent_id=agent.id, event_type=envelope.event_type, limit=1
             )
-            if latest and latest[0].payload == envelope.payload:
+            if latest and latest[0].payload == payload:
                 return latest[0]
         return db.insert_event(
             session,
             agent.id,
             envelope.event_type,
-            envelope.payload,
+            payload,
             created_at=envelope.created_at,
         )
 

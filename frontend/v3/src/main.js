@@ -34,7 +34,32 @@ class OfficeScene extends Phaser.Scene {
       scene: this,
       building: this.building,
       offices: () => [...this.building.offices.keys()],
+      // office.agent('claude-code').do({ zone: 'build', activity: 'building', bubble: '$ docker build' })
+      agent: (id) => {
+        const o = this.building.offices.get(id) || [...this.building.offices.values()][0];
+        return o && o.character;
+      },
     };
+    if (params.get('demo') === '1') this.demo();
+  }
+
+  // ?demo=1 cycles the agent through every zone, for eyeballing and screenshots
+  demo() {
+    const steps = [
+      { zone: 'work', activity: 'typing', bubble: 'editing app.py' },
+      { zone: 'ops', activity: 'terminal', bubble: '$ kubectl' },
+      { zone: 'read', activity: 'reading', bubble: 'reading docs' },
+      { zone: 'build', activity: 'building', bubble: '$ docker build' },
+      { zone: 'wait', activity: 'coffee', bubble: 'coffee break' },
+      { zone: 'rest', activity: 'sleeping', bubble: 'sleeping' },
+    ];
+    let i = 0;
+    const next = () => {
+      for (const o of this.building.offices.values()) o.character.do(steps[i % steps.length]);
+      i++;
+    };
+    next();
+    this.time.addEvent({ delay: 4500, loop: true, callback: next });
   }
 
   // Largest integer zoom that fits the whole building with a small margin.

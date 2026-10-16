@@ -2,7 +2,8 @@
 // created twice from one map), its props, zones and character slot, all placed at a world
 // origin so the Building can put many offices side by side (M2).
 import { TILE, COLORS } from './config.js';
-import { ensurePropTexture, ensureCharacterTexture } from './placeholders.js';
+import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
+import { AgentCharacter } from './character.js';
 import { buildGrid, findPath } from './grid.js';
 
 export class OfficeModule {
@@ -75,13 +76,10 @@ export class OfficeModule {
   }
 
   _createCharacter(color) {
-    const key = ensureCharacterTexture(this.scene, `ph-char-${this.agentId}`, color);
-    const z = this.zones.entry || { tx: 1, ty: 1 };
-    const p = this.tileToWorld(z.tx, z.ty);
-    // feet at the bottom of the tile
-    const sprite = this.scene.add.image(p.x, p.y + TILE / 2, key).setOrigin(0.5, 1);
-    sprite.setDepth(sprite.y);
-    return sprite;
+    const sheetKey = ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
+    return new AgentCharacter(this, {
+      agentId: this.agentId, sheetKey, start: this.zones.entry || { tx: 1, ty: 1 },
+    });
   }
 
   _createLabel() {

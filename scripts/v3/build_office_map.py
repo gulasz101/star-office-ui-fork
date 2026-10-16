@@ -111,7 +111,7 @@ PROPS = {
     "chair": (2, 5, 1, 1, False),
     "rack": (5, 2, 1, 2, True),
     "bookshelf": (7, 2, 2, 2, True),
-    "coffee": (1, 6, 2, 1, True),
+    "coffee": (1, 8, 2, 1, True),
     "rug": (4, 6, 3, 2, False),
     "couch": (3, 9, 3, 1, True),
     "bass": (8, 9, 1, 1, True),
@@ -129,7 +129,7 @@ ZONES = {
     "work": (2, 5, "up", None),       # in the chair, facing the desk
     "ops": (5, 4, "up", None),        # in front of the rack
     "read": (7, 4, "up", None),       # in front of the bookshelf
-    "wait": (2, 7, "up", None),       # in front of the coffee machine
+    "wait": (2, 9, "up", None),       # in front of the coffee machine
     "rest": (4, 10, "down", "up"),    # in front of the couch, then sit on it
     "build": (11, 8, "right", None),  # next to the van
     "entry": (6, 10, "down", None),   # just inside the door

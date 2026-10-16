@@ -5,8 +5,11 @@
  *   preload: tileset images + the map JSON + the prop textures;
  *   create:  this.add.tilemap / addTilesetImage / createLayer for `floor`,
  *            and for `collision` a layer with setCollisionByProperty({collides:true});
- *            props placed so the sprite BASE CENTRE lands on
- *            tileToWorldXY(gx, gy); depth = depthKey(gx, gy, map width) -
+ *            props grounded per SOU-147 (the SOU-124 AC3 correction): the
+ *            CONTENT measured at publish time (props[].art_bbox + props[].image)
+ *            lands base-centre on tileToWorldXY(gx, gy) and its on-screen width
+ *            is tiles * tile_w - the image box is padding, not the object;
+ *            depth = depthKey(gx, gy, map width) -
  *            the one rule from depth.js, no magic constants anywhere else;
  *            walls.png as a plain image BEHIND the tilemap, positioned from
  *            walls.origin (its top-left, per gen_iso_room.build_walls);
@@ -70,16 +73,31 @@ class RoomScene extends Phaser.Scene {
     floorLayer.setDepth(FLOOR_DEPTH);
 
     // --- props from the descriptor, by grid coordinate --------------------
+    // SOU-147 grounding. The pack PNGs are 640px canvases: setOrigin(0.5, 1)
+    // pinned the IMAGE box bottom to the lattice point while the drawn object
+    // sits 45-163 px above it, and nothing was scaled, so props hovered at
+    // canvas size. The measured art_bbox (alpha > 128 tight rect, recorded at
+    // publish time) is what lands on the lattice point, at the DECLARED width
+    // tiles * tile_w. The scene stays dumb: every number below is data.
     const rowLength = map.width; // tie-free base for the depth rule = grid width
     const placed = [];
     for (const p of d.props) {
       const [gx, gy] = p.grid;
+      if (!Array.isArray(p.art_bbox) || !Array.isArray(p.image) || p.art_bbox.length !== 4) {
+        throw new Error(`prop '${p.id}' carries no measured art_bbox/image - ` +
+                        'this pack predates SOU-147 grounding; republish it');
+      }
+      const [bx0, by0, bx1, by1] = p.art_bbox;
+      const [imgW, imgH] = p.image;
       const pos = floorLayer.tileToWorldXY(gx, gy); // engine truth, layer origin included
+      const scale = (p.tiles * d.lattice.tile_w) / (bx1 - bx0);
       const img = this.add
         .image(pos.x, pos.y, 'prop:' + p.id)
-        .setOrigin(0.5, 1) // BASE CENTRE on the lattice point
+        .setOrigin((bx0 + bx1) / 2 / imgW, by1 / imgH) // anchor = CONTENT bottom-centre
+        .setScale(scale)
         .setDepth(depthKey(gx, gy, rowLength));
-      placed.push({ id: p.id, gx, gy, engine: { x: pos.x, y: pos.y }, img });
+      placed.push({ id: p.id, gx, gy, engine: { x: pos.x, y: pos.y }, img,
+                    artBbox: p.art_bbox, image: p.image, tiles: p.tiles });
     }
 
     // --- camera: bounds = the map's world extent, centred on the room -----
@@ -109,13 +127,37 @@ class RoomScene extends Phaser.Scene {
           depth: this.__v2.floorLayer.depth,
           tiles: this.__v2.floorLayer.getTilesWithin(0, 0, map.width, map.height, { interesting: true }).length,
         },
-        props: this.__v2.placed.map((p) => ({
-          id: p.id,
-          grid: [p.gx, p.gy],
-          computed: latticeScreen(d, p.gx, p.gy), // descriptor formula, engine-independent
-          engine: p.engine,                        // tileToWorldXY at placement
-          sprite: { x: p.img.x, y: p.img.y, depth: p.img.depth },
-        })),
+        props: this.__v2.placed.map((p) => {
+          // grounding numbers read from the LIVE object (position, origin,
+          // scale, texture size) - the proof recomputes nothing the scene
+          // asserts about itself; sprite.x alone is no longer the report.
+          const img = p.img;
+          const [bx0, by0, bx1, by1] = p.artBbox;
+          const [imgW, imgH] = p.image;
+          const sx = Math.abs(img.scaleX);
+          const sy = Math.abs(img.scaleY);
+          return {
+            id: p.id,
+            grid: [p.gx, p.gy],
+            computed: latticeScreen(d, p.gx, p.gy), // descriptor formula, engine-independent
+            engine: p.engine,                       // tileToWorldXY at placement
+            sprite: {
+              x: img.x, y: img.y, depth: img.depth,
+              scaleX: img.scaleX, scaleY: img.scaleY,
+              originX: img.originX, originY: img.originY,
+              displayWidth: img.displayWidth, displayHeight: img.displayHeight,
+            },
+            grounding: {
+              art_bbox: p.artBbox, image: p.image, tiles: p.tiles,
+              declared_width: p.tiles * d.lattice.tile_w,      // AC2 contract
+              content_width: (bx1 - bx0) * sx,                  // live scale x measured bbox
+              content_base: {                                   // where the CONTENT bottom-centre
+                x: img.x + ((bx0 + bx1) / 2 - img.originX * imgW) * sx, // actually lands on screen
+                y: img.y + (by1 - img.originY * imgH) * sy,             // (general formula: origin
+              },                                                          // and scale from the object)
+            },
+          };
+        }),
         collision: (() => {
           const cl = this.__v2.collisionLayer;
           let flagged = 0;

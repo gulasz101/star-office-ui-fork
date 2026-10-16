@@ -1,0 +1,900 @@
+{
+  "schema": 2,
+  "room_id": "andrzej",
+  "generated_by": "scripts/gen_iso_room.py (SOU-123, ADR-067 renderer v2)",
+  "source_profile": "profiles/rooms/andrzej_room.json",
+  "canvas": {
+    "w": 1568,
+    "h": 1100
+  },
+  "lattice": {
+    "module": "scripts/iso_lattice.py",
+    "origin": [
+      928,
+      250
+    ],
+    "tile_w": 96,
+    "tile_h": 55,
+    "slope": 0.5729166666666666,
+    "screen": "screen(gx,gy) = (ox + (gx-gy)*tw/2, oy + (gx+gy)*th/2)",
+    "authority": "Phaser 4.2.1 IsometricTileToWorldXY (frontend/static/vendor/phaser-4.2.1.min.js, sha256 66348b1b5141e49b7d5ebbe688cddcb502eab1cb00f21c538686a5b2c5abe4de; identity proven, not assumed - the live 4.2.1 headless probe in tools/lattice_probe/ returned engine == declared formula for 8 cells including all four floor corners, max |delta| = 0)",
+    "rise_px": 250
+  },
+  "map": "room.map.json",
+  "tileset": {
+    "image": "tiles/floor.png",
+    "firstgid": 1,
+    "count": 3,
+    "tile_w": 96,
+    "tile_h": 55,
+    "collision_image": "tiles/collision.png",
+    "collision_firstgid": 4
+  },
+  "grid": {
+    "w": 12,
+    "h": 18,
+    "tile_m": 0.7
+  },
+  "rooms": [],
+  "props": [
+    {
+      "id": "desk",
+      "grid": [
+        3,
+        3
+      ],
+      "tiles": 2.107,
+      "real_m": 1.475,
+      "footprint": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "subject": "a work desk with a CRT monitor, a small desk lamp and a coffee mug",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/desk.png"
+    },
+    {
+      "id": "rack",
+      "grid": [
+        8,
+        2
+      ],
+      "tiles": 2.312,
+      "real_m": 1.618,
+      "footprint": [
+        [
+          8,
+          2
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ]
+      ],
+      "subject": "a tall server rack with blinking amber and green status lights and a coiled patch cable",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/rack.png"
+    },
+    {
+      "id": "chair",
+      "grid": [
+        3,
+        5
+      ],
+      "tiles": 0.797,
+      "real_m": 0.558,
+      "footprint": [
+        [
+          3,
+          5
+        ]
+      ],
+      "subject": "an office chair seen from a 30-degree isometric angle, with four casters arranged on the two floor tile axes so its footprint forms a clean rhombus on the floor",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/chair.png"
+    },
+    {
+      "id": "spool",
+      "grid": [
+        6,
+        5
+      ],
+      "tiles": 1.453,
+      "real_m": 1.017,
+      "footprint": [
+        [
+          6,
+          5
+        ]
+      ],
+      "subject": "a cable spool on a small wooden pallet with a few loose network cables",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/spool.png"
+    },
+    {
+      "id": "crate",
+      "grid": [
+        9,
+        6
+      ],
+      "tiles": 1.22,
+      "real_m": 0.854,
+      "footprint": [
+        [
+          9,
+          6
+        ]
+      ],
+      "subject": "a wooden crate with a stencilled lid, closed, with a small potted plant on top",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/crate.png"
+    },
+    {
+      "id": "bass",
+      "grid": [
+        10,
+        4
+      ],
+      "tiles": 0.952,
+      "real_m": 0.666,
+      "footprint": [
+        [
+          10,
+          4
+        ]
+      ],
+      "subject": "a worn electric bass guitar leaning against a small amplifier, with a coiled cable on top of the amp",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/bass.png",
+      "personal": "bass guitar player"
+    },
+    {
+      "id": "cat",
+      "grid": [
+        0,
+        15
+      ],
+      "tiles": 0.703,
+      "real_m": 0.492,
+      "footprint": [
+        [
+          0,
+          15
+        ]
+      ],
+      "subject": "an orange tabby cat curled up asleep inside a small open cardboard box, tail tucked around itself",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/cat.png",
+      "personal": "owns two cats",
+      "decor": true,
+      "note": "DECOR: admitted with its measurement recorded but exempt from the base-slope gate. A cat curled on the floor has no rhombic footprint and failed it repeatedly (0.426/-0.364 on the floor variant, 0.633-0.826 in a box). The gate protects furniture, where a projection mismatch is visible; the exemption is per prop and visible in the manifest and room.json rather than hidden by a loosened tolerance."
+    },
+    {
+      "id": "jdm_van",
+      "grid": [
+        6,
+        15
+      ],
+      "tiles": 5.682,
+      "real_m": 3.977,
+      "footprint": [
+        [
+          6,
+          15
+        ],
+        [
+          6,
+          16
+        ],
+        [
+          6,
+          17
+        ],
+        [
+          6,
+          18
+        ],
+        [
+          6,
+          19
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          7,
+          15
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          7,
+          17
+        ],
+        [
+          7,
+          18
+        ],
+        [
+          7,
+          19
+        ],
+        [
+          7,
+          20
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          19
+        ],
+        [
+          8,
+          20
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          9,
+          17
+        ],
+        [
+          9,
+          18
+        ],
+        [
+          9,
+          19
+        ],
+        [
+          9,
+          20
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          10,
+          19
+        ],
+        [
+          10,
+          20
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          11,
+          16
+        ],
+        [
+          11,
+          17
+        ],
+        [
+          11,
+          18
+        ],
+        [
+          11,
+          19
+        ],
+        [
+          11,
+          20
+        ]
+      ],
+      "subject": "a small boxy 1990s Japanese minivan, plain unbranded, no manufacturer badge or logo",
+      "variant": "se",
+      "flip_x": false,
+      "asset": "props/jdm_van.png",
+      "personal": "30-year-old Mazda MPV"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "work.stand",
+      "zone": "work",
+      "kind": "work",
+      "facing": "ne",
+      "grid": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "ops.stand",
+      "zone": "ops",
+      "kind": "ops",
+      "facing": "ne",
+      "grid": [
+        7,
+        3
+      ]
+    },
+    {
+      "id": "build.stand",
+      "zone": "build",
+      "kind": "ops",
+      "facing": "se",
+      "grid": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": "read.stand",
+      "zone": "read",
+      "kind": "read",
+      "facing": "sw",
+      "grid": [
+        7,
+        6
+      ]
+    },
+    {
+      "id": "wait.stand",
+      "zone": "wait",
+      "kind": "wait",
+      "facing": "sw",
+      "grid": [
+        8,
+        8
+      ]
+    },
+    {
+      "id": "rest.stand",
+      "zone": "rest",
+      "kind": "rest",
+      "facing": "sw",
+      "grid": [
+        10,
+        10
+      ]
+    },
+    {
+      "id": "entry.stand",
+      "zone": "entry",
+      "kind": "entry",
+      "facing": "se",
+      "grid": [
+        1,
+        9
+      ]
+    },
+    {
+      "id": "decor.stand",
+      "zone": "decor",
+      "kind": "decor",
+      "facing": "sw",
+      "grid": [
+        1,
+        14
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "work",
+      "label": "Work desk",
+      "kind": "work",
+      "facing": "ne",
+      "anchor": [
+        2,
+        4
+      ],
+      "rect": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "ops",
+      "label": "Server rack",
+      "kind": "ops",
+      "facing": "ne",
+      "anchor": [
+        7,
+        3
+      ],
+      "rect": [
+        5,
+        1,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "build",
+      "label": "Garage bay",
+      "kind": "ops",
+      "facing": "se",
+      "anchor": [
+        5,
+        14
+      ],
+      "rect": [
+        5,
+        12,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "read",
+      "label": "Reading nook",
+      "kind": "read",
+      "facing": "sw",
+      "anchor": [
+        7,
+        6
+      ],
+      "rect": [
+        5,
+        6,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "wait",
+      "label": "Coffee corner",
+      "kind": "wait",
+      "facing": "sw",
+      "anchor": [
+        8,
+        8
+      ],
+      "rect": [
+        7,
+        7,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "rest",
+      "label": "Rest corner",
+      "kind": "rest",
+      "facing": "sw",
+      "anchor": [
+        10,
+        10
+      ],
+      "rect": [
+        9,
+        9,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "entry",
+      "label": "Door",
+      "kind": "entry",
+      "facing": "se",
+      "anchor": [
+        1,
+        9
+      ],
+      "rect": [
+        0,
+        8,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "decor",
+      "label": "Cat corner",
+      "kind": "decor",
+      "facing": "sw",
+      "anchor": [
+        1,
+        14
+      ],
+      "rect": [
+        1,
+        14,
+        3,
+        3
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "main",
+      "label": "Door",
+      "grid": [
+        0,
+        9
+      ],
+      "side": "north-west",
+      "room": "outside",
+      "uses": 2,
+      "walkable": true
+    },
+    {
+      "id": "cat-flap",
+      "label": "Cat flap",
+      "grid": [
+        0,
+        10
+      ],
+      "side": "north-west",
+      "room": "outside",
+      "uses": 1,
+      "walkable": true
+    }
+  ],
+  "walls": {
+    "image": "walls.png",
+    "origin": [
+      56.0,
+      -8
+    ],
+    "size": [
+      1456,
+      761
+    ],
+    "rise_px": 250,
+    "baseboard_px": 14,
+    "layers": [
+      "north-east plane",
+      "north-west plane",
+      "baseboard",
+      "wall-top cap",
+      "panel joins",
+      "seam AO",
+      "inside corner seam"
+    ]
+  },
+  "blocked": [
+    [
+      0,
+      15
+    ],
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      6,
+      15
+    ],
+    [
+      6,
+      16
+    ],
+    [
+      6,
+      17
+    ],
+    [
+      7,
+      15
+    ],
+    [
+      7,
+      16
+    ],
+    [
+      7,
+      17
+    ],
+    [
+      8,
+      2
+    ],
+    [
+      8,
+      3
+    ],
+    [
+      8,
+      15
+    ],
+    [
+      8,
+      16
+    ],
+    [
+      8,
+      17
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      9,
+      6
+    ],
+    [
+      9,
+      15
+    ],
+    [
+      9,
+      16
+    ],
+    [
+      9,
+      17
+    ],
+    [
+      10,
+      4
+    ],
+    [
+      10,
+      15
+    ],
+    [
+      10,
+      16
+    ],
+    [
+      10,
+      17
+    ],
+    [
+      11,
+      15
+    ],
+    [
+      11,
+      16
+    ],
+    [
+      11,
+      17
+    ]
+  ],
+  "snap_findings": [
+    {
+      "id": "work",
+      "note": "rect [2, 2, 4, 5] -> [0, 2, 3, 5] (cleared blocked cells, kept anchor [2, 4] inside)",
+      "declared_anchor": [
+        3,
+        4
+      ],
+      "declared_rect": [
+        2,
+        2,
+        4,
+        5
+      ],
+      "anchor": [
+        2,
+        4
+      ],
+      "rect": [
+        0,
+        2,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "ops",
+      "note": "rect [7, 1, 3, 3] -> [5, 1, 3, 3] (cleared blocked cells, kept anchor [7, 3] inside)",
+      "declared_anchor": [
+        7,
+        3
+      ],
+      "declared_rect": [
+        7,
+        1,
+        3,
+        3
+      ],
+      "anchor": [
+        7,
+        3
+      ],
+      "rect": [
+        5,
+        1,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "build",
+      "note": "rect [5, 13, 3, 3] -> [5, 12, 3, 3] (cleared blocked cells, kept anchor [5, 14] inside)",
+      "declared_anchor": [
+        5,
+        14
+      ],
+      "declared_rect": [
+        5,
+        13,
+        3,
+        3
+      ],
+      "anchor": [
+        5,
+        14
+      ],
+      "rect": [
+        5,
+        12,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "read",
+      "note": "rect [6, 5, 4, 3] -> [5, 6, 4, 3] (cleared blocked cells, kept anchor [7, 6] inside)",
+      "declared_anchor": [
+        7,
+        6
+      ],
+      "declared_rect": [
+        6,
+        5,
+        4,
+        3
+      ],
+      "anchor": [
+        7,
+        6
+      ],
+      "rect": [
+        5,
+        6,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "wait",
+      "note": "rect [7, 6, 4, 4] -> [7, 7, 4, 4] (cleared blocked cells, kept anchor [8, 8] inside)",
+      "declared_anchor": [
+        8,
+        8
+      ],
+      "declared_rect": [
+        7,
+        6,
+        4,
+        4
+      ],
+      "anchor": [
+        8,
+        8
+      ],
+      "rect": [
+        7,
+        7,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "decor",
+      "note": "rect [0, 14, 3, 3] -> [1, 14, 3, 3] (cleared blocked cells, kept anchor [1, 14] inside)",
+      "declared_anchor": [
+        1,
+        14
+      ],
+      "declared_rect": [
+        0,
+        14,
+        3,
+        3
+      ],
+      "anchor": [
+        1,
+        14
+      ],
+      "rect": [
+        1,
+        14,
+        3,
+        3
+      ]
+    }
+  ],
+  "art_manifest": {
+    "floor": "tiles/floor.png",
+    "collision": "tiles/collision.png",
+    "walls": "walls.png",
+    "provenance": "procedural raster from the declared lattice - no img2img and no Star-Office/LimeZu pixels (fork hard rules 1-2)"
+  }
+}

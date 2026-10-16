@@ -1,0 +1,10 @@
+{
+  "schema": 2,
+  "generated_by": "scripts/publish_iso_pack.py (SOU-124)",
+  "rooms": [
+    {
+      "id": "andrzej",
+      "descriptor": "room.json"
+    }
+  ]
+}

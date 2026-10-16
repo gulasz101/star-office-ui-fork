@@ -2,6 +2,7 @@ import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
+import { snowfall, CorridorCat } from './ambience.js';
 import { ROOM_TYPES, PROP_ART } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
@@ -49,6 +50,12 @@ class OfficeScene extends Phaser.Scene {
     for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 
     this.rig = new CameraRig(this, this.building);
+    this.snow = snowfall(this, this.building);
+    this.events.on('building-grew', () => {
+      this.snow.destroy();
+      this.snow = snowfall(this, this.building);
+    });
+    this.cat = new CorridorCat(this, this.building);
 
     const toggleDebug = () => {
       for (const o of this.building.offices.values()) o.toggleDebug();
@@ -71,15 +78,35 @@ class OfficeScene extends Phaser.Scene {
     if (LIVE) this.startLive();
   }
 
-  office(agent) {
+  // arrive = walk in from the bottom of the world; agents found already idle on page load
+  // start inside their room instead
+  office(agent, arrive = true) {
     if (!this.building.offices.has(agent)) {
-      this.building.addOffice(agent);
+      this.building.addOffice(agent, { arrive });
     }
     return this.building.offices.get(agent);
   }
 
   apply(updates) {
-    for (const { agent, target } of updates) this.office(agent).character.do(target);
+    const now = Date.now();
+    for (const { agent, target, at } of updates) {
+      const o = this.office(agent, !at || now - at < 120_000);
+      o.character.do(target);
+      o.setLights(target.activity !== 'sleeping');
+    }
+    this.caption();
+  }
+
+  // the empty and the all-asleep states say so instead of showing a silent screen
+  caption() {
+    const el = document.getElementById('caption');
+    if (!el) return;
+    const offices = [...this.building.offices.values()];
+    let text = '';
+    if (!offices.length) text = 'nobody here yet · the lodge is waiting for its first agent';
+    else if (offices.every((o) => !o.lightsOn)) text = 'the lodge is asleep · nobody is working right now';
+    el.textContent = text;
+    el.style.opacity = text ? '1' : '0';
   }
 
   startLive() {
@@ -99,6 +126,7 @@ class OfficeScene extends Phaser.Scene {
         first = false;
         const n = this.building.offices.size;
         hud(n ? `live · ${n} agent${n > 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}` : 'live · waiting for the first agent event…');
+        this.caption();
       } catch (err) {
         hud(`feed error: ${err.message} (retrying)`);
       } finally {
@@ -122,7 +150,10 @@ class OfficeScene extends Phaser.Scene {
     ];
     let i = 0;
     const next = () => {
-      for (const o of this.building.offices.values()) o.character.do(steps[i % steps.length]);
+      for (const o of this.building.offices.values()) {
+        o.character.do(steps[i % steps.length]);
+        o.setLights(steps[i % steps.length].activity !== 'sleeping');
+      }
       i++;
     };
     next();

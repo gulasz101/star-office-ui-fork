@@ -7,6 +7,10 @@ import { ensurePropTexture, ensureCharacterSheet } from './placeholders.js';
 import { AgentCharacter } from './character.js';
 import { FLAT_PROPS } from './rooms.js';
 import { ROOM_W } from './world.js';
+import { lightRoom, roomShade } from './ambience.js';
+
+// even with the lights on it's night: a light dusk over the room makes the lamp pools read
+const DIM = 0.16;
 
 export class OfficeModule {
   /**
@@ -58,6 +62,9 @@ export class OfficeModule {
       path: (from, to) => world.path(from, to),
     };
     this.character = this._createCharacter(color, arrive ? world.spawn : this.nav.zones.entry);
+    this.glows = lightRoom(scene, this);
+    this.shade = roomShade(scene, this).setAlpha(DIM);
+    this.lightsOn = true;
     this.label = this._createLabel();
     this.debug = null;
   }
@@ -137,6 +144,14 @@ export class OfficeModule {
       ? 'sheet-office-01'
       : ensureCharacterSheet(this.scene, `ph-sheet-${this.agentId}`, color);
     return new AgentCharacter(this.nav, { agentId: this.agentId, sheetKey, start });
+  }
+
+  // lights out while the agent sleeps, back on when it does anything else
+  setLights(on) {
+    if (on === this.lightsOn) return;
+    this.lightsOn = on;
+    this.scene.tweens.add({ targets: this.shade, alpha: on ? DIM : 0.6, duration: 900 });
+    for (const g of this.glows) this.scene.tweens.add({ targets: g, alpha: on ? g.getData('a') : 0.04, duration: 900 });
   }
 
   _createLabel() {

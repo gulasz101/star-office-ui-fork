@@ -6,6 +6,7 @@ import { OfficeModule } from './office.js';
 import { buildGrid } from './grid.js';
 import { roomTypeFor } from './rooms.js';
 import { ensureLodgeTextures, tileKey, lodgePropKey, rng } from './lodge.js';
+import { ensureAmbienceTextures, glow, NIGHT_TINT } from './ambience.js';
 import { World, slotForIndex, ROOM_W, ROOM_H, CORRIDOR_Y, CORRIDOR_H, FRONT_Y, SPAWN_Y, DOOR_COLS } from './world.js';
 
 const AGENT_COLORS = [0x4f7cc9, 0xc94f6d, 0x4fc98a, 0xc9a24f, 0x8a4fc9, 0x4fbfc9];
@@ -18,6 +19,7 @@ export class Building {
     this.world = new World();
     this.shell = [];
     ensureLodgeTextures(scene);
+    ensureAmbienceTextures(scene);
     this.drawShell();
   }
 
@@ -66,10 +68,12 @@ export class Building {
     const x1 = w.x1;
     const span = x1 - x0 + 1;
 
-    // snow everywhere around the building, then the trodden path up to the entrance
-    strip('snow_a', x0 - FOREST_MARGIN, -FOREST_MARGIN, span + FOREST_MARGIN * 2, SPAWN_Y + FOREST_MARGIN * 2, -3000);
-    strip('snow_path', DOOR_COLS[0], FRONT_Y + 1, 2, SPAWN_Y - FRONT_Y + 12, -2990);
-    strip('snow_edge', x0, FRONT_Y + 1, span, 1, -2995);
+    // snow everywhere around the building, then the trodden path up to the entrance;
+    // everything outside is tinted for the night, the inside stays warm
+    const night = (o, tint = NIGHT_TINT) => o.setTint(tint);
+    night(strip('snow_a', x0 - FOREST_MARGIN, -FOREST_MARGIN, span + FOREST_MARGIN * 2, SPAWN_Y + FOREST_MARGIN * 2, -3000));
+    night(strip('snow_path', DOOR_COLS[0], FRONT_Y + 1, 2, SPAWN_Y - FRONT_Y + 12, -2990));
+    night(strip('snow_edge', x0, FRONT_Y + 1, span, 1, -2995));
 
     // corridor: floor, runner, end walls, front wall with the entrance gap
     strip('corridor_floor', x0 + 1, CORRIDOR_Y, span - 2, CORRIDOR_H, -1000);
@@ -80,10 +84,14 @@ export class Building {
     strip('wall_cap', x0, FRONT_Y, DOOR_COLS[0] - x0, 1, -999);
     strip('wall_cap', DOOR_COLS[1] + 1, FRONT_Y, x1 - DOOR_COLS[1], 1, -999);
     strip('door_mat', DOOR_COLS[0], FRONT_Y, 2, 1, -999);
+    // no rooms yet: close the corridor's north side so the empty lodge is a whole building
+    if (!this.offices.size) strip('wall_cap', x0, ROOM_H - 1, span, 1, -999);
     // the outside face of the front wall (logs), with the doorway left open
-    strip('wall_face', x0, FRONT_Y + 1, DOOR_COLS[0] - x0, 1, -2980);
-    strip('wall_face', DOOR_COLS[1] + 1, FRONT_Y + 1, x1 - DOOR_COLS[1], 1, -2980);
-    strip('stone_step', DOOR_COLS[0], FRONT_Y + 1, 2, 1, -2980);
+    night(strip('wall_face', x0, FRONT_Y + 1, DOOR_COLS[0] - x0, 1, -2980), 0xb4aac4);
+    night(strip('wall_face', DOOR_COLS[1] + 1, FRONT_Y + 1, x1 - DOOR_COLS[1], 1, -2980), 0xb4aac4);
+    night(strip('stone_step', DOOR_COLS[0], FRONT_Y + 1, 2, 1, -2980), 0xb4aac4);
+    // warm light spilling out of the doorway onto the snow
+    add(glow(s, (DOOR_COLS[0] + 1) * TILE, (FRONT_Y + 1.6) * TILE, 90, 0xffb35a, 0.3, -2900));
 
     // lanterns either side of the entrance and at the corridor ends
     const prop = (name, tx, ty, opts = {}) => {
@@ -91,12 +99,11 @@ export class Building {
       img.setDepth(opts.depth ?? ty * TILE);
       return add(img);
     };
-    this.lights = [];
     for (const lx of [DOOR_COLS[0] - 0.5, DOOR_COLS[1] + 1.5]) {
       prop('lantern_post', lx, FRONT_Y + 2.6);
-      this.lights.push({ x: lx * TILE, y: (FRONT_Y + 2.6) * TILE - 50, r: 70, color: 0xffb35a });
+      add(glow(s, lx * TILE, (FRONT_Y + 2.6) * TILE - 50, 64, 0xffb35a, 0.5));
     }
-    prop('woodpile', x0 + 2.5, FRONT_Y + 3.4);
+    night(prop('woodpile', x0 + 2.5, FRONT_Y + 3.4), 0xb4aac4);
 
     // the forest: deterministic scatter outside the building footprint, never on the path
     const r = rng(4242);
@@ -113,7 +120,7 @@ export class Building {
         const nearBuilding = Math.abs(jy - FRONT_Y / 2) < FRONT_Y && (Math.abs(jx - bx0) < 6 || Math.abs(jx - bx1) < 6);
         if (roll > (nearBuilding ? 0.55 : 0.42)) continue;
         const kind = r() < 0.35 ? 'pine_b' : r() < 0.7 ? 'pine_a' : 'pine_small';
-        const img = prop(kind, jx, jy + 1);
+        const img = night(prop(kind, jx, jy + 1));
         if (jy + 1 <= 0) img.setDepth(-1500 + jy); // behind the rooms' back walls
       }
     }

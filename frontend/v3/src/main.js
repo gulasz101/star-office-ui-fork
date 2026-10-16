@@ -140,10 +140,28 @@ class OfficeScene extends Phaser.Scene {
       if (busy) return;
       busy = true;
       try {
+        // SOU-201: the first load starts from /events/agents — every agent
+        // active in the last 24 h with its newest event — so one busy agent
+        // can no longer monopolise the 200-row recent window and hide the
+        // quiet ones. Older backend (no endpoint) or an unexpected body:
+        // fall through to plain /events/recent discovery, as before.
+        if (first) {
+          try {
+            const seed = await fetch('/events/agents', { cache: 'no-store' });
+            if (seed.ok) {
+              const agents = await seed.json();
+              if (Array.isArray(agents)) {
+                this.apply(this.feed.ingest(agents.map((r) => r && r.last_event), { initial: true }));
+              }
+            }
+          } catch { /* no /events/agents yet; the recent poll below still discovers everyone */ }
+        }
         const q = new URLSearchParams({ limit: '200' });
         if (this.feed.cursor) q.set('since', this.feed.cursor);
         const res = await fetch(`/events/recent?${q}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        // ingest is idempotent per event id, so rows the seed already applied
+        // here change nothing; initial stays true until this poll succeeds
         this.apply(this.feed.ingest(await res.json(), { initial: first }));
         this.applyBackground(this.feed.takeBackground());
         first = false;

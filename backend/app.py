@@ -1498,6 +1498,32 @@ def events_endpoint():
 EVENTS_RECENT_DEFAULT_LIMIT = 50
 EVENTS_RECENT_MAX_LIMIT = 200
 
+# GET /events/agents window when no `since` is given; matches ACTIVE_WINDOW_MS
+# in frontend/v3/src/feed.js, so the endpoint's reach equals the renderer's.
+EVENTS_AGENTS_DEFAULT_WINDOW_HOURS = 24
+
+
+def _iso_instant(value) -> str:
+    """Stored naive UTC (ADR-035) spelled back as a Z-suffixed ISO instant."""
+    return value.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def feed_item(row, name):
+    """One Event row in the GET /events/recent item shape (the SOU-45
+    contract): ``{id, agent, event_type, payload, created_at}``.
+
+    Both read endpoints serialise through here, so GET /events/agents can
+    promise "exactly the shape /events/recent returns" by construction
+    instead of by copy-paste (SOU-201).
+    """
+    return {
+        "id": row.id,
+        "agent": name,
+        "event_type": row.event_type,
+        "payload": row.payload,
+        "created_at": _iso_instant(row.created_at),
+    }
+
 
 @app.route("/events/recent", methods=["GET"])
 def events_recent_endpoint():
@@ -1550,20 +1576,63 @@ def events_recent_endpoint():
             session, agent_id=agent_id, event_type=event_type, limit=limit, since=since
         )
         names = {a.id: a.name for a in db.list_agents(session)}
-        feed = [
-            {
-                "id": row.id,
-                "agent": names.get(row.agent_id),
-                "event_type": row.event_type,
-                "payload": row.payload,
-                # naive UTC in storage (ADR-035); spelled back as a Z instant
-                "created_at": row.created_at.replace(tzinfo=timezone.utc)
-                .isoformat()
-                .replace("+00:00", "Z"),
-            }
-            for row in rows
-        ]
+        feed = [feed_item(row, names.get(row.agent_id)) for row in rows]
     return jsonify(feed)
+
+
+@app.route("/events/agents", methods=["GET"])
+def events_agents_endpoint():
+    """Agents seen since a floor, each with its newest event (SOU-201).
+
+    The v3 Lodge gives every agent active in the last 24 h a room on page
+    load, but ``GET /events/recent?limit=200`` can be monopolised by one busy
+    agent, so quieter agents never surface for discovery. This is the
+    discovery-shaped read: one entry per agent with at least one event at or
+    after ``since`` (ISO 8601, normalised through the same
+    ``parse_timestamp`` as ``/events/recent``; default now − 24 h), newest
+    activity first, as a bare JSON array of ``{agent, first_seen, last_seen,
+    count, last_event}``. ``last_event`` is that agent's newest row in
+    exactly the feed item shape (``feed_item`` above), so
+    ``FeedState.ingest(rows.map(r => r.last_event), {initial: true})``
+    consumes it as is. The window stats — ``first_seen``, ``last_seen``,
+    ``count`` — cover the window only: this answers "who has been seen since
+    T", not lifetime totals. Nothing is excluded server-side; the ignore
+    list (``Star``) belongs to the renderer, not the feed. Bad ``since`` is
+    a 400 with the same body ``/events/recent`` writes.
+    """
+    since = None
+    raw_since = request.args.get("since")
+    if raw_since not in (None, ""):
+        try:
+            since = event_schema.parse_timestamp(raw_since)
+        except event_schema.EventValidationError as exc:
+            return jsonify({
+                "ok": False,
+                "error": str(exc).replace("timestamp:", "since", 1),
+            }), 400
+    if since is None:
+        # naive UTC, the storage convention db.agent_activity compares against
+        since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            hours=EVENTS_AGENTS_DEFAULT_WINDOW_HOURS
+        )
+
+    with db.session_scope() as session:
+        names = {a.id: a.name for a in db.list_agents(session)}
+        entries = []
+        for agent_id, first_seen, last_seen, count, newest_row in db.agent_activity(
+            session, since
+        ):
+            name = names.get(agent_id)
+            if name is None:  # pragma: no cover - FK cascade makes this unreachable
+                continue
+            entries.append({
+                "agent": name,
+                "first_seen": _iso_instant(first_seen),
+                "last_seen": _iso_instant(last_seen),
+                "count": count,
+                "last_event": feed_item(newest_row, name),
+            })
+    return jsonify(entries)
 
 
 @app.route("/set_state", methods=["POST"])

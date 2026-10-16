@@ -324,5 +324,212 @@ class EventsRecentTest(unittest.TestCase):
         self.assertEqual(feed[0]["payload"]["detail"], "phase3 smoke")
 
 
+# The exact key set SOU-201 spells for one /events/agents entry.
+AGENTS_ENTRY_KEYS = {"agent", "first_seen", "last_seen", "count", "last_event"}
+
+
+def floor(seconds: int = -1) -> str:
+    """A ``since`` floor at BASE + ``seconds`` (default: just before all fixtures)."""
+    return (BASE + dt.timedelta(seconds=seconds)).isoformat().replace("+00:00", "Z")
+
+
+@unittest.skipIf(sa is None, f"runtime extras not installed: {_IMPORT_ERROR}")
+class EventsAgentsTest(unittest.TestCase):
+    """SOU-201 AC: GET /events/agents — every agent active since ``since`` with
+    its newest event spelled exactly like a /events/recent row.
+
+    The Lodge discovers rooms from this list, so a single busy agent must never
+    be able to hide a quiet one the way 200 rows of /events/recent can
+    (test_busy_agent_cannot_hide_quiet_agents is that bug, encoded).
+    """
+
+    def setUp(self) -> None:
+        self.workdir = fresh_database()
+        self.client = app_mod.app.test_client()
+
+    def tearDown(self) -> None:
+        app_mod.db.shutdown()
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    # -- helpers ----------------------------------------------------------
+    def push(self, *events) -> None:
+        for ev in events:
+            resp = self.client.post("/events", json=ev)
+            self.assertEqual(resp.status_code, 201, resp.get_data(as_text=True))
+
+    def get_agents(self, **params):
+        query = urlencode(params) if params else ""
+        url = "/events/agents" + (f"?{query}" if query else "")
+        return self.client.get(url)
+
+    def body(self, resp) -> list:
+        self.assertEqual(resp.status_code, 200, resp.get_data(as_text=True))
+        data = resp.get_json()
+        self.assertIsInstance(data, list, "the answer is a bare JSON array")
+        return data
+
+    def by_name(self, entries) -> dict:
+        return {e["agent"]: e for e in entries}
+
+    def assert_rejected(self, resp, *, status=400):
+        self.assertEqual(
+            resp.status_code, status,
+            f"expected {status}, got {resp.status_code}: {resp.get_data(as_text=True)[:200]}",
+        )
+        payload = resp.get_json()
+        self.assertIsNotNone(payload, "error responses must be JSON")
+        self.assertIs(payload.get("ok"), False)
+        self.assertIsInstance(payload.get("error"), str)
+        self.assertTrue(payload["error"].strip())
+        return payload["error"]
+
+    # -- the route and the entry shape --------------------------------------
+    def test_agents_route_exists_on_the_app(self) -> None:
+        rules = {r.rule for r in app_mod.app.url_map.iter_rules()}
+        self.assertIn("/events/agents", rules, "AC 1: the endpoint must live in backend/app.py")
+
+    def test_three_agents_come_back_with_window_scoped_stats(self) -> None:
+        self.push(
+            event(agent="hermes", offset=0),
+            event(agent="hermes", event_type="file_edit", offset=60,
+                  payload={"path": "a.py", "lines": 1}),
+            event(agent="hermes", offset=120),
+            event(agent="openchamber", offset=10),
+            event(agent="openchamber", offset=20),
+            event(agent="claude", offset=30),
+        )
+        entries = self.by_name(self.body(self.get_agents(since=floor())))
+        self.assertTrue(
+            {"hermes", "openchamber", "claude"} <= set(entries),
+            f"AC 1: all three agents must be listed, got {sorted(entries)}",
+        )
+        for name in ("hermes", "openchamber", "claude"):
+            self.assertEqual(
+                set(entries[name].keys()), AGENTS_ENTRY_KEYS,
+                f"AC 1 spells the entry exactly: {AGENTS_ENTRY_KEYS}",
+            )
+        h = entries["hermes"]
+        self.assertEqual(h["count"], 3)
+        self.assertEqual(parse_instant(h["first_seen"]), BASE + dt.timedelta(seconds=0))
+        self.assertEqual(parse_instant(h["last_seen"]), BASE + dt.timedelta(seconds=120))
+        o = entries["openchamber"]
+        self.assertEqual(o["count"], 2)
+        self.assertEqual(parse_instant(o["first_seen"]), BASE + dt.timedelta(seconds=10))
+        self.assertEqual(parse_instant(o["last_seen"]), BASE + dt.timedelta(seconds=20))
+        c = entries["claude"]
+        self.assertEqual(c["count"], 1)
+        self.assertEqual(parse_instant(c["first_seen"]), BASE + dt.timedelta(seconds=30))
+        self.assertEqual(parse_instant(c["last_seen"]), BASE + dt.timedelta(seconds=30))
+
+    # -- the since filter (AC 1) ---------------------------------------------
+    def test_since_is_an_inclusive_floor_and_scopes_the_stats(self) -> None:
+        self.push(
+            event(agent="quiet", offset=0),
+            event(agent="quiet", offset=60),
+            event(agent="quiet", offset=100),
+            event(agent="gone", offset=5),  # fully below the floor
+        )
+        entries = self.by_name(self.body(self.get_agents(since=stamp(60))))
+        self.assertIn("quiet", entries, "the event at exactly `since` counts (inclusive)")
+        self.assertEqual(entries["quiet"]["count"], 2, "window-scoped: offsets 60 and 100 only")
+        self.assertEqual(parse_instant(entries["quiet"]["first_seen"]),
+                         BASE + dt.timedelta(seconds=60))
+        self.assertNotIn("gone", entries, "no event at/after the floor -> no entry")
+
+    def test_default_since_is_the_last_twenty_four_hours(self) -> None:
+        now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        # the fixture helper pins stamps to BASE (~4 days ago); post one agent
+        # NOW so the default window must include it and exclude the old one
+        resp = self.client.post("/events", json={
+            "version": 1, "agent": "fresh-agent", "event_type": "tool_call",
+            "timestamp": now, "payload": {"tool": "now", "status": "ok"},
+        })
+        self.assertEqual(resp.status_code, 201, resp.get_data(as_text=True))
+        self.push(event(agent="old-agent", offset=0))  # BASE, ~4 days ago
+        entries = self.by_name(self.body(self.get_agents()))
+        self.assertIn("fresh-agent", entries, "an agent active NOW is inside the default window")
+        self.assertNotIn("old-agent", entries, "events older than 24 h are outside it")
+
+    # -- ordering (AC 1) -------------------------------------------------------
+    def test_entries_are_ordered_newest_activity_first(self) -> None:
+        self.push(
+            event(agent="late", offset=3600),
+            event(agent="middle", offset=120),
+            event(agent="early", offset=60),
+            event(agent="late", offset=10),  # count 2, still led by 3600
+        )
+        data = self.body(self.get_agents(since=floor()))
+        instants = [parse_instant(e["last_seen"]) for e in data]
+        self.assertEqual(instants, sorted(instants, reverse=True),
+                         "AC 1: newest activity first")
+        mine = self.by_name(data)
+        self.assertLess(
+            [e["agent"] for e in data].index("late"),
+            [e["agent"] for e in data].index("middle"),
+        )
+        self.assertLess(
+            [e["agent"] for e in data].index("middle"),
+            [e["agent"] for e in data].index("early"),
+        )
+
+    # -- last_event shape (AC 1) ----------------------------------------------
+    def test_last_event_is_a_recent_feed_row(self) -> None:
+        self.push(
+            event(agent="hermes", offset=0),
+            event(agent="hermes", event_type="file_edit", offset=5,
+                  payload={"path": "backend/app.py", "lines": 9}),
+        )
+        entry = self.by_name(self.body(self.get_agents(since=floor())))["hermes"]
+        feed = self.body(self.client.get("/events/recent?agent=hermes&limit=1"))
+        self.assertEqual(len(feed), 1)
+        self.assertEqual(
+            entry["last_event"], feed[0],
+            "AC 1: last_event equals the row /events/recent returns, exactly",
+        )
+        self.assertEqual(set(entry["last_event"].keys()), ITEM_KEYS)
+        self.assertEqual(entry["last_event"]["event_type"], "file_edit",
+                         "it is the NEWEST row, not just any row")
+
+    # -- the SOU-201 bug, encoded (AC 1) ---------------------------------------
+    def test_busy_agent_cannot_hide_quiet_agents(self) -> None:
+        """250 events for one agent flood /events/recent?limit=200; the quiet
+        agents must still get their room through /events/agents."""
+        self.push(*(event(agent="busy-one", offset=i) for i in range(250)))
+        self.push(
+            event(agent="quiet-one", offset=-1000),
+            event(agent="quiet-two", offset=-500),
+        )
+        flooded = self.body(self.client.get("/events/recent?limit=200"))
+        self.assertEqual(len(flooded), 200)
+        agents_in_feed = {e["agent"] for e in flooded}
+        self.assertNotIn("quiet-one", agents_in_feed,
+                         "the premise: 200 recent rows are monopolised, quiet agents vanish")
+        self.assertNotIn("quiet-two", agents_in_feed, "same for the second quiet agent")
+        entries = self.by_name(self.body(self.get_agents(since=floor(-1001))))
+        for name in ("busy-one", "quiet-one", "quiet-two"):
+            self.assertIn(name, entries, f"AC 1: {name} must get an entry")
+        self.assertEqual(entries["busy-one"]["count"], 250)
+        self.assertEqual(entries["quiet-one"]["count"], 1)
+        self.assertEqual(entries["quiet-two"]["count"], 1)
+
+    # -- nothing excluded server-side (AC 1) ------------------------------------
+    def test_star_is_listed_like_every_other_agent(self) -> None:
+        """The server excludes nothing: the frontend owns the ignore list."""
+        entries = self.by_name(self.body(self.get_agents()))
+        self.assertIn("Star", entries, "the seeded main agent is listed like any other")
+        self.assertEqual(entries["Star"]["last_event"]["agent"], "Star")
+        self.assertGreaterEqual(entries["Star"]["count"], 1)
+
+    # -- validation (AC 1) -------------------------------------------------------
+    def test_bad_since_is_400(self) -> None:
+        for bad in ("last-tuesday", "2026-13-01T00:00:00Z", "yesterday"):
+            error = self.assert_rejected(self.get_agents(since=bad))
+            self.assertIn("since", error)
+
+    def test_empty_since_falls_back_to_the_default(self) -> None:
+        data = self.body(self.get_agents(since=""))
+        self.assertIsInstance(data, list)
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

@@ -451,6 +451,64 @@ def list_events(
     return db.execute(query).scalars().all()
 
 
+def agent_activity(
+    db: Session,
+    since: datetime,
+) -> list[tuple]:
+    """Per-agent activity summary for events at or after ``since`` (SOU-201).
+
+    Returns ``(agent_id, first_seen, last_seen, event_count, newest_event)``
+    ordered newest activity first (``last_seen`` DESC, agent id DESC) —
+    built for GET /events/agents. Two statements, both set-based, on either
+    dialect: a GROUP BY for the window stats, and a ``row_number() OVER
+    (PARTITION BY agent_id ORDER BY created_at DESC, id DESC)`` ranking that
+    keeps each agent's rn = 1 row. The window's ordering mirrors
+    :func:`list_events`, so when timestamps tie the two reads agree on which
+    row is "newest". SQLite has had window functions since 3.25 (bundled
+    everywhere modern); Postgres has had them far longer; there is no
+    per-agent or full-table Python loop.
+    """
+    first_seen = sa.func.min(Event.created_at).label("first_seen")
+    last_seen = sa.func.max(Event.created_at).label("last_seen")
+    event_count = sa.func.count().label("event_count")
+    stats = (
+        sa.select(
+            Event.agent_id.label("agent_id"),
+            first_seen,
+            last_seen,
+            event_count,
+        )
+        .where(Event.created_at >= since)
+        .group_by(Event.agent_id)
+        .order_by(last_seen.desc(), Event.agent_id.desc())
+    )
+    rn = (
+        sa.func.row_number()
+        .over(
+            partition_by=Event.agent_id,
+            order_by=[Event.created_at.desc(), Event.id.desc()],
+        )
+        .label("rn")
+    )
+    ranked = (
+        sa.select(Event.id.label("event_id"), rn)
+        .where(Event.created_at >= since)
+        .subquery()
+    )
+    newest_ids = sa.select(ranked.c.event_id).where(ranked.c.rn == 1)
+    newest = {
+        event.agent_id: event
+        for event in db.execute(
+            sa.select(Event).where(Event.id.in_(newest_ids))
+        ).scalars().all()
+    }
+    return [
+        (agent_id, first, last, count, newest[agent_id])
+        for agent_id, first, last, count in db.execute(stats)
+        if agent_id in newest
+    ]
+
+
 def list_agents_active(
     db: Session,
     window_minutes: int = ACTIVE_WINDOW_MINUTES,

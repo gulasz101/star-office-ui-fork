@@ -1,0 +1,195 @@
+{
+  "pack": "garage-v1",
+  "set": "garage",
+  "issue": "SOU-216",
+  "title": "the van's garage bay",
+  "generated_from": "assets/generated/v3/garage",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/garage/palette.json",
+  "palette_shared_with": "lodge (SOU-198), serverroom + factory (SOU-199), set C (SOU-200)",
+  "tileset": {
+    "path": "assets/garage/tiles.png",
+    "tile_px": 32,
+    "columns": 2,
+    "firstgid": 1,
+    "order": [
+      "garage_floor",
+      "garage_floor_stain"
+    ],
+    "slot_class": {
+      "garage_floor": "material",
+      "garage_floor_stain": "material"
+    },
+    "slot_seam_axes": {
+      "garage_floor": "xy",
+      "garage_floor_stain": "xy"
+    },
+    "why": "the garage stands on its own concrete, not on the lodge's plank or flagstone floor: two slots, plain and stained, in a 64x32 strip"
+  },
+  "floor_tile_for_this_room": "garage_floor",
+  "room_map": "frontend/v3/maps/rooms/garage.json",
+  "prop_lift_for_placeholders_js": {
+    "van_parked": 32,
+    "roller_door": 16,
+    "pegboard": 16,
+    "toolbox": 8,
+    "tire_stack": 8,
+    "oil_drum": 16
+  },
+  "assets": [
+    {
+      "key": "van_parked",
+      "served_path": "assets/garage/props/van_parked.png",
+      "texture_px_declared": [
+        96,
+        128
+      ],
+      "footprint_px": [
+        96,
+        96
+      ],
+      "footprint_tiles": [
+        3.0,
+        3.0
+      ],
+      "lift_px": 32,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": "assets/generated/v3/office-01/props/van.png",
+      "texture_px_actual": [
+        96,
+        128
+      ]
+    },
+    {
+      "key": "roller_door",
+      "served_path": "assets/garage/props/roller_door.png",
+      "texture_px_declared": [
+        96,
+        48
+      ],
+      "footprint_px": [
+        96,
+        32
+      ],
+      "footprint_tiles": [
+        3.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": null,
+      "texture_px_actual": [
+        96,
+        48
+      ]
+    },
+    {
+      "key": "pegboard",
+      "served_path": "assets/garage/props/pegboard.png",
+      "texture_px_declared": [
+        64,
+        48
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": null,
+      "texture_px_actual": [
+        64,
+        48
+      ]
+    },
+    {
+      "key": "toolbox",
+      "served_path": "assets/garage/props/toolbox.png",
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": null,
+      "texture_px_actual": [
+        32,
+        40
+      ]
+    },
+    {
+      "key": "tire_stack",
+      "served_path": "assets/garage/props/tire_stack.png",
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": null,
+      "texture_px_actual": [
+        32,
+        40
+      ]
+    },
+    {
+      "key": "oil_drum",
+      "served_path": "assets/garage/props/oil_drum.png",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "frames": 1,
+      "flat": false,
+      "reference_edit": null,
+      "texture_px_actual": [
+        32,
+        48
+      ]
+    }
+  ],
+  "notes": {
+    "stain_vs_plain": {
+      "changed_px": 28,
+      "changed_outside_interior": 0,
+      "why": "the stain variant is the same tile plus one interior stain, so the calm border ring (which is what makes the tile seamless by construction) is untouched"
+    }
+  },
+  "created_at": "2026-10-16T22:25:54.964600+00:00"
+}

@@ -1,0 +1,266 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: two short stacks of loose manuscript pages lying on the floor seen from directly above: neat slightly uneven piles of WARM CREAM writing paper (warm cream #f3d9b0 with #e2d3b4 shading - definitely NOT white, NOT blue-white, NOT grey, NOT blue-grey), with several visible sheet edges and thin soft shadow lines between the single sheets, completely flat on the floor, the top page of each stack left completely BLANK and clean - no writing, no ruled lines, no letters, no words, no numbers, no symbols, no markings of any kind anywhere on the paper. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 32:32 in width:height (the object's bounding box is square). Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Inside a cosy log-cabin loft at night: honey-brown horizontal log walls, wide warm plank floor, chunky honey-brown timber furniture, warm amber desk-lamp and candle light falling from the top-left, deep blue shadow on the right, and cream paper everywhere. Cluttered, warm, lived-in. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. The pages are warm cream paper only: no text, no letters, no numbers, no ruled lines, no glyphs, no squiggles, no symbols, no dots, no shading marks on the page surfaces. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 21671,
+  "source_file": "paper_stacks_lined.raw.png",
+  "output_file": "props/paper_stacks_lined.png",
+  "output_dims": [
+    32,
+    32
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T22:25:55.744509+00:00",
+  "asset_key": "paper_stacks_lined",
+  "kind": "prop",
+  "set": "writer",
+  "view": "top-down 3/4",
+  "ticket": "SOU-216",
+  "footprint_px": [
+    32,
+    32
+  ],
+  "footprint_tiles": [
+    1.0,
+    1.0
+  ],
+  "texture_px": [
+    32,
+    32
+  ],
+  "declared_px": [
+    32,
+    32
+  ],
+  "lift_px": 0,
+  "fit_mode": "inside",
+  "fit": {
+    "content_px": [
+      576,
+      381
+    ],
+    "fitted_px": [
+      32,
+      21
+    ],
+    "canvas_px": [
+      32,
+      32
+    ],
+    "mode": "inside",
+    "scale": 0.0556,
+    "crop_bbox": [
+      31,
+      143,
+      607,
+      524
+    ],
+    "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199/200 rule, restated for SOU-216)"
+  },
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+  "key_colour": [
+    158,
+    144,
+    131,
+    255
+  ],
+  "generation_mode": "text-only generation",
+  "reference_edit_source": null,
+  "frames": 1,
+  "frame_px": [
+    32,
+    32
+  ],
+  "sheet_px": [
+    32,
+    32
+  ],
+  "frame_derivation": {
+    "0": "the FLUX base (contact) with a THREE-STEP declared derivation: (1) the cool paper tones are remapped onto the warm cream family the shipped prop uses (`paper_tone_lut`, so the polish cannot re-tint the room), (2) the marks the model painted on the pages that are not line runs are ERASED (`page_cleanup`, each taking the surrounding paper tone) and (3) the ticket's \"hint of text lines\" is DRAWN after quantise as 1px horizontal runs (`ruled_lines`). The ticket says lines, never letters, and a diffusion model asked for blank pages paints glyph-shaped marks instead"
+  },
+  "ruled_lines": [
+    [
+      4,
+      13,
+      8
+    ],
+    [
+      20,
+      16,
+      8
+    ],
+    [
+      4,
+      19,
+      8
+    ]
+  ],
+  "page_cleanup": {
+    "erased_px": 4,
+    "positions": [
+      [
+        15,
+        28
+      ],
+      [
+        16,
+        28
+      ],
+      [
+        4,
+        30
+      ],
+      [
+        4,
+        31
+      ]
+    ],
+    "why": "dark marks the model painted on the page surfaces that are not line runs; each was replaced by the surrounding paper tone"
+  },
+  "paper_tone_lut": {
+    "lut": {
+      "snow_mid": "cat_cream",
+      "snow_trodden": "skin",
+      "snow_shadow": "skin",
+      "steel_200": "skin",
+      "steel_100": "skin",
+      "snow": "cat_cream"
+    },
+    "remapped_px": 150,
+    "warm_vs_cool_after": {
+      "warm_paper_px": 495,
+      "cool_paper_px": 0
+    },
+    "why": "the base came back cool white; the prop this replaces is warm cream (550 px cat_cream + 78 px skin). A polish pass is about shape, not hue, so the cool paper tones are remapped onto the warm family in declared palette space."
+  },
+  "post_process": "light",
+  "post_process_meta": {
+    "despeckled_px": 0,
+    "interior_holes_filled_px": 1
+  },
+  "prompt_ruling": null,
+  "content_bottom_row": 31,
+  "base_row_coverage": 0.5,
+  "opaque_bottom_rows_coverage": 0.5,
+  "transparent_px": 464,
+  "colours": 17,
+  "off_palette": [],
+  "home": "writer",
+  "replaces": "paper_stacks",
+  "note": "SOU-216 polish: the shipped paper_stacks reads as blank white blocks. Flat 1x1 decal. The 'hint of text lines' is DRAWN after quantise, not generated - see `ruled_lines` in the manifest: a diffusion model asked for tiny text at 32px paints glyph-shaped squiggles, which the ticket's 'lines, never letters' explicitly forbids, so the lines are 1px horizontal runs drawn in declared palette space instead.",
+  "replaces_reference": {
+    "replaces": "paper_stacks",
+    "served_path": "frontend/v3/assets/writer/props/paper_stacks.png",
+    "sha256": "7d54465b2b490b08411b7424df6489f33296874734fa1b142e8632757d2fdb6c",
+    "missing": false
+  },
+  "packing": {
+    "old": {
+      "canvas_opaque_share": 0.6982,
+      "interior_opaque_share": 0.9167,
+      "gear_px": 2,
+      "led_px": 0,
+      "plant_px": 0
+    },
+    "new": {
+      "canvas_opaque_share": 0.5469,
+      "interior_opaque_share": 0.9231,
+      "gear_px": 42,
+      "led_px": 0,
+      "plant_px": 0
+    },
+    "why": "SOU-216 reads the shipped shelves as 'nearly empty wooden frames'. The measures are how much of the 64x112 CANVAS the shelf fills (a packed shelf fills its frame) and how many GEAR-coloured pixels it carries, plus the status-light count (the declared cool-glow family + led_orange) and the plant count. The gate asserts canvas share AND gear px both went up, status lights >= 8 px, and a plant present."
+  },
+  "line_marks": {
+    "rows_with_lines": [
+      13,
+      16,
+      19
+    ],
+    "runs": [
+      [
+        13,
+        4,
+        8
+      ],
+      [
+        16,
+        20,
+        8
+      ],
+      [
+        19,
+        4,
+        8
+      ]
+    ],
+    "runs_count": 3,
+    "loose_dark_px": 0
+  }
+}

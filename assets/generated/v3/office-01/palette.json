@@ -165,5 +165,37 @@
     "#44618a",
     "#7fbf6a"
   ],
-  "why": "One palette for the whole set (SOU-158 AC3). Extends the v2 room palette the owner signed off with the wood/beige/amber/crt ramps the new props need; every asset is quantised to exactly these colours by scripts/v3/gen_office01_art.py assemble."
+  "why": "One palette for the whole set (SOU-158 AC3). Extends the v2 room palette the owner signed off with the wood/beige/amber/crt ramps the new props need; every prop and tile is quantised to exactly these colours by scripts/v3/gen_office01_art.py assemble. FROZEN since SOU-158 - see character_extension for why the character's orange is not part of it.",
+  "character_extension": {
+    "colors": 3,
+    "named": [
+      {
+        "name": "hoodie_light",
+        "hex": "#ffc46a"
+      },
+      {
+        "name": "hoodie",
+        "hex": "#f0872b"
+      },
+      {
+        "name": "hoodie_dark",
+        "hex": "#b35d16"
+      }
+    ],
+    "applies_to": "the character sheet only (CHARACTER_RAMP / character sheet quantiser)",
+    "why": "SOU-187: the 32 shared colours contain no saturated warm colour, so the orange hoodie the owner signed off cannot be reached from them. Adding the orange to the shared palette instead is not free - assemble re-quantises the props from their raw generations, and the attempt moved 967 px of the already-accepted couch (plus 148 bookshelf / 49 cat / 2 bass). The shared palette stays frozen and the character carries these three."
+  },
+  "character_ramp": [
+    "#14161f",
+    "#2a2f3e",
+    "#b35d16",
+    "#f0872b",
+    "#ffc46a",
+    "#505a70",
+    "#44618a",
+    "#c3cad9",
+    "#f4ead2",
+    "#e2d3b4",
+    "#ffea99"
+  ]
 }

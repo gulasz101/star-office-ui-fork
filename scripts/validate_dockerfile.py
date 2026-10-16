@@ -19,8 +19,10 @@ Phase 5 contract, keyed to the acceptance criteria on SOU-62
   +    non-root final user and no baked secrets (the SOU-12 guarantees, kept)
 
 The uv tool stage (``ghcr.io/astral-sh/uv``, COPY --from= target only) is the
-one non-python FROM the contract allows, and it must carry a pinned tag
-(SOU-170).
+one non-python FROM the contract allows. It must carry an exact ``X.Y.Z`` pin
+that matches the version the CI workflow installs, and every stage that *runs*
+uv must first copy the binary in (``COPY --from=uv /uv /uvx /bin/``) — declaring
+the stage is not enough (SOU-170 review).
 
 Exit code 0 = contract satisfied, 1 = violation(s). Run from anywhere:
 
@@ -41,6 +43,7 @@ DOCKERIGNORE = ROOT / ".dockerignore"
 ENTRYPOINT = ROOT / "entrypoint.sh"
 PYPROJECT = ROOT / "pyproject.toml"
 UV_LOCK = ROOT / "uv.lock"
+WORKFLOW = ROOT / ".github" / "workflows" / "docker-image.yml"
 
 # AC1: "Base: Python 3.10+ (3.13 preferred, supports int | None syntax)".
 # fullmatch, not match: a permissive pattern let `ghcr.io/astral-sh/uv:0.13`
@@ -140,6 +143,67 @@ def copy_sources(line: str) -> list[str]:
     srcs = [t for t in tokens if not t.startswith("--") and not t.startswith('"')]
     # Drop the destination (last token) and any shell-form json array tail.
     return srcs[:-1] if len(srcs) > 1 else []
+
+
+def stage_name(from_line: str) -> str | None:
+    """`FROM ghcr.io/astral-sh/uv:0.13.1 AS uv` -> `uv`."""
+    tokens = from_line.split()
+    for i, token in enumerate(tokens):
+        if token.upper() == "AS" and i + 1 < len(tokens):
+            return tokens[i + 1]
+    return None
+
+
+def split_stages(lines: list[str]) -> list[dict]:
+    """The Dockerfile cut into build stages: base image, alias and body."""
+    stages: list[dict] = []
+    for line in lines:
+        if line.upper().startswith("FROM "):
+            stages.append(
+                {"from": line, "name": stage_name(line), "image": image_of(line), "body": []}
+            )
+        elif stages:
+            stages[-1]["body"].append(line)
+    return stages
+
+
+def runs_uv(instruction: str) -> bool:
+    """Does this RUN invoke the uv binary (not merely mention uv.lock)?"""
+    if not instruction.upper().startswith("RUN "):
+        return False
+    # `uv` as its own word followed by an argument: `RUN uv venv ...`,
+    # `... && uv sync ...`. `uv.lock` and a `/install/bin/uvx` do not match.
+    return re.search(r"(?:^|[\s;&|(])uv(?=[\s;]|$)", instruction) is not None
+
+
+def copy_from_ref(instruction: str) -> str | None:
+    """`COPY --from=uv /uv /uvx /bin/` -> `uv` (None for a build-context COPY)."""
+    match = re.match(r"^COPY\s+--from=(?P<ref>\S+)", instruction, re.IGNORECASE)
+    return match.group("ref") if match else None
+
+
+def uv_tag(lines: list[str]) -> str | None:
+    """The tag of the ghcr.io/astral-sh/uv base, or None when there is no such stage."""
+    for line in lines:
+        if line.upper().startswith("FROM "):
+            image = image_of(line)
+            if UV_IMAGE_RE.match(image):
+                return image.rsplit(":", 1)[1]
+    return None
+
+
+def ci_uv_pin() -> str | None:
+    """The uv version the CI workflow pins, so image and runner cannot drift.
+
+    The job bootstraps uv with the runner's own pip (`pip install 'uv==0.13.1'`)
+    because the workflow allows no third-party actions. Returns None when the
+    workflow or its pin is missing; the caller then skips the cross-check
+    instead of inventing a version.
+    """
+    if not WORKFLOW.is_file():
+        return None
+    match = re.search(r"['\"]uv==(\d+\.\d+\.\d+)['\"]", WORKFLOW.read_text(encoding="utf-8"))
+    return match.group(1) if match else None
 
 
 def main() -> int:
@@ -271,6 +335,58 @@ def main() -> int:
         re.search(r"(?im)\bpip3?\s+install\b", df_text) is None,
         "AC1: a pip install survived in the Dockerfile",
     )
+
+    # --- SOU-170: uv is only on PATH where the binary was actually copied --
+    # `FROM ghcr.io/astral-sh/uv:0.13.1 AS uv` installs nothing into the deps
+    # stage: uv arrives through the documented binary copy
+    #     COPY --from=uv /uv /uvx /bin/
+    # Without it, `RUN uv sync` fails with "uv: not found" (exit 127) and the
+    # image never builds. The check above only looked for the string "uv sync",
+    # which is how 186e3a0 passed review with a broken build; this is that gate.
+    stages = split_stages(df_lines)
+    uv_images = [s for s in stages if UV_IMAGE_RE.match(s["image"])]
+    uv_refs = {s["image"] for s in uv_images} | {s["name"] for s in uv_images if s["name"]}
+    uv_consumed = False
+    for stage in stages:
+        copied_uv_at = None
+        for pos, instruction in enumerate(stage["body"]):
+            ref = copy_from_ref(instruction)
+            if ref is not None and ref in uv_refs:
+                uv_consumed = True
+                if "/uv" in copy_sources(instruction):
+                    copied_uv_at = pos
+                else:
+                    check(
+                        False,
+                        f"SOU-170: COPY --from={ref} does not bring /uv, so uv stays off "
+                        "PATH; the pattern is `COPY --from=uv /uv /uvx /bin/`",
+                    )
+            if runs_uv(instruction):
+                check(
+                    copied_uv_at is not None,
+                    f"SOU-170: stage {stage['name'] or stage['image']} runs uv with no "
+                    f"COPY --from=uv before it: {instruction[:72]!r}",
+                )
+    check(
+        not uv_images or uv_consumed,
+        "SOU-170: a ghcr.io/astral-sh/uv stage is declared but no stage ever COPY --from= "
+        "it: dead weight in the build and uv missing everywhere it is run",
+    )
+    # The tag has to be an exact X.Y.Z pin, and the same uv version the CI job
+    # installs: a floating minor can point at a tag that stops existing, and two
+    # uv versions in one repo resolve differently.
+    tag = uv_tag(df_lines)
+    if tag is not None:
+        check(
+            re.fullmatch(r"\d+\.\d+\.\d+", tag) is not None,
+            f"SOU-170: the uv tool image tag {tag!r} is not an exact X.Y.Z pin",
+        )
+        pin = ci_uv_pin()
+        if pin is not None:
+            check(
+                tag == pin,
+                f"SOU-170: the image pins uv {tag} but the CI workflow installs uv {pin}",
+            )
 
     # --- AC1 copies backend and frontend ----------------------------------
     check(

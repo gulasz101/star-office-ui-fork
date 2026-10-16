@@ -33,6 +33,7 @@ allow-list keeps on purpose.
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import datetime as dt
 import hashlib
@@ -266,8 +267,12 @@ def _connect(url: str):
     return engine
 
 
-class _WalkContract:
-    """Assertions shared by both backends; subclasses fix the URL."""
+class _Harness:
+    """Fixture shared by both backends and both suites; subclasses fix the URL.
+
+    ``dialect`` and the URL are all a subclass has to provide: the walk suite and
+    the revision suite then assert the same contract on SQLite and on Postgres.
+    """
 
     dialect = ""
     supports_raw_json_text = True  # SQLite lets us plant corrupt payload text
@@ -357,6 +362,9 @@ class _WalkContract:
                 "created_at": str(row["created_at"]),
                 "payload": payload,
             })
+        # SQLite keeps a read transaction open after a SELECT, and Alembic needs
+        # the write lock in the revision tests: end it here instead of blocking.
+        self.conn.commit()
         return out
 
     def fingerprint(self) -> str:
@@ -372,10 +380,27 @@ class _WalkContract:
         return hashlib.sha256(dump.encode("utf-8")).hexdigest()
 
     def counts(self) -> dict:
-        return {
+        found = {
             "events": self.conn.execute(sa.text("SELECT count(*) FROM events")).scalar(),
             "agents": self.conn.execute(sa.text("SELECT count(*) FROM agents")).scalar(),
         }
+        self.conn.commit()
+        return found
+
+    def stamp(self) -> str | None:
+        """The revision this database sits at."""
+        from alembic.runtime.migration import MigrationContext
+
+        with _alembic_env(self.url):
+            with self.engine.connect() as conn:
+                return MigrationContext.configure(conn).get_current_revision()
+
+    def upgrade_head(self, **kw) -> None:
+        _upgrade(self.url, "head", **kw)
+
+
+class _WalkContract(_Harness):
+    """The walk itself (SOU-235 S1)."""
 
     def walk(self, *, dry_run: bool = False, batch_size: int = 500) -> dict:
         summary = resanitise.resanitise_events(
@@ -591,6 +616,157 @@ class _WalkContract:
                       "the walk committed by itself")
 
 
+REVISION_002 = "002_resanitise_event_payloads"
+
+
+class _RevisionContract(_Harness):
+    """The Alembic revision and the CLI that drives it (SOU-235 S2).
+
+    Same contract as the walk, but reached the way an operator reaches it:
+    ``alembic upgrade head``, with the stamp, the version table and the
+    command line in the picture.
+    """
+
+    def test_upgrade_head_applies_the_revision_and_stamps_it(self) -> None:
+        raw, v1, clean = reporter_rows(), v1_state_rows(), clean_rows()
+        self.seed(raw + v1 + clean)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            self.upgrade_head()
+        summary = resanitise.LAST_SUMMARY or {}
+        self.assertEqual(self.stamp(), REVISION_002, "the revision did not stamp")
+        self.assertEqual(summary["scanned"], len(raw) + len(v1) + len(clean))
+        self.assertEqual(summary["changed"], len(raw), "raw rows were not rewritten")
+        self.assertEqual(summary["unchanged"], len(clean))
+        self.assertEqual(summary["skipped_v1"], len(v1))
+        self.assertEqual(summary["written"], summary["changed"])
+        self.assertIn("resanitise", printed.getvalue(),
+                      "the run printed no counts (AC 2 needs them pasted)")
+        for row in self.rows():
+            blob = json.dumps(row["payload"], default=str)
+            self.assertNotIn(CANARY, blob)
+            self.assertNotIn("/Users/", blob)
+            if KEEPME in blob:
+                self.assertIn("updated_at", blob, "only a v1 row may keep its bytes")
+
+    def test_a_second_upgrade_head_runs_nothing(self) -> None:
+        self.seed(reporter_rows())
+        self.upgrade_head()
+        fingerprint = self.fingerprint()
+        resanitise.LAST_SUMMARY = None
+        self.upgrade_head()
+        self.assertIsNone(resanitise.LAST_SUMMARY, "the revision ran a second time")
+        self.assertEqual(self.stamp(), REVISION_002)
+        self.assertEqual(self.fingerprint(), fingerprint, "a repeat upgrade wrote bytes")
+
+    def test_downgrade_moves_the_stamp_only(self) -> None:
+        """A data migration cannot hand the raw text back, and must not try."""
+        self.seed(reporter_rows() + v1_state_rows())
+        self.upgrade_head()
+        fingerprint, counts = self.fingerprint(), self.counts()
+        _downgrade(self.url, REVISION_001)
+        self.assertEqual(self.stamp(), REVISION_001)
+        self.assertEqual(self.counts(), counts, "a downgrade removed rows")
+        self.assertEqual(self.fingerprint(), fingerprint,
+                         "downgrade rewrote payloads instead of just moving the stamp")
+
+    def test_reapplying_after_a_downgrade_finds_no_work(self) -> None:
+        """Idempotent across stamping, not just within one process."""
+        self.seed(reporter_rows() + v1_state_rows())
+        self.upgrade_head()
+        fingerprint = self.fingerprint()
+        _downgrade(self.url, REVISION_001)
+        self.upgrade_head()
+        self.assertEqual(self.stamp(), REVISION_002)
+        self.assertEqual(resanitise.LAST_SUMMARY["changed"], 0,
+                         "re-running the walk on clean rows did work")
+        self.assertEqual(self.fingerprint(), fingerprint)
+
+    def test_the_revision_changes_no_table_shape(self) -> None:
+        """Data only: the adapter's models must stay equal to the schema."""
+        insp = sa.inspect(self.engine)
+        self.upgrade_head()
+        insp = sa.inspect(self.engine)
+        self.assertEqual(set(insp.get_table_names()),
+                         {"agents", "events", "sessions", "alembic_version"})
+        self.assertEqual(
+            sorted(c["name"] for c in insp.get_columns("events")),
+            ["agent_id", "created_at", "event_type", "id", "payload"],
+        )
+        self.assertIn("idx_events_agent_created",
+                      {i["name"] for i in insp.get_indexes("events")})
+
+    def test_offline_sql_mode_skips_the_walk_instead_of_crashing(self) -> None:
+        """``--sql`` has no rows to read; it must say so and print DDL only."""
+        self.seed(reporter_rows())
+        fingerprint = self.fingerprint()
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            _upgrade(self.url, "head", sql=True)
+        text = printed.getvalue()
+        self.assertIn("resanitise", text.lower(), "offline mode said nothing about the walk")
+        self.assertNotIn("UPDATE events", text.upper(), "offline mode emitted payload writes")
+        self.assertEqual(self.stamp(), REVISION_001, "an offline run stamped the database")
+        self.assertEqual(self.fingerprint(), fingerprint, "an offline run wrote rows")
+
+    def test_alembic_x_dry_run_writes_and_stamps_nothing(self) -> None:
+        """``alembic -x dry_run=1 upgrade head`` may not leave a stamped, dirty DB."""
+        self.seed(reporter_rows())
+        fingerprint = self.fingerprint()
+        config = _config(self.url)
+        config.cmd_opts = argparse.Namespace(x=["dry_run=1"])
+        with self.assertRaises(Exception) as caught:
+            with _alembic_env(self.url):
+                command.upgrade(config, "head")
+        self.assertIn("dry run", str(caught.exception).lower())
+        self.assertEqual(self.stamp(), REVISION_001, "a dry run stamped the revision")
+        self.assertEqual(self.fingerprint(), fingerprint, "a dry run wrote rows")
+
+    # -- the command line an operator actually types --------------------------
+
+    def test_cli_applies_the_revision_and_stamps(self) -> None:
+        self.seed(reporter_rows() + v1_state_rows())
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), _alembic_env(self.url):
+            code = resanitise.main(["--database-url", self.url])
+        self.assertEqual(code, 0)
+        self.assertEqual(self.stamp(), REVISION_002)
+        self.assertIn("applied", printed.getvalue())
+        for row in self.rows():
+            if row["event_type"] == "command_run":
+                self.assertNotIn(CANARY, json.dumps(row["payload"], default=str))
+
+    def test_cli_dry_run_writes_nothing_and_leaves_the_stamp(self) -> None:
+        self.seed(reporter_rows())
+        fingerprint = self.fingerprint()
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), _alembic_env(self.url):
+            code = resanitise.main(["--database-url", self.url, "--dry-run"])
+        self.assertEqual(code, 0)
+        self.assertIn("dry-run", printed.getvalue())
+        self.assertIn("changed", printed.getvalue())
+        self.assertEqual(self.stamp(), REVISION_001, "the CLI dry run stamped the DB")
+        self.assertEqual(self.fingerprint(), fingerprint)
+
+    def test_cli_says_so_when_the_revision_is_already_applied(self) -> None:
+        self.seed(reporter_rows())
+        with _alembic_env(self.url):
+            self.assertEqual(resanitise.main(["--database-url", self.url]), 0)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed), _alembic_env(self.url):
+            code = resanitise.main(["--database-url", self.url])
+        self.assertEqual(code, 0)
+        self.assertIn("already applied", printed.getvalue())
+
+    def test_cli_refuses_a_database_with_no_schema(self) -> None:
+        url = f"sqlite:///{os.path.join(self.workdir, 'empty.db')}"
+        printed = io.StringIO()
+        with contextlib.redirect_stderr(printed), _alembic_env(url):
+            code = resanitise.main(["--database-url", url, "--dry-run"])
+        self.assertEqual(code, 2)
+        self.assertIn("no SOU schema", printed.getvalue())
+
+
 @unittest.skipIf(sa is None, f"database extras not installed: {_IMPORT_ERROR}")
 class SqliteWalkTest(_WalkContract, unittest.TestCase):
     """SQLite fallback backend: payload is TEXT holding the JSON string."""
@@ -602,6 +778,16 @@ class SqliteWalkTest(_WalkContract, unittest.TestCase):
 
 
 @unittest.skipIf(sa is None, f"database extras not installed: {_IMPORT_ERROR}")
+class SqliteRevisionTest(_RevisionContract, unittest.TestCase):
+    """The revision applied on SQLite, the M1 Max instance's backend."""
+
+    dialect = "sqlite"
+
+    def database_url(self, workdir: str) -> str:
+        return f"sqlite:///{os.path.join(workdir, 'sou235-rev.db')}"
+
+
+@unittest.skipIf(sa is None, f"database extras not installed: {_IMPORT_ERROR}")
 @unittest.skipUnless(
     os.environ.get("TEST_POSTGRES_URL"),
     "set TEST_POSTGRES_URL to run the Postgres leg of the migration "
@@ -609,6 +795,22 @@ class SqliteWalkTest(_WalkContract, unittest.TestCase):
 )
 class PostgresWalkTest(_WalkContract, unittest.TestCase):
     """Postgres primary backend: payload is JSONB."""
+
+    dialect = "postgresql"
+    supports_raw_json_text = False
+
+    def database_url(self, _workdir: str) -> str:
+        return os.environ["TEST_POSTGRES_URL"]
+
+
+@unittest.skipIf(sa is None, f"database extras not installed: {_IMPORT_ERROR}")
+@unittest.skipUnless(
+    os.environ.get("TEST_POSTGRES_URL"),
+    "set TEST_POSTGRES_URL to run the Postgres leg of the migration "
+    "(scripts/dev_postgres.sh start)",
+)
+class PostgresRevisionTest(_RevisionContract, unittest.TestCase):
+    """The revision applied on Postgres, the homelab primary."""
 
     dialect = "postgresql"
     supports_raw_json_text = False

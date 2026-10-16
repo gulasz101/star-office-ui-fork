@@ -98,14 +98,26 @@ def is_v1_state_row(event_type, payload: Any) -> bool:
     return keys <= (V1_STATE_KEYS | sanitize.allowed_keys("state_change"))
 
 
-def _is_sensitive_v1(payload: Mapping) -> bool:
-    for key in V1_SENSITIVE_KEYS:
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            return True
-        if key == "joinKey" and value not in (None, ""):
-            return True
-    return False
+def _is_sensitive_v1(payload) -> bool:
+    """Does an excluded v1 row still visibly carry free text or a credential?
+    The roster snapshot nests ``joinKey`` inside ``detail``, so the walk is
+    recursive — the point of the count is to not understate the residual."""
+
+    def scan(node) -> bool:
+        if isinstance(node, Mapping):
+            for key, value in node.items():
+                if key in V1_SENSITIVE_KEYS and (
+                    (isinstance(value, str) and value.strip())
+                    or (key == "joinKey" and value not in (None, ""))
+                ):
+                    return True
+                if scan(value):
+                    return True
+        elif isinstance(node, (list, tuple)):
+            return any(scan(item) for item in node)
+        return False
+
+    return scan(payload)
 
 
 # --- dialect split: one JSON column, two ways to spell it -------------------
@@ -131,10 +143,14 @@ def _payload_write(dialect: str) -> str:
     return "CAST(:payload AS jsonb)" if dialect == "postgresql" else ":payload"
 
 
-def _select_batch(dialect: str) -> sa.text:
+def _select_batch(dialect: str, first: bool) -> sa.text:
+    """Keyset pagination needs no predicate on the first batch: ids are VARCHAR(36)
+    in the 001 schema (INTEGER only on legacy files), and there is no value that
+    is safely ``below every id`` for both types on both backends."""
+    where = "" if first else "WHERE id > :after "
     return sa.text(
         "SELECT id, event_type, " + _payload_text_column(dialect) + " AS payload "
-        "FROM events WHERE id > :after ORDER BY id LIMIT :batch"
+        f"FROM events {where}ORDER BY id LIMIT :batch"
     )
 
 
@@ -144,13 +160,16 @@ def _update_payload(dialect: str) -> sa.text:
     )
 
 
-def _batches(bind, batch_size: int, select: sa.text) -> Iterator[list]:
-    """Keyset pagination by id: no OFFSET, no full-table load, no repeats."""
+def _batches(bind, batch_size: int, select) -> Iterator[list]:
+    """Keyset pagination by id: no OFFSET, no full-table load, no repeats.
+    ``select`` is a callable taking ``first`` (bool) so the first batch can skip
+    the ``WHERE`` — the id column is opaque (VARCHAR on modern schemas)."""
     if batch_size < 1:
         raise ValueError("batch_size must be at least 1")
-    after = 0
+    after = None
     while True:
-        rows = bind.execute(select, {"after": after, "batch": batch_size}).mappings().all()
+        rows = (bind.execute(select(first=True), {"batch": batch_size}) if after is None
+                else bind.execute(select(first=False), {"after": after, "batch": batch_size})).mappings().all()
         if not rows:
             return
         after = rows[-1]["id"]
@@ -180,7 +199,7 @@ def resanitise_events(bind, *, batch_size: int = DEFAULT_BATCH_SIZE,
     """
     global LAST_SUMMARY
     dialect = dialect_name(bind)
-    select, update = _select_batch(dialect), _update_payload(dialect)
+    select, update = lambda first: _select_batch(dialect, first), _update_payload(dialect)
 
     summary = {
         "scanned": 0, "changed": 0, "unchanged": 0,
@@ -278,14 +297,28 @@ def _parse_args(argv) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _has_sou_schema(engine) -> bool:
+    """Are the SOU tables even in this database?"""
+    names = set(sa.inspect(engine).get_table_names())
+    return {"events", "agents"} <= names
+
+
 def main(argv=None) -> int:
     """Apply the migration, or report what it would do. Exits 0 on success."""
     args = _parse_args(argv)
-    from db import create_db_engine, resolve_database_url  # adapter owns URL rules
+    try:  # backend/ on the path when run from inside backend/, as the other modules assume
+        from db import create_db_engine, resolve_database_url  # adapter owns URL rules
+    except ImportError:  # or `python -m backend.resanitise` from the repo root
+        from backend.db import create_db_engine, resolve_database_url
 
     url = resolve_database_url(args.database_url)
     engine = create_db_engine(url)
     try:
+        if not _has_sou_schema(engine):
+            print("resanitise: this database has no SOU schema (nothing to walk) — "
+                  "start the backend once, or run `alembic upgrade head`", file=sys.stderr)
+            return 2
+
         if args.dry_run:
             with engine.connect() as conn:
                 summary = resanitise_events(conn, batch_size=args.batch_size, dry_run=True)

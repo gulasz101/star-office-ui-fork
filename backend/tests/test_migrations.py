@@ -289,12 +289,14 @@ class _InitialSchemaContract:
 
     # -- AC2: versions, downgrade ---------------------------------------------
 
-    def test_single_head_is_the_initial_schema(self) -> None:
+    def test_single_head_and_database_stamped_at_it(self) -> None:
         heads = ScriptDirectory.from_config(_alembic_config(self.url)).get_heads()
         self.assertEqual(len(heads), 1, f"expected one head, got {heads}")
-        self.assertEqual(heads[0], "001_initial_schema")
         stamped = _scalar(self.engine, "SELECT version_num FROM alembic_version")
-        self.assertEqual(stamped, "001_initial_schema")
+        self.assertEqual(
+            stamped, heads[0],
+            "local database is not stamped at the single head — run `alembic upgrade head`",
+        )
 
     def test_downgrade_to_base_removes_the_schema(self) -> None:
         _run_alembic(self.url, "downgrade", "base")

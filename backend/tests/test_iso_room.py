@@ -1,4 +1,5 @@
-"""Renderer-v2 isometric room generator contract (SOU-123, parent SOU-122 / ADR-067).
+"""Renderer-v2 isometric room generator contract (SOU-123, parent SOU-122 / ADR-067;
+SOU-137 corrects the base to the declared 12x18 floor with the garage bay).
 
 The declared lattice in ``scripts/room_geometry.py`` must become an engine-native
 Tiled isometric map plus a schema-2 descriptor whose every position is a GRID
@@ -296,19 +297,30 @@ class GeneratedPackTests(unittest.TestCase):
         self.assertEqual(hits, [],
                          f"screen-pixel keys leaked into the data path: {hits}")
 
-    # ---- AC7 ---------------------------------------------------------------
-    def test_two_consecutive_runs_are_byte_identical(self):
+    # ---- AC7 / SOU-137 AC5 --------------------------------------------------
+    def test_two_consecutive_runs_are_deterministic(self):
+        """SOU-137 AC5 restates determinism precisely: JSON files are
+        BYTE-identical over two runs; PNGs are asserted PIXEL-identical, never
+        byte-identical - the encoder's output depends on the Pillow/zlib build
+        (the orchestrator measured 1520 -> 1341 B for floor.png with identical
+        pixels)."""
         gen = _load_script("gen_iso_room")
         with tempfile.TemporaryDirectory(prefix="sou123-") as a, \
              tempfile.TemporaryDirectory(prefix="sou123-") as b:
             gen.generate(PROFILE, Path(a))
             gen.generate(PROFILE, Path(b))
-            for rel in ("room.map.json", "room.json", "walls.png",
-                        "tiles/floor.png", "tiles/collision.png"):
-                ha = _sha(Path(a) / rel)
-                hb = _sha(Path(b) / rel)
+            for rel in ("room.map.json", "room.json"):
+                ha, hb = _sha(Path(a) / rel), _sha(Path(b) / rel)
                 self.assertEqual(ha, hb, f"{rel} differs between runs: not deterministic")
                 print(f"deterministic {rel}: {ha[:16]}")
+            for rel in ("walls.png", "tiles/floor.png", "tiles/collision.png"):
+                ia = Image.open(Path(a) / rel)
+                ib = Image.open(Path(b) / rel)
+                self.assertEqual(ia.size, ib.size)
+                self.assertEqual(list(ia.convert("RGBA").getdata()),
+                                 list(ib.convert("RGBA").getdata()),
+                                 f"{rel} differs between runs: not deterministic")
+                print(f"deterministic (pixels) {rel}")
 
     # ---- no-silent-drop clause + cross-checks -------------------------------
     def test_profile_props_are_carried_over(self):
@@ -402,6 +414,146 @@ def _hex_rgb(h: str):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
+class BayCorrectionTests(unittest.TestCase):
+    """SOU-137 - the pack must sit on the DECLARED 12x18 floor with the garage
+    bay, not on the 12x12 base T1 accidentally ran against.
+
+    AC1  map + descriptor cover the declared floor (12x18; 12x12 is a FAIL);
+         the arithmetic that gy=18 must fit is pinned here.
+    AC2  jdm_van carries the profile's grid (6,15) with NO clamp/adjust finding.
+    AC3  build.stand has gy >= 12 and the build rect lies inside the bay's
+         declared cell range; the other seven zones keep id/kind/label/facing.
+    AC5  determinism is stated precisely: JSON byte-equal, PNG PIXEL-equal
+         (never claim byte determinism for images - the encoder build leaks).
+    AC6  lattice.authority names Phaser 4.2.1 (the engine renderer v2 runs on)
+         with its source path, not the vendored 3.80.1.  The identity is
+         PROVEN, not assumed: the live Phaser 4.2.1 headless probe
+         (tools/lattice_probe/, pinned vendor sha256 66348b1b...e4de) returned
+         engine == declared formula for 8 cells including all four floor
+         corners, max |delta| = 0; iso_lattice.screen() equals that same
+         literal arithmetic in IsoLatticeTests above.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if Image is None:
+            raise unittest.SkipTest(f"Pillow missing: {_IMPORT_ERROR}")
+        cls.map = json.loads(_pack_file("room.map.json").read_text())
+        cls.desc = json.loads(_pack_file("room.json").read_text())
+        cls.profile = json.loads(PROFILE.read_text())
+        cls.geo = _load_script("room_geometry")
+
+    def test_ac1_floor_extent_is_the_declared_12x18(self):
+        m, f = self.map, self.geo.ROOM["floor"]
+        self.assertEqual((f["grid"]["x"], f["grid"]["y"]), (12, 18),
+                         "the base declaration itself must be the bay floor")
+        self.assertEqual((m["width"], m["height"]),
+                         (f["grid"]["x"], f["grid"]["y"]),
+                         "map width/height must cover the declared floor; 12x12 FAILS")
+        g = self.desc["grid"]
+        self.assertEqual((g["w"], g["h"]), (12, 18),
+                         "descriptor grid must say 12x18")
+        # the arithmetic for why gy=18 must fit: the floor's near corner is at
+        # origin_y + (gx_max + gy_max) * tile_h/2 = 250 + 30*27.5 = 1075 <= canvas h
+        oy = f["origin"]["y"]
+        th = f["tile_h"]
+        near_y = oy + (f["grid"]["x"] + f["grid"]["y"]) * th / 2
+        self.assertEqual(near_y, 1075.0)
+        self.assertLessEqual(near_y, self.geo.ROOM["canvas"]["h"])
+        print(f"AC1: map {m['width']}x{m['height']}, descriptor grid "
+              f"{g['w']}x{g['h']}, near corner y={near_y:g} <= canvas "
+              f"{self.geo.ROOM['canvas']['h']}")
+
+    def test_ac2_van_is_at_its_declared_bay_cell_unclamped(self):
+        want = next(p for p in self.profile["props"] if p["id"] == "jdm_van")
+        van = next(p for p in self.desc["props"] if p["id"] == "jdm_van")
+        self.assertEqual(want["grid"], [6, 15])
+        self.assertEqual(van["grid"], want["grid"],
+                         "jdm_van must carry the profile's grid, not a clamp of it")
+        self.assertEqual(van["tiles"], want["tiles"])
+        for finding in self.desc["snap_findings"]:
+            self.assertNotIn("jdm_van", json.dumps(finding),
+                             f"van was clamped/adjusted: {finding}")
+        bay = self.geo.ROOM["bay"]
+        self.assertTrue(bay["gx"][0] <= van["grid"][0] <= bay["gx"][1],
+                        "the van cell is inside the bay")
+        self.assertTrue(bay["gy"][0] <= van["grid"][1] <= bay["gy"][1])
+        # full prop table, printed so it can be diffed against the profile
+        print("AC2 props (id, grid, tiles):")
+        for p in self.desc["props"]:
+            print(f"  {p['id']:10s} grid={p['grid']} tiles={p['tiles']}")
+        prof = {(p["id"], tuple(p["grid"]), p["tiles"]) for p in self.profile["props"]}
+        desc = {(p["id"], tuple(p["grid"]), p["tiles"]) for p in self.desc["props"]}
+        self.assertEqual(prof, desc, "prop table must equal the profile table")
+
+    def test_ac3_build_zone_sits_in_the_garage_bay(self):
+        bay = self.geo.ROOM["bay"]
+        stands = {a["id"]: a for a in self.desc["anchors"]}
+        build = next(z for z in self.desc["zones"] if z["id"] == "build")
+        stand = stands["build.stand"]
+        self.assertGreaterEqual(stand["grid"][1], 12,
+                                f"build.stand must be in the bay half: {stand}")
+        x0, y0, w, h = build["rect"]
+        self.assertTrue(bay["gx"][0] <= x0 and x0 + w - 1 <= bay["gx"][1],
+                        f"build rect {build['rect']} outside bay gx range {bay['gx']}")
+        self.assertTrue(bay["gy"][0] <= y0 and y0 + h - 1 <= bay["gy"][1],
+                        f"build rect {build['rect']} outside bay gy range {bay['gy']}")
+        # the other seven zones keep their binding id/kind/label/facing (SOU-123 set)
+        others = [z for z in self.desc["zones"] if z["id"] != "build"]
+        self.assertEqual(sorted(z["id"] for z in others),
+                         sorted(ZONE_IDS - {"build"}))
+        for z in others:
+            self.assertIn(z["kind"], ZONE_KINDS)
+            self.assertTrue(z["label"])
+            self.assertIn(z["facing"], {"ne", "nw", "se", "sw"})
+        print("AC3 zones (id, kind, facing, stand, rect):")
+        for z in self.desc["zones"]:
+            st = stands[f"{z['id']}.stand"]
+            print(f"  {z['id']:6s} {z['kind']:6s} {z['facing']} stand={st['grid']} "
+                  f"rect={z['rect']}")
+        print(f"  bay: gx {bay['gx']}, gy {bay['gy']}")
+
+    def test_ac5_determinism_json_bytes_png_pixels(self):
+        """JSON byte-identical over two runs; PNGs PIXEL-identical (byte size
+        may differ across Pillow/zlib builds - do not claim byte determinism
+        for images; the orchestrator measured 1520 -> 1341 B for floor.png)."""
+        gen = _load_script("gen_iso_room")
+        with tempfile.TemporaryDirectory(prefix="sou137-") as a, \
+             tempfile.TemporaryDirectory(prefix="sou137-") as b:
+            gen.generate(PROFILE, Path(a))
+            gen.generate(PROFILE, Path(b))
+            for rel in ("room.map.json", "room.json"):
+                self.assertEqual(_sha(Path(a) / rel), _sha(Path(b) / rel),
+                                 f"{rel} not byte-identical over two runs")
+                print(f"AC5 JSON byte-identical: {rel}")
+            for rel in ("walls.png", "tiles/floor.png", "tiles/collision.png"):
+                ia = Image.open(Path(a) / rel)
+                ib = Image.open(Path(b) / rel)
+                self.assertEqual(ia.size, ib.size)
+                self.assertEqual(list(ia.convert("RGBA").getdata()),
+                                 list(ib.convert("RGBA").getdata()),
+                                 f"{rel} pixels differ between runs")
+                print(f"AC5 PNG pixel-identical: {rel} "
+                      f"(bytes {Path(a, rel).stat().st_size} vs {Path(b, rel).stat().st_size})")
+
+    def test_ac6_lattice_authority_is_phaser_4_2_1(self):
+        auth = self.desc["lattice"]["authority"]
+        self.assertIn("4.2.1", auth)
+        self.assertNotIn("3.80.1", auth,
+                         "authority must name the engine v2 runs on, not the vendored 3.80.1")
+        self.assertIn("frontend/static/vendor/phaser-4.2.1.min.js", auth,
+                      "authority must carry the 4.2.1 source path")
+        print(f"AC6 lattice.authority = {auth}")
+
+    def test_no_12x12_workaround_clamp_messages_remain(self):
+        """The bay exists now: nothing may be clamped with a 'no garage wing'
+        excuse.  Findings are still legal, but only real snaps."""
+        for finding in self.desc["snap_findings"]:
+            self.assertNotIn("12x12", finding["note"])
+            self.assertNotIn("no garage wing", finding["note"])
+            self.assertNotIn("outside the declared", finding["note"])
+
+
 class PackOnDiskEqualsRegenerated(unittest.TestCase):
     """The committed pack must be what the generator emits - no hand edits."""
 
@@ -418,11 +570,19 @@ class PackOnDiskEqualsRegenerated(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_committed_pack_is_reproducible(self):
-        for rel in ("room.map.json", "room.json", "walls.png",
-                    "tiles/floor.png", "tiles/collision.png"):
+        """SOU-137 AC5: JSON byte-equal; PNGs PIXEL-equal (byte size is an
+        encoder-build detail, not part of the contract)."""
+        for rel in ("room.map.json", "room.json"):
             self.assertEqual(_sha(_pack_file(rel)),
                              _sha(Path(self.tmp.name) / rel),
                              f"{rel} in the repo differs from a fresh generator run")
+        for rel in ("walls.png", "tiles/floor.png", "tiles/collision.png"):
+            a = Image.open(_pack_file(rel))
+            b = Image.open(Path(self.tmp.name) / rel)
+            self.assertEqual(a.size, b.size)
+            self.assertEqual(list(a.convert("RGBA").getdata()),
+                             list(b.convert("RGBA").getdata()),
+                             f"{rel} in the repo differs in pixels from a fresh generator run")
 
 
 if __name__ == "__main__":  # pragma: no cover

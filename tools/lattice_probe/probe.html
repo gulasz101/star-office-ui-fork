@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Phaser 4 lattice probe — pending</title></head>
+<body style="background:#111;color:#eee;font:13px monospace">
+<h3 style="font:14px monospace">Phaser 4 isometric lattice probe</h3>
+<pre id="out">running…</pre>
+<script src="phaser.min.js"></script>
+<script>
+// Purpose: prove that Phaser 4's native isometric projection equals the lattice this repo
+// declares in scripts/room_geometry.py / room.json:
+//     screen(gx,gy) = (ox + (gx-gy)*tileW/2, oy + (gx+gy)*tileH/2)   with tileW=96, tileH=55
+// The engine's own numbers are printed, nothing is asserted from the formula by hand.
+const lines = [];
+function emit(s) { lines.push(s); document.getElementById('out').textContent = lines.join('\n'); }
+
+lines.push('Phaser.VERSION = ' + Phaser.VERSION);
+lines.push('Phaser.Tilemaps.Orientation keys = ' + Object.keys(Phaser.Tilemaps.Orientation || {}).join(','));
+lines.push('Phaser.HEADLESS = ' + Phaser.HEADLESS);
+
+const scene = {
+  key: 'probe',
+  preload() { this.load.tilemapTiledJSON('probe', 'iso.json'); },
+  create() {
+    try {
+      const map = this.add.tilemap('probe');
+      emit('map.orientation   = ' + map.orientation);
+      emit('map.tileWidth     = ' + map.tileWidth);
+      emit('map.tileHeight    = ' + map.tileHeight);
+      emit('map.width/height  = ' + map.width + 'x' + map.height);
+      const ts = map.addTilesetImage('floor', 'floor');
+      const layer = map.createLayer('floor', ts);
+      emit('layer class       = ' + layer.constructor.name);
+
+      const probe = [];
+      for (const [gx, gy] of [[0,0],[7,0],[0,7],[7,7],[0,1],[1,0],[3,3],[1,2]]) {
+        const p = map.tileToWorldXY(gx, gy);
+        // the declared formula, evaluated independently here
+        const fx = (gx - gy) * (96 / 2), fy = (gx + gy) * (55 / 2);
+        probe.push({ gx, gy, engine: [p.x, p.y], formula: [fx, fy], delta: [p.x - fx, p.y - fy] });
+      }
+      emit('tile -> world (engine vs declared formula):');
+      for (const r of probe) {
+        emit('  (' + r.gx + ',' + r.gy + ')  engine=(' + r.engine[0] + ',' + r.engine[1] +
+             ')  formula=(' + r.formula[0] + ',' + r.formula[1] + ')  delta=(' +
+             r.delta[0] + ',' + r.delta[1] + ')');
+      }
+      const maxDelta = Math.max(...probe.map(r => Math.abs(r.delta[0]) + Math.abs(r.delta[1])));
+      emit('MAX |delta| = ' + maxDelta);
+      emit('VERDICT = ' + (maxDelta === 0 ? 'IDENTICAL' : 'MISMATCH'));
+
+      // inverse check: world -> tile must land back on the same cell
+      const inv = map.worldToTileXY(probe[7].engine[0], probe[7].engine[1], true);
+      emit('inverse worldToTileXY(engine pos of (1,2)) = (' + inv.x + ',' + inv.y + ')');
+      document.title = 'probe-' + (maxDelta === 0 ? 'IDENTICAL' : 'MISMATCH');
+    } catch (e) {
+      emit('ERROR: ' + (e && e.message ? e.message : e));
+      emit('STACK: ' + (e && e.stack ? e.stack.split('\n').slice(0,4).join(' | ') : 'n/a'));
+      document.title = 'probe-ERROR';
+    }
+  }
+};
+
+try {
+  new Phaser.Game({
+    type: Phaser.HEADLESS,
+    width: 800, height: 600,
+    banner: false,
+    audio: { noAudio: true },
+    scene: [scene]
+  });
+  emit('game constructed');
+} catch (e) {
+  emit('GAME CONSTRUCT ERROR: ' + (e && e.message ? e.message : e));
+}
+</script>
+</body>
+</html>

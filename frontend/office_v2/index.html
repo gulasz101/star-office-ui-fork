@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Star Office UI - renderer v2 (SOU-124, under construction; v1 keeps serving at /)</title>
+<style>
+  html, body { margin: 0; background: #0b0e14; }
+  #game canvas { image-rendering: pixelated; }
+  #fatal { color: #ffb4a0; font: 13px monospace; padding: 8px; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="fatal" hidden></div>
+<!-- Vendored engine, pinned: frontend/static/vendor/phaser-4.2.1.min.js
+     sha256 66348b1b5141e49b7d5ebbe688cddcb502eab1cb00f21c538686a5b2c5abe4de.
+     Never a CDN. The Phaser 3 build of the v1 renderer is NOT loaded here. -->
+<script src="../static/vendor/phaser-4.2.1.min.js"></script>
+<script type="module" src="main.js"></script>
+</body>
+</html>

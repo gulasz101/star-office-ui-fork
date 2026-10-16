@@ -1,0 +1,236 @@
+{
+  "ready": true,
+  "phaserVersion": "4.2.1",
+  "renderer": "2",
+  "roomId": "andrzej",
+  "canvas": {
+    "w": 1568,
+    "h": 1100
+  },
+  "grid": {
+    "w": 12,
+    "h": 18
+  },
+  "walls": {
+    "x": 56,
+    "y": -8,
+    "depth": -2
+  },
+  "floor": {
+    "isTilemapLayer": true,
+    "position": {
+      "x": 928,
+      "y": 250
+    },
+    "depth": -1,
+    "tiles": 216
+  },
+  "props": [
+    {
+      "id": "desk",
+      "grid": [
+        3,
+        3
+      ],
+      "computed": {
+        "x": 928,
+        "y": 415
+      },
+      "engine": {
+        "x": 928,
+        "y": 415
+      },
+      "sprite": {
+        "x": 928,
+        "y": 415,
+        "depth": 75
+      }
+    },
+    {
+      "id": "rack",
+      "grid": [
+        8,
+        2
+      ],
+      "computed": {
+        "x": 1216,
+        "y": 525
+      },
+      "engine": {
+        "x": 1216,
+        "y": 525
+      },
+      "sprite": {
+        "x": 1216,
+        "y": 525,
+        "depth": 128
+      }
+    },
+    {
+      "id": "chair",
+      "grid": [
+        3,
+        5
+      ],
+      "computed": {
+        "x": 832,
+        "y": 470
+      },
+      "engine": {
+        "x": 832,
+        "y": 470
+      },
+      "sprite": {
+        "x": 832,
+        "y": 470,
+        "depth": 99
+      }
+    },
+    {
+      "id": "spool",
+      "grid": [
+        6,
+        5
+      ],
+      "computed": {
+        "x": 976,
+        "y": 552.5
+      },
+      "engine": {
+        "x": 976,
+        "y": 552.5
+      },
+      "sprite": {
+        "x": 976,
+        "y": 552.5,
+        "depth": 138
+      }
+    },
+    {
+      "id": "crate",
+      "grid": [
+        9,
+        6
+      ],
+      "computed": {
+        "x": 1072,
+        "y": 662.5
+      },
+      "engine": {
+        "x": 1072,
+        "y": 662.5
+      },
+      "sprite": {
+        "x": 1072,
+        "y": 662.5,
+        "depth": 189
+      }
+    },
+    {
+      "id": "bass",
+      "grid": [
+        10,
+        4
+      ],
+      "computed": {
+        "x": 1216,
+        "y": 635
+      },
+      "engine": {
+        "x": 1216,
+        "y": 635
+      },
+      "sprite": {
+        "x": 1216,
+        "y": 635,
+        "depth": 178
+      }
+    },
+    {
+      "id": "cat",
+      "grid": [
+        0,
+        15
+      ],
+      "computed": {
+        "x": 208,
+        "y": 662.5
+      },
+      "engine": {
+        "x": 208,
+        "y": 662.5
+      },
+      "sprite": {
+        "x": 208,
+        "y": 662.5,
+        "depth": 180
+      }
+    },
+    {
+      "id": "jdm_van",
+      "grid": [
+        6,
+        15
+      ],
+      "computed": {
+        "x": 496,
+        "y": 827.5
+      },
+      "engine": {
+        "x": 496,
+        "y": 827.5
+      },
+      "sprite": {
+        "x": 496,
+        "y": 827.5,
+        "depth": 258
+      }
+    }
+  ],
+  "collision": {
+    "isTilemapLayer": true,
+    "isTilemapGPULayer": false,
+    "visible": false,
+    "descriptorBlockedCount": 31,
+    "getTilesWithinRaw": 216,
+    "placedTiles": 31,
+    "collidesFlagged": 31,
+    "sampleBlocked": {
+      "cell": [
+        8,
+        2
+      ],
+      "tileIndex": 4,
+      "collidesProp": true,
+      "collideEdges": [
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "depth": {
+    "perProp": {
+      "desk": 75,
+      "rack": 128,
+      "chair": 99,
+      "spool": 138,
+      "crate": 189,
+      "bass": 178,
+      "cat": 180,
+      "jdm_van": 258
+    },
+    "rowLength": 12,
+    "drawnOrder": [
+      "desk",
+      "chair",
+      "rack",
+      "spool",
+      "bass",
+      "cat",
+      "crate",
+      "jdm_van"
+    ]
+  }
+}

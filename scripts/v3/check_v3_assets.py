@@ -446,7 +446,8 @@ def head_band_fraction(frame) -> tuple[float, int, int]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--set", default="office-01",
-                    choices=("office-01", "lodge", "serverroom", "factory"),
+                    choices=("office-01", "lodge", "serverroom", "factory",
+                             "mystery", "tokenden", "career", "writer"),
                     help="which v3 art set to check (default: office-01)")
     ap.add_argument("--root", default=None,
                     help="art set root (default: the set's own generated directory)")
@@ -458,6 +459,8 @@ def main() -> int:
         return main_lodge(args)
     if args.set in ("serverroom", "factory"):
         return main_set_b(args, args.set)
+    if args.set in TICKET_C:
+        return main_set_c(args, args.set)
     if args.root is None:
         args.root = str(OUT)
 
@@ -1124,6 +1127,314 @@ def main_set_b(args, setname: str) -> int:
           f"base on the frame's bottom row, the full-bleed belts carrying no transparent pixel at "
           f"all, a manifest with a per-frame derivation next to every file, and the declared "
           f"footprints agreeing with the room map wherever the map already places a key.")
+    return 0
+
+
+# ---------------------------------------------------------------------------------------
+# SET C (SOU-200) - the four personality rooms: mystery cabin, token den, career office,
+# writer's loft. Same gate shape as set B, plus one thing set B did not need: SOU-200 gives
+# size CLASSES rather than pixel sizes ("1x1 = 32x32-48, 2x1 = 64x64-112 tall, 2x2 =
+# 64x64-96", wall decals 64x48 / 64x32, one 3x2 flat rug), so a table of exact boxes alone
+# could be internally consistent and still describe the wrong world. Every asset is therefore
+# asserted TWICE against the ticket: its exact box (TICKET_C, hand-typed from the ticket) and
+# its CLASS bounds (TICKET_C_CLASSES, hand-typed from the ticket's class table) - the second
+# is the check that ties the artifact back to the declared source of truth instead of to the
+# generator's own opinion.
+# ---------------------------------------------------------------------------------------
+TICKET_C = {
+    "mystery": {
+        # id: (class, frame_w, frame_h, frames, footprint_w, footprint_h)
+        "curiosity_shelf": ("2x1", 64, 96, 1, 64, 32),
+        "eye_painting": ("wall64x48", 64, 48, 1, 64, 32),
+        "crystal_ball": ("1x1", 32, 40, 1, 32, 32),
+        "journal_stand": ("1x1", 32, 48, 1, 32, 32),
+        "strange_rug": ("3x2", 96, 64, 1, 96, 64),
+        "lantern_green": ("1x1", 32, 48, 1, 32, 32),
+    },
+    "tokenden": {
+        "token_stacks": ("1x1", 32, 32, 1, 32, 32),
+        "lucky_cat": ("1x1", 32, 40, 1, 32, 32),
+        "red_lanterns": ("wall64x32", 64, 32, 1, 64, 32),
+        "tea_table": ("2x1", 64, 64, 1, 64, 32),
+        "token_server": ("2x1", 64, 96, 1, 64, 32),
+        "abacus_desk": ("2x2", 64, 80, 1, 64, 64),
+    },
+    "career": {
+        "coat_stand": ("1x1", 32, 48, 1, 32, 32),
+        "whiteboard": ("2x1", 64, 80, 1, 64, 32),
+        "ring_light": ("1x1", 32, 48, 1, 32, 32),
+        "advisor_desk": ("2x2", 64, 80, 1, 64, 64),
+        "framed_certs": ("wall64x32", 64, 32, 1, 64, 32),
+        "ficus": ("1x1", 32, 48, 1, 32, 32),
+    },
+    "writer": {
+        "typewriter_desk": ("2x2", 64, 80, 1, 64, 64),
+        "paper_stacks": ("1x1", 32, 32, 1, 32, 32),
+        "paper_bin": ("1x1", 32, 40, 1, 32, 32),
+        "reading_chair": ("1x1", 32, 48, 1, 32, 32),
+        "cork_board": ("wall64x48", 64, 48, 1, 64, 32),
+        "book_tower": ("1x1", 32, 48, 1, 32, 32),
+    },
+}
+
+# (width, min_height, max_height) straight out of the SOU-200 size table, with the ticket's own
+# words recorded next to each so a later reader can see what was being read.
+TICKET_C_CLASSES = {
+    "1x1": (32, 32, 48, "1x1 = 32x32-48"),
+    "2x1": (64, 64, 112, "2x1 = 64x64-112 tall"),
+    "2x2": (64, 64, 96, "2x2 = 64x64-96"),
+    "wall64x48": (64, 48, 48, "wall decal 64x48"),
+    "wall64x32": (64, 32, 32, "wall decal 64x32"),
+    "3x2": (96, 64, 64, "3x2 flat"),
+}
+
+# Same floor as set B (FLAT_BASE_COVERAGE_MIN): the ticket's AC is "feet/base on the bottom row
+# of pixels", asserted separately; this floor only catches a decal that is not resting on its
+# base at all. Inventing a higher number would encode taste, not the contract.
+FLAT_BASE_COVERAGE_MIN_C = 0.10
+
+
+def main_set_c(args, setname: str) -> int:
+    import gen_roomart_c as C
+
+    root = os.path.abspath(args.root or str(C.out_dir(setname)))
+    repo = str(REPO)
+    map_path = args.map or os.path.join(repo, "frontend", "v3", "maps", "rooms",
+                                       C.SETS[setname]["map"])
+    report = Report()
+
+    if not os.path.isdir(root):
+        print(f"no art set at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    # ---- the generator's four sets must be the ticket's four rooms ------------------------
+    if set(C.ASSETS) != set(TICKET_C):
+        report.fail(f"the generator's sets {sorted(C.ASSETS)} != the SOU-200 rooms "
+                    f"{sorted(TICKET_C)}")
+    else:
+        report.ok(f"the generator carries the ticket's four rooms: {', '.join(sorted(C.ASSETS))}")
+
+    pal_path = os.path.join(root, "palette.json")
+    if os.path.exists(pal_path):
+        declared = json.load(open(pal_path))
+        if declared.get("hex") != C.PALETTE_HEX:
+            report.fail(f"palette.json does not match the shared lodge palette "
+                        f"({len(declared.get('hex', []))} vs {len(C.PALETTE_HEX)} colours)")
+        else:
+            report.ok(f"palette.json declares {len(C.PALETTE_HEX)} colours, identical to the "
+                      f"lodge palette (shared_with={declared.get('shared_with')!r})")
+    else:
+        report.fail("palette.json missing - the palette is not declared anywhere")
+
+    print("=" * 96)
+    print(f"{setname} v3 art set C check (SOU-200)   root={root}")
+    print(f"palette: {len(C.PALETTE_HEX)} declared colours, {', '.join(C.PALETTE_HEX[:6])}, ...")
+    print("=" * 96)
+
+    # ---- declaration vs the ticket: exact box AND size class -------------------------------
+    ticket = TICKET_C[setname]
+    drift = []
+    gen_ids = [a["id"] for a in C.ASSETS[setname]]
+    if set(gen_ids) != set(ticket):
+        report.fail(f"the generator's asset list {sorted(gen_ids)} != the ticket's "
+                    f"{sorted(ticket)}")
+    else:
+        report.ok(f"{len(gen_ids)} assets, the same set the SOU-200 table names: "
+                  f"{', '.join(gen_ids)}")
+    for asset in C.ASSETS[setname]:
+        want = ticket.get(asset["id"])
+        if not want:
+            continue
+        klass, tw, th, frames, fpw, fph = want
+        if tuple(asset["texture_px"]) != (tw, th) or asset["frames"] != frames \
+                or tuple(asset["footprint_px"]) != (fpw, fph):
+            msg = (f"{asset['id']}: generator declares {tuple(asset['texture_px'])} x"
+                   f"{asset['frames']} fp {tuple(asset['footprint_px'])} but the ticket table says "
+                   f"{(tw, th)} x{frames} fp {(fpw, fph)}")
+            drift.append(msg)
+            report.fail(msg)
+        if asset["lift_px"] != th - fph:
+            msg = (f"{asset['id']}: lift {asset['lift_px']} != texture_h - footprint_h "
+                   f"({th} - {fph} = {th - fph}) - the renderer draws footprint_h + lift, so the "
+                   f"drawn box would not be the declared texture height")
+            drift.append(msg)
+            report.fail(msg)
+        cw, lo, hi, phrase = TICKET_C_CLASSES[klass]
+        if tw != cw or not lo <= th <= hi:
+            drift.append(f"{asset['id']}: declared {tw}x{th} is outside its class {klass}")
+            report.fail(f"{asset['id']}: declared box {tw}x{th} is outside the SOU-200 class "
+                        f"{klass} ({phrase}) - width must be {cw}, height between {lo} and {hi}")
+    if drift:
+        report.fail("the generator's declaration has drifted from the SOU-200 table")
+    else:
+        report.ok("every exact size, frame count, footprint and lift agrees with the hand-typed "
+                  "SOU-200 table, and every box sits inside its ticket size class")
+
+    # ---- props -----------------------------------------------------------------------------
+    print("\nASSETS (shipped px vs the TICKET table; class bounds asserted, not just the exact box)")
+    print(f"{'asset':16s} {'shipped':>9s} {'ticket':>9s} {'class':>10s} {'colours':>7s} "
+          f"{'transp':>7s} {'fringe':>6s} {'base':>5s}  result")
+    results = {}
+    for asset in C.ASSETS[setname]:
+        aid = asset["id"]
+        klass, tw, th, frames, fpw, fph = ticket[aid]
+        path = os.path.join(root, "props", f"{aid}.png")
+        if not os.path.exists(path):
+            report.fail(f"props/{aid}.png missing")
+            continue
+        img = Image.open(path).convert("RGBA")
+        want_size = (tw * frames, th)
+        got = img.size
+        colours, off = palette_check(img, allowed=C.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        parts = [img.crop((k * tw, 0, (k + 1) * tw, th)).convert("RGBA") for k in range(frames)]
+        bottoms = [content_bottom_row(f) for f in parts]
+        covs = [base_row_coverage(f) for f in parts]
+        framing = [sum(1 for p in f.getchannel("A").getdata() if p == 0) for f in parts]
+        problems = []
+        if got != want_size:
+            problems.append(f"size {got} != ticket {want_size}")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if not alpha["has_real_alpha"]:
+            problems.append("no real alpha")
+        if alpha["partial"]:
+            problems.append(f"{alpha['partial']} partial-alpha pixels")
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+        empty = [k for k, f in enumerate(parts) if f.getchannel("A").getbbox() is None]
+        if empty:
+            problems.append(f"empty frames {empty}")
+        bad_bottom = [k for k, b in enumerate(bottoms) if b != th - 1]
+        if bad_bottom:
+            problems.append(f"frames {bad_bottom} do not reach the bottom row (bottoms {bottoms}) "
+                            f"- the renderer anchors there, so the prop would float")
+        if asset["flat"] and min(covs) < FLAT_BASE_COVERAGE_MIN_C:
+            problems.append(f"flat decal covers only {min(covs):.2f} of its lowest rows "
+                            f"(floor {FLAT_BASE_COVERAGE_MIN_C})")
+        print(f"{aid:16s} {f'{got[0]}x{got[1]}':>9s} {f'{want_size[0]}x{want_size[1]}':>9s} "
+              f"{klass:>10s} {len(colours):>7d} {alpha['transparent']:>7d} "
+              f"{resid['strong_magenta']:>6d} {min(covs):>5.2f}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+        else:
+            report.ok(f"{aid}: {got[0]}x{got[1]} = {frames} frame(s) of {tw}x{th} (class {klass}), "
+                      f"{len(colours)} palette colours, real alpha, no magenta, base on the bottom "
+                      f"row ({bottoms})")
+        if not args.quiet:
+            report.note(f"{aid}: colours {' '.join(hexs(c) for c in colours)}")
+        results[aid] = {"size": list(got), "frames": frames, "bottoms": bottoms,
+                        "coverage": [round(c, 3) for c in covs], "transparent": framing}
+
+    # ---- manifests --------------------------------------------------------------------------
+    print("\nMANIFESTS (one next to every file, carrying model/seed/prompt/dims + the class)")
+    for asset in C.ASSETS[setname]:
+        aid = asset["id"]
+        png = os.path.join(root, "props", f"{aid}.png")
+        man = png + ".manifest.json"
+        if not os.path.exists(png):
+            continue
+        if not os.path.exists(man):
+            report.fail(f"props/{aid}.png: no manifest next to it")
+            print(f"props/{aid:19s} FAIL: no manifest")
+            continue
+        try:
+            m = json.load(open(man))
+        except Exception as exc:  # noqa: BLE001
+            report.fail(f"props/{aid}.png.manifest.json is not valid JSON ({exc})")
+            continue
+        problems = []
+        if m.get("model") != C.MODEL_ID:
+            problems.append(f"model {m.get('model')!r} != {C.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            problems.append("lora_strength is not 0.0 (the LoRA blacks out - ADR-060)")
+        if not m.get("prompt"):
+            problems.append("no prompt recorded")
+        if not m.get("palette"):
+            problems.append("no palette recorded")
+        if not m.get("seed"):
+            problems.append("no seed recorded")
+        if list(m.get("output_dims", [])) != list(Image.open(png).size):
+            problems.append(f"output_dims {m.get('output_dims')} != the file's "
+                            f"{list(Image.open(png).size)}")
+        if m.get("frames") != asset["frames"]:
+            problems.append(f"frames {m.get('frames')} != {asset['frames']}")
+        if m.get("ticket") != "SOU-200":
+            problems.append(f"ticket {m.get('ticket')!r} != 'SOU-200'")
+        if m.get("ticket_size_class") != ticket[aid][0]:
+            problems.append(f"recorded class {m.get('ticket_size_class')!r} != the ticket's "
+                            f"{ticket[aid][0]!r}")
+        deriv = m.get("frame_derivation") or {}
+        missing = [str(k) for k in range(asset["frames"]) if str(k) not in deriv]
+        if missing:
+            problems.append(f"frames {missing} have no declared derivation")
+        print(f"props/{aid:19s} {str(m.get('seed')):>8s} class={str(m.get('ticket_size_class')):9s} "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"props/{aid}.png.manifest.json: " + "; ".join(problems))
+        else:
+            report.ok(f"props/{aid}.png.manifest.json: model+palette+prompt+seed recorded, ticket "
+                      f"SOU-200, class {ticket[aid][0]}, dims match the file")
+
+    # ---- map cross-check --------------------------------------------------------------------
+    print("\nMAP CROSS-CHECK (a key the room map already places must have our footprint)")
+    if os.path.exists(map_path):
+        layers = json.load(open(map_path)).get("layers", [])
+        placed = {}
+        for layer in layers:
+            if layer.get("type") != "objectgroup":
+                continue
+            for obj in layer.get("objects", []):
+                key = obj.get("name") or obj.get("type")
+                placed.setdefault(key, (obj.get("width"), obj.get("height")))
+        found = 0
+        for asset in C.ASSETS[setname]:
+            aid = asset["id"]
+            if aid in placed:
+                found += 1
+                if list(placed[aid]) == list(asset["footprint_px"]):
+                    report.ok(f"{aid}: the map's rect {placed[aid]} matches the declared footprint")
+                else:
+                    report.fail(f"{aid}: the map places it at {placed[aid]} but the set declares "
+                                f"the footprint {asset['footprint_px']}")
+        absent = [a["id"] for a in C.ASSETS[setname] if a["id"] not in placed]
+        if absent:
+            report.note(f"not yet placed by {os.path.basename(map_path)}: {', '.join(absent)} - "
+                        f"the wiring step places them; the declared footprints are the contract")
+        if found == 0:
+            report.note(f"{os.path.basename(map_path)} still places the generic placeholder keys "
+                        f"for this room, so no key could be cross-checked - wiring set C is a "
+                        f"separate step (the SOU-208/212/213 pattern)")
+    else:
+        report.note(f"no room map at {map_path}")
+
+    # ---- contact sheets ----------------------------------------------------------------------
+    print("\nCONTACT SHEETS (the visual record attached to the ticket, on room_plank_a)")
+    for name in ("contact_sheet.png", "contact_sheet_4x.png"):
+        p = os.path.join(root, name)
+        if os.path.exists(p):
+            report.ok(f"{name} {Image.open(p).size[0]}x{Image.open(p).size[1]}")
+        else:
+            report.fail(f"{name} missing - the ticket asks for a contact sheet of everything on "
+                        f"room_plank_a")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print(f"RESULT: PASS - every {setname} file exists at EXACTLY the pixel size and frame count "
+          f"the hand-typed SOU-200 table names, every declared box sits inside the ticket's own "
+          f"size class, the shared 61-colour lodge palette, real alpha and no magenta, each base "
+          f"on the frame's bottom row, a manifest next to every file carrying model/seed/prompt/"
+          f"class, and a contact sheet for the set.")
     return 0
 
 

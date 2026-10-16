@@ -1,0 +1,302 @@
+{
+  "pack": "tokenden-v1",
+  "set": "tokenden",
+  "issue": "SOU-200",
+  "title": "the token trading den (hermes-szarik)",
+  "generated_from": "assets/generated/v3/tokenden",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/tokenden/palette.json",
+  "palette_shared_with": "lodge (SOU-198), serverroom + factory (SOU-199)",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "room_plank_a",
+    "why": "set C is four rooms of the same lodge, not four new rooms: each room map already references the lodge tileset, so this set ships props only and reuses the lodge material tiles (all four of these rooms stand on room_plank_a) rather than shipping a second tileset."
+  },
+  "contact_sheets": [
+    "assets/generated/v3/tokenden/contact_sheet.png",
+    "assets/generated/v3/tokenden/contact_sheet_4x.png"
+  ],
+  "room_map": "frontend/v3/maps/rooms/tokenden.json",
+  "prop_lift_for_placeholders_js": {
+    "token_stacks": 0,
+    "lucky_cat": 8,
+    "red_lanterns": 0,
+    "tea_table": 32,
+    "token_server": 64,
+    "abacus_desk": 16
+  },
+  "assets": [
+    {
+      "key": "token_stacks",
+      "served_path": "assets/tokenden/props/token_stacks.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        32
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": true,
+      "note": "flat floor decal: coins piled on the floor, assessed as a flat object",
+      "texture_px_actual": [
+        32,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "lucky_cat",
+      "served_path": "assets/tokenden/props/lucky_cat.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        40
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        40
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "red_lanterns",
+      "served_path": "assets/tokenden/props/red_lanterns.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        32
+      ],
+      "ticket_size_class": "wall64x32",
+      "texture_px_declared": [
+        64,
+        32
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "tea_table",
+      "served_path": "assets/tokenden/props/tea_table.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        64
+      ],
+      "ticket_size_class": "2x1",
+      "texture_px_declared": [
+        64,
+        64
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        64
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "token_server",
+      "served_path": "assets/tokenden/props/token_server.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        96
+      ],
+      "ticket_size_class": "2x1",
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "full_bleed": false,
+      "flat": false,
+      "note": "2x1 shelf; the footprint is the floor rect, the extra 64px is lift",
+      "texture_px_actual": [
+        64,
+        96
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "abacus_desk",
+      "served_path": "assets/tokenden/props/abacus_desk.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        80
+      ],
+      "ticket_size_class": "2x2",
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        64
+      ],
+      "footprint_tiles": [
+        2.0,
+        2.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        64,
+        80
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/tokenden/props/token_stacks.png",
+      "source": "assets/generated/v3/tokenden/props/token_stacks.png",
+      "sha256": "b24ff422f24845e511578a6acd90b1c7ca68f6e5ed8999ecd03d9b7312848247",
+      "bytes": 1168
+    },
+    {
+      "served_path": "assets/tokenden/props/token_stacks.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/token_stacks.png.manifest.json",
+      "sha256": "15178875453f6005a61c9cc5431bce3c18a8e821f3e37e93eff83cc9db11bbdb",
+      "bytes": 5748
+    },
+    {
+      "served_path": "assets/tokenden/props/lucky_cat.png",
+      "source": "assets/generated/v3/tokenden/props/lucky_cat.png",
+      "sha256": "2e193cbc6e17462a7d7f897754a1ce1a27f736b128079a1e13b09b9ce91e8e96",
+      "bytes": 1558
+    },
+    {
+      "served_path": "assets/tokenden/props/lucky_cat.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/lucky_cat.png.manifest.json",
+      "sha256": "bff91466ac7ec867f3cbae1a85928dad00ef3b3a82d271fa03f02cd1f9e16870",
+      "bytes": 5709
+    },
+    {
+      "served_path": "assets/tokenden/props/red_lanterns.png",
+      "source": "assets/generated/v3/tokenden/props/red_lanterns.png",
+      "sha256": "76171cc09e2b4c3e83d5a2ca8437d646be72ca2fce01e7ddb80670bf0559d44b",
+      "bytes": 925
+    },
+    {
+      "served_path": "assets/tokenden/props/red_lanterns.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/red_lanterns.png.manifest.json",
+      "sha256": "4898dddd569406ab695d2fa0bffbeeeaca257bd87ca93ce5f13c34ae62ed442d",
+      "bytes": 6292
+    },
+    {
+      "served_path": "assets/tokenden/props/tea_table.png",
+      "source": "assets/generated/v3/tokenden/props/tea_table.png",
+      "sha256": "2b36b1a089391f79ab59a6bfafeb7550037426e53233a0005e3c187ea2f926fe",
+      "bytes": 2227
+    },
+    {
+      "served_path": "assets/tokenden/props/tea_table.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/tea_table.png.manifest.json",
+      "sha256": "57314dad81a65ef66fa0620922fb8f3fc8f9ced129c0f6a0b42bfe43eec1063e",
+      "bytes": 5730
+    },
+    {
+      "served_path": "assets/tokenden/props/token_server.png",
+      "source": "assets/generated/v3/tokenden/props/token_server.png",
+      "sha256": "65d481c71a5f47582ec07401fec5dea758009aa3808237a78fb6ddeb4afcfdb1",
+      "bytes": 4326
+    },
+    {
+      "served_path": "assets/tokenden/props/token_server.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/token_server.png.manifest.json",
+      "sha256": "3422db8d8a2b7d48cf3ad3a2e7dc46e8308d85fa1a3e7d6483928450fc6c1a93",
+      "bytes": 6067
+    },
+    {
+      "served_path": "assets/tokenden/props/abacus_desk.png",
+      "source": "assets/generated/v3/tokenden/props/abacus_desk.png",
+      "sha256": "5d8865476b9b6ed46480b98e63ab98e96742bbe5f2f4939a09e1a9e65411abd9",
+      "bytes": 3567
+    },
+    {
+      "served_path": "assets/tokenden/props/abacus_desk.png.manifest.json",
+      "source": "assets/generated/v3/tokenden/props/abacus_desk.png.manifest.json",
+      "sha256": "0e6bd248d0e61bbbefcb782cb93daa38f70340838e14622decb815edea5bda4c",
+      "bytes": 5960
+    }
+  ],
+  "created_at": "2026-10-16T19:38:52.407756+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-200 asks for the exact size given within the ticket's size classes), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

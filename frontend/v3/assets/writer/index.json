@@ -1,0 +1,302 @@
+{
+  "pack": "writer-v1",
+  "set": "writer",
+  "issue": "SOU-200",
+  "title": "the writer's loft (hermes-florian)",
+  "generated_from": "assets/generated/v3/writer",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01)",
+  "palette": "assets/generated/v3/writer/palette.json",
+  "palette_shared_with": "lodge (SOU-198), serverroom + factory (SOU-199)",
+  "tiles": {
+    "ships": false,
+    "reused_from": "lodge",
+    "tileset": "assets/lodge/tiles.png",
+    "floor_tile_for_this_room": "room_plank_a",
+    "why": "set C is four rooms of the same lodge, not four new rooms: each room map already references the lodge tileset, so this set ships props only and reuses the lodge material tiles (all four of these rooms stand on room_plank_a) rather than shipping a second tileset."
+  },
+  "contact_sheets": [
+    "assets/generated/v3/writer/contact_sheet.png",
+    "assets/generated/v3/writer/contact_sheet_4x.png"
+  ],
+  "room_map": "frontend/v3/maps/rooms/writer.json",
+  "prop_lift_for_placeholders_js": {
+    "typewriter_desk": 16,
+    "paper_stacks": 0,
+    "paper_bin": 8,
+    "reading_chair": 16,
+    "cork_board": 16,
+    "book_tower": 16
+  },
+  "assets": [
+    {
+      "key": "typewriter_desk",
+      "served_path": "assets/writer/props/typewriter_desk.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        80
+      ],
+      "ticket_size_class": "2x2",
+      "texture_px_declared": [
+        64,
+        80
+      ],
+      "footprint_px": [
+        64,
+        64
+      ],
+      "footprint_tiles": [
+        2.0,
+        2.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "keys are tiny blank dots - no letters or numbers on the key tops",
+      "texture_px_actual": [
+        64,
+        80
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "paper_stacks",
+      "served_path": "assets/writer/props/paper_stacks.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        32
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        32
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 0,
+      "full_bleed": false,
+      "flat": true,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        32
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "paper_bin",
+      "served_path": "assets/writer/props/paper_bin.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        40
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        40
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 8,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        40
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "reading_chair",
+      "served_path": "assets/writer/props/reading_chair.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "the ticket calls it 1x1, so the whole chair, side table and candle live in a one-tile wide box and the canvas is taller instead of wider",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "cork_board",
+      "served_path": "assets/writer/props/cork_board.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        64,
+        48
+      ],
+      "ticket_size_class": "wall64x48",
+      "texture_px_declared": [
+        64,
+        48
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "wall decal: 64x32 wall rect + 16px lift carries the 64x48 board up the wall",
+      "texture_px_actual": [
+        64,
+        48
+      ],
+      "sheet_layout": null
+    },
+    {
+      "key": "book_tower",
+      "served_path": "assets/writer/props/book_tower.png",
+      "multi_frame": false,
+      "frames": 1,
+      "frame_px": [
+        32,
+        48
+      ],
+      "ticket_size_class": "1x1",
+      "texture_px_declared": [
+        32,
+        48
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 16,
+      "full_bleed": false,
+      "flat": false,
+      "note": "",
+      "texture_px_actual": [
+        32,
+        48
+      ],
+      "sheet_layout": null
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/writer/props/typewriter_desk.png",
+      "source": "assets/generated/v3/writer/props/typewriter_desk.png",
+      "sha256": "c8834a714d2a47a247a8b45b3928b3588dcb097fd30e574fc184a23fe8a732ed",
+      "bytes": 2534
+    },
+    {
+      "served_path": "assets/writer/props/typewriter_desk.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/typewriter_desk.png.manifest.json",
+      "sha256": "bda724d60e76a4bf9089cf4f70629ab2a6189f729e5137faa13b8073bc047335",
+      "bytes": 6004
+    },
+    {
+      "served_path": "assets/writer/props/paper_stacks.png",
+      "source": "assets/generated/v3/writer/props/paper_stacks.png",
+      "sha256": "7d54465b2b490b08411b7424df6489f33296874734fa1b142e8632757d2fdb6c",
+      "bytes": 285
+    },
+    {
+      "served_path": "assets/writer/props/paper_stacks.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/paper_stacks.png.manifest.json",
+      "sha256": "9b9fd20f515d630e65693c1d803fe12dadba49cbf30847de20a0f276f3105269",
+      "bytes": 5558
+    },
+    {
+      "served_path": "assets/writer/props/paper_bin.png",
+      "source": "assets/generated/v3/writer/props/paper_bin.png",
+      "sha256": "a88998865c3b80fc9e754dfb56f1353ea4cf7be008ce27ae3918baa631aec98d",
+      "bytes": 1596
+    },
+    {
+      "served_path": "assets/writer/props/paper_bin.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/paper_bin.png.manifest.json",
+      "sha256": "7975880b8e64b94b71d5ee35c6b6660ce96399c602756dc85933d6863707e671",
+      "bytes": 5597
+    },
+    {
+      "served_path": "assets/writer/props/reading_chair.png",
+      "source": "assets/generated/v3/writer/props/reading_chair.png",
+      "sha256": "a6a3bb8aa8c195de5f112412d36a0340e3297873e728637c38557e9bedc159c2",
+      "bytes": 1345
+    },
+    {
+      "served_path": "assets/writer/props/reading_chair.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/reading_chair.png.manifest.json",
+      "sha256": "9077f616a7674ec928da912efdac3c627b741db56776a745ee7df8962763cd5d",
+      "bytes": 5962
+    },
+    {
+      "served_path": "assets/writer/props/cork_board.png",
+      "source": "assets/generated/v3/writer/props/cork_board.png",
+      "sha256": "ae6cc8dccb39130c66de56fee59f6b796bcbde4c1fd5a2de68bb6d8fc3d58796",
+      "bytes": 2773
+    },
+    {
+      "served_path": "assets/writer/props/cork_board.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/cork_board.png.manifest.json",
+      "sha256": "160969b0d86a052761ac0fe8bf29f3b30cb2aa230c36aba3720a7d4c91085269",
+      "bytes": 6294
+    },
+    {
+      "served_path": "assets/writer/props/book_tower.png",
+      "source": "assets/generated/v3/writer/props/book_tower.png",
+      "sha256": "e4f5a7cc41022fb66dec06775f756bd17065caf9a37d2db40430adfef2f32190",
+      "bytes": 1471
+    },
+    {
+      "served_path": "assets/writer/props/book_tower.png.manifest.json",
+      "source": "assets/generated/v3/writer/props/book_tower.png.manifest.json",
+      "sha256": "7c3f2f5a70ef87def72f773ea222696334431ff60ecbe6e914b2fe1d9c7a1478",
+      "bytes": 5927
+    }
+  ],
+  "created_at": "2026-10-16T19:38:52.543335+00:00",
+  "note": "texture_px_actual is measured from the published file. Every asset in this set is fitted INSIDE its declared box (SOU-200 asks for the exact size given within the ticket's size classes), so declared and actual agree by construction - the field is here because SOU-158's review had to reconcile that drift by hand."
+}

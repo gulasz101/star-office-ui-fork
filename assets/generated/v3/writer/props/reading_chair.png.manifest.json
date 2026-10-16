@@ -1,0 +1,164 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a deep honey-brown timber and dark green fabric armchair seen from above and slightly in front: wide padded armrests and a high back, with a small side table beside it holding one short lit candle in a brass holder and a cream mug. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 32:48 in width:height (the object's bounding box is about two thirds as wide as it is tall). Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Inside a cosy log-cabin loft at night: honey-brown horizontal log walls, wide warm plank floor, chunky honey-brown timber furniture, warm amber desk-lamp and candle light falling from the top-left, deep blue shadow on the right, and cream paper everywhere. Cluttered, warm, lived-in. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. The glow is plain coloured light only - no letters, no numbers, no symbols, no characters, no writing of any kind. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 20321,
+  "source_file": "reading_chair.raw.png",
+  "output_file": "props/reading_chair.png",
+  "output_dims": [
+    32,
+    48
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-16T19:23:48.894931+00:00",
+  "asset_key": "reading_chair",
+  "kind": "prop",
+  "set": "writer",
+  "view": "top-down 3/4",
+  "ticket": "SOU-200",
+  "footprint_px": [
+    32,
+    32
+  ],
+  "footprint_tiles": [
+    1.0,
+    1.0
+  ],
+  "texture_px": [
+    32,
+    48
+  ],
+  "declared_px": [
+    32,
+    48
+  ],
+  "lift_px": 16,
+  "fit_mode": "inside",
+  "fit": {
+    "content_px": [
+      413,
+      512
+    ],
+    "fitted_px": [
+      32,
+      40
+    ],
+    "canvas_px": [
+      32,
+      48
+    ],
+    "mode": "inside",
+    "scale": 0.0775,
+    "crop_bbox": [
+      14,
+      60,
+      427,
+      572
+    ],
+    "why": "uniform scale so the object sits inside the declared box - props ship at exactly the size the ticket declares (SOU-198/199 rule, restated for set C)"
+  },
+  "anchor": "bottom-centre of the footprint (renderer origin 0.5, 1)",
+  "key_colour": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "generation_mode": "text-only generation",
+  "frames": 1,
+  "frame_px": [
+    32,
+    48
+  ],
+  "sheet_px": [
+    32,
+    48
+  ],
+  "frame_derivation": {
+    "0": "the FLUX base (contact), unchanged - set C ships no sheets, so frame 0 is the whole asset"
+  },
+  "post_process": "full",
+  "post_process_meta": {
+    "stray_islands_dropped_px": [],
+    "disconnected_parts_kept_px": [],
+    "despeckled_px": 0,
+    "interior_holes_filled_px": 0
+  },
+  "full_bleed": false,
+  "connects": null,
+  "ticket_size_class": "1x1",
+  "prompt_ruling": null,
+  "content_bottom_row": 47,
+  "base_row_coverage": 0.094,
+  "opaque_bottom_rows_coverage": 0.094,
+  "transparent_px": 727,
+  "colours": 32,
+  "off_palette": [],
+  "note": "the ticket calls it 1x1, so the whole chair, side table and candle live in a one-tile wide box and the canvas is taller instead of wider"
+}

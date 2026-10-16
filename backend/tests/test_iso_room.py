@@ -558,6 +558,98 @@ class BayCorrectionTests(unittest.TestCase):
             self.assertNotIn("outside the declared", finding["note"])
 
 
+def _measure_alpha_bbox(png_path: Path, threshold: int = 128):
+    """The art-bbox convention SOU-147 pins (same alpha>128 object measurement
+    as scripts/scale_props.py): tightest rect over opaque-enough pixels,
+    exclusive end, top-left origin - i.e. PIL getbbox on the thresholded alpha
+    channel - plus the image size."""
+    im = Image.open(png_path).convert("RGBA")
+    mask = im.getchannel("A").point(lambda a: 255 if a > threshold else 0)
+    box = mask.getbbox()
+    assert box is not None, f"{png_path} carries no pixel with alpha > {threshold}"
+    return [int(v) for v in box], [int(im.size[0]), int(im.size[1])]
+
+
+class PropArtBboxTests(unittest.TestCase):
+    """SOU-147 AC1/AC2 - grounding data must live in the descriptor.
+
+    The scene may not ground a prop from the image box: pack PNGs are 640x640
+    canvases whose drawn object sits 45-163 px above the image bottom, and the
+    declared on-screen size comes from ``tiles``, not from the canvas. So the
+    generator records, per prop, the measured alpha bounding box plus the
+    image size; the scene converts those into a placement offset and a scale.
+    Shape chosen: option 1 (measure at publish time) - the numbers are data,
+    inspectable in room.json and byte-reproducible from the PNGs."""
+
+    def test_committed_props_carry_measured_art_bbox_and_image(self):
+        if Image is None:
+            self.skipTest(f"Pillow missing: {_IMPORT_ERROR}")
+        d = json.loads(_pack_file("room.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(d["props"]), 8, "the pack's eight props are the contract")
+        for p in d["props"]:
+            with self.subTest(prop=p["id"]):
+                png = PACK / p["asset"]
+                self.assertTrue(png.is_file(), f"{p['asset']} missing from the pack")
+                want_bbox, want_image = _measure_alpha_bbox(png)
+                self.assertIn("art_bbox", p,
+                              f"prop '{p['id']}' carries no measured art_bbox - the scene "
+                              "cannot ground its content on the lattice point (SOU-147)")
+                self.assertIn("image", p, f"prop '{p['id']}' carries no image size (SOU-147)")
+                self.assertEqual(p["art_bbox"], want_bbox,
+                                 f"art_bbox for {p['id']} is not the alpha>128 measurement "
+                                 "of the committed PNG")
+                self.assertEqual(p["image"], want_image)
+                x0, y0, x1, y1 = p["art_bbox"]
+                w, h = p["image"]
+                self.assertTrue(0 <= x0 < x1 <= w and 0 <= y0 < y1 <= h,
+                                "art_bbox must sit strictly inside the image")
+                self.assertLess(x1 - x0, w, "a zero-padding canvas would make the "
+                                "declared-size contract meaningless for this prop")
+
+    def test_generator_records_art_bbox_when_props_are_present(self):
+        if Image is None:
+            self.skipTest(f"Pillow missing: {_IMPORT_ERROR}")
+        gen = _load_script("gen_iso_room")
+        with tempfile.TemporaryDirectory(prefix="sou147-") as a:
+            out = Path(a)
+            (out / "props").mkdir()
+            for png in (PACK / "props").glob("*.png"):
+                if png.name.endswith(".raw.png"):
+                    continue
+                (out / "props" / png.name).write_bytes(png.read_bytes())
+            gen.generate(PROFILE, out)
+            d = json.loads((out / "room.json").read_text(encoding="utf-8"))
+            for p in d["props"]:
+                with self.subTest(prop=p["id"]):
+                    want_bbox, want_image = _measure_alpha_bbox(out / p["asset"])
+                    self.assertEqual(p.get("art_bbox"), want_bbox)
+                    self.assertEqual(p.get("image"), want_image)
+
+    def test_generation_with_props_is_byte_deterministic(self):
+        if Image is None:
+            self.skipTest(f"Pillow missing: {_IMPORT_ERROR}")
+        gen = _load_script("gen_iso_room")
+        runs = []
+        try:
+            with tempfile.TemporaryDirectory(prefix="sou147-") as a, \
+                 tempfile.TemporaryDirectory(prefix="sou147-") as b:
+                for out in (Path(a), Path(b)):
+                    (out / "props").mkdir()
+                    for png in (PACK / "props").glob("*.png"):
+                        if png.name.endswith(".raw.png"):
+                            continue
+                        (out / "props" / png.name).write_bytes(png.read_bytes())
+                    gen.generate(PROFILE, out)
+                    runs.append(_sha(out / "room.json"))
+                d = json.loads((Path(a) / "room.json").read_text(encoding="utf-8"))
+        except AttributeError as exc:  # pre-implementation: the generator ignores out/props
+            self.fail(f"generator run failed: {exc}")
+        self.assertEqual(runs[0], runs[1],
+                         "room.json is not deterministic when props are present")
+        self.assertTrue(all("art_bbox" in p for p in d["props"]),
+                        "determinism of a descriptor WITHOUT the measured fields is not enough")
+
+
 class PackOnDiskEqualsRegenerated(unittest.TestCase):
     """The committed pack must be what the generator emits - no hand edits."""
 
@@ -567,6 +659,13 @@ class PackOnDiskEqualsRegenerated(unittest.TestCase):
             raise unittest.SkipTest(f"Pillow missing: {_IMPORT_ERROR}")
         gen = _load_script("gen_iso_room")
         cls.tmp = tempfile.TemporaryDirectory(prefix="sou123-")
+        # SOU-147: prop PNGs are part of the pack the descriptor measures against;
+        # reproduce the real working layout (props already in --out) before generating.
+        (Path(cls.tmp.name) / "props").mkdir()
+        for png in (PACK / "props").glob("*.png"):
+            if png.name.endswith(".raw.png"):
+                continue
+            (Path(cls.tmp.name) / "props" / png.name).write_bytes(png.read_bytes())
         gen.generate(PROFILE, Path(cls.tmp.name))
 
     @classmethod

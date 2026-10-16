@@ -14,8 +14,10 @@ Two promises, both load-bearing:
   prints nothing on stdout, swallows every error, and caps the POST at 2 s.
 * **Never leak the session.** Prompt text, file contents, tool output, command
   arguments, error text and absolute paths are all dropped: what leaves the
-  machine is a tool name, a status, a file *basename*, a program name and a
-  couple of documented enum values.
+  machine is a tool name, a status, a file *basename*, a program name plus —
+  for the allow-listed CLI families (SOU-173) — at most one or two bare
+  subcommand tokens, and a couple of documented enum values. Flags, values,
+  paths and URLs in a command are never echoed.
 
 The mapping (hook event -> ``event_type``) is the ticket's table, and the
 payload keys are the ones the v3 activity map already reads:
@@ -86,6 +88,23 @@ ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PROGRAM = re.compile(r"^[A-Za-z0-9._+-]{1,32}$")
 TOKEN_SPLIT = re.compile(r"\s+")
 
+# Programs allowed to carry one subcommand token in the label (SOU-173). The
+# list mirrors frontend/v3/activity.js: these are the CLI families whose verb
+# decides the office zone (garage vs rack), and the renderer re-parses the
+# same label with the same bare-identifier discipline.
+SUBCOMMAND_PROGRAMS = {
+    "git", "npm", "pnpm", "yarn", "docker", "kubectl", "cargo", "go",
+    "helm", "flux", "make", "uv", "pip", "poetry",
+}
+# npm/pnpm/yarn need `run <script>` as TWO tokens: activity.js computes the
+# runner verb from the token after "run", so a lone "npm run" would classify
+# `npm run build` as ops instead of the garage.
+RUNNER_PROGRAMS = {"npm", "pnpm", "yarn"}
+# A subcommand is a bare lowercase identifier, never a flag, path, URL,
+# key=value pair or value. Anything that does not match is skipped and not
+# echoed — this regex is the whole privacy boundary of the feature.
+SUBCOMMAND = re.compile(r"^[a-z][a-z0-9-]{0,20}$")
+
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -124,20 +143,20 @@ def enum(value) -> str:
     return ""
 
 
-def program(command) -> str:
-    """Program name of a shell command: first segment, first real token.
+def command_parts(command):
+    """First command segment -> ``(program, [arguments after it])``.
 
-    Never arguments, never a subcommand, never a path. `sudo -u x npm i` ->
-    `npm`; `FOO=bar ./bin/run.sh -v` -> `run.sh`; nothing usable -> `shell`.
+    Env prefixes (``FOO=bar``), wrapper tokens (``sudo``, ``env`` …) and flags
+    are skipped while finding the program; the arguments keep their original
+    tokens so the caller can pick a subcommand out of them. Nothing usable ->
+    ``("shell", [])``.
     """
     raw = text_of(command, 4096)
     if not raw:
-        return ""
+        return "", []
     first = re.split(r"&&|\|\||[;|]", raw, maxsplit=1)[0]
-    for token in TOKEN_SPLIT.split(first.strip()):
-        token = token.strip()
-        if not token:
-            continue
+    tokens = [token for token in TOKEN_SPLIT.split(first.strip()) if token]
+    for index, token in enumerate(tokens):
         if ASSIGNMENT.match(token) or token.startswith("-"):
             continue  # env assignment or a flag of the wrapper
         name = basename(token.replace("\\", "/")) or token
@@ -145,9 +164,44 @@ def program(command) -> str:
         if name in COMMAND_WRAPPERS:
             continue
         if not PROGRAM.match(name) or ":" in name:
-            return "shell"
-        return name
-    return "shell"
+            return "shell", []
+        return name, tokens[index + 1:]
+    return "shell", []
+
+
+def program(command) -> str:
+    """Program name of a shell command: first segment, first real token.
+
+    Never arguments, never a path. `sudo -u x npm i` -> `npm`;
+    `FOO=bar ./bin/run.sh -v` -> `run.sh`; nothing usable -> `shell`.
+    """
+    return command_parts(command)[0]
+
+
+def command_label(command) -> str:
+    """Privacy-safe label: the program plus ONE allow-listed subcommand (SOU-173).
+
+    ``git push origin main`` -> ``git push``, ``docker build -t x .`` ->
+    ``docker build``, ``npm run build`` -> ``npm run build`` (runner programs
+    keep the script verb, two tokens). The subcommand is the first argument
+    that is a bare lowercase identifier; flags and value-ish tokens
+    (``key=value``, paths, URLs, uppercase) are skipped and never echoed.
+    Programs outside ``SUBCOMMAND_PROGRAMS`` keep the old program-name-only
+    behaviour, so ``git -c user.password=SECRET push`` -> ``git push`` and
+    nothing else about that command leaves the machine.
+    """
+    prog, args = command_parts(command)
+    if not prog or prog.lower() not in SUBCOMMAND_PROGRAMS:
+        return prog
+    picked = []
+    for token in args:
+        if token.startswith("-") or not SUBCOMMAND.match(token):
+            continue  # a flag or a value: never a subcommand, never echoed
+        picked.append(token)
+        want = 2 if prog.lower() in RUNNER_PROGRAMS and picked[0] == "run" else 1
+        if len(picked) >= want:
+            break
+    return " ".join([prog] + picked)
 
 
 def tool_name(data) -> str:
@@ -209,7 +263,7 @@ def build_event(data: dict):
                 put_number(payload, "duration_ms", timing)
                 return "file_edit", payload
         elif low in SHELL_TOOLS:
-            command = program(tool_input.get("command"))
+            command = command_label(tool_input.get("command"))
             payload = {"tool": tool, "command": command or "shell", "status": "ok"}
             put(payload, "session_id", session_id)
             put_number(payload, "duration_ms", timing)

@@ -1,0 +1,6 @@
+{
+  "name": "office_v2",
+  "private": true,
+  "type": "module",
+  "description": "SOU-122 renderer v2 scene modules (SOU-124). Loaded as ES modules by the browser and by node --test from frontend/tests/."
+}

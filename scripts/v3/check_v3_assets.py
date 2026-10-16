@@ -445,10 +445,18 @@ def head_band_fraction(frame) -> tuple[float, int, int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--root", default=str(OUT), help="art set root (default: assets/generated/v3/office-01)")
-    ap.add_argument("--map", default=None, help="office map whose tileset order is the authority")
+    ap.add_argument("--set", default="office-01", choices=("office-01", "lodge"),
+                    help="which v3 art set to check (default: office-01)")
+    ap.add_argument("--root", default=None,
+                    help="art set root (default: the set's own generated directory)")
+    ap.add_argument("--map", default=None, help="v3 map whose tileset order is the authority")
     ap.add_argument("--quiet", action="store_true", help="only print failures and the summary")
     args = ap.parse_args()
+
+    if args.set == "lodge":
+        return main_lodge(args)
+    if args.root is None:
+        args.root = str(OUT)
 
     root = os.path.abspath(args.root)
     # The office map is a repo path, not an art-set path: resolve it from the repo root the
@@ -776,6 +784,261 @@ def main() -> int:
         return EXIT_FAIL
     print("RESULT: PASS - every asset is the declared size, on the declared palette, with real "
           "alpha and no magenta residue; the sheet and the tileset match the renderer's contract.")
+    return 0
+
+
+# ======================================================================================
+# lodge set (SOU-198) - the second v3 set, checked by the SAME gate
+#
+# Same contract, same measurements, a per-set table. The office-01 path above is untouched:
+# `--set lodge` is opt-in, so a lodge check can never change what an office check asserts.
+#
+# What is set-specific:
+#   * the palette (44 lodge colours, night palette - `--set` picks the declared one);
+#   * the tiles: 16 slots, each declared as material/decal and with the AXES it must repeat
+#     along. A floor must tile both ways; a runner strip is laid along one axis; a step, a mat
+#     and a drift edge are objects and are deliberately not periodic. Measuring an object for
+#     seamlessness would be measuring the wrong thing and skipping it silently would hide a real
+#     seam in a material, so the class is declared per slot and printed;
+#   * the props: 12 entries including a 4-frame walk sheet (128x32), so the prop section has a
+#     sheet branch the office set does not need;
+#   * no character sheet (the lodge set ships no character; office-01's is SOU-187's).
+# ======================================================================================
+LODGE_SEAM_LIMIT = 1.05
+
+
+def main_lodge(args) -> int:
+    import gen_lodge_art as L
+
+    root = os.path.abspath(args.root or str(L.OUT))
+    repo = str(REPO)
+    map_path = args.map or os.path.join(repo, "frontend", "v3", "maps", "lodge.json")
+    report = Report()
+
+    if not os.path.isdir(root):
+        print(f"no art set at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    pal_path = os.path.join(root, "palette.json")
+    if os.path.exists(pal_path):
+        declared = json.load(open(pal_path))
+        if declared.get("hex") != L.PALETTE_HEX:
+            report.fail(f"palette.json does not match the generator's palette "
+                        f"({len(declared.get('hex', []))} vs {len(L.PALETTE_HEX)} colours)")
+        else:
+            report.ok(f"palette.json declares {len(L.PALETTE_HEX)} colours, identical to the "
+                      f"lodge generator ({declared.get('name')})")
+    else:
+        report.fail("palette.json missing - the palette is not declared anywhere")
+
+    print("=" * 96)
+    print(f"lodge v3 art set check   root={root}")
+    print(f"palette: {len(L.PALETTE_HEX)} declared colours, {', '.join(L.PALETTE_HEX[:6])}, ...")
+    print("=" * 96)
+
+    # ---- tiles -----------------------------------------------------------------------
+    print("\nTILES (32x32, full-bleed; seam asserted only on the axes the slot DECLARES)")
+    print(f"{'slot':>4s} {'name':15s} {'class':8s} {'axes':>4s} {'colours':>7s} {'transp':>7s} "
+          f"{'wrap/max x':>10s} {'y':>6s}  result")
+    order = [name for name, _cls, _seam, _spec in L.TILES]
+    for slot, (name, cls, axes, _spec) in enumerate(L.TILES):
+        path = os.path.join(root, "tiles", f"{name}.png")
+        if not os.path.exists(path):
+            report.fail(f"tiles/{name}.png missing (slot {slot})")
+            continue
+        img = Image.open(path)
+        colours, off = palette_check(img, allowed=L.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        wrap = L.wrap_vs_max(img)
+        problems = []
+        if img.size != (32, 32):
+            problems.append(f"size {img.size} != (32, 32)")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if alpha["transparent"]:
+            problems.append(f"{alpha['transparent']} transparent pixels (a tile is full-bleed)")
+        if "x" in axes and wrap["wrap_vs_max_x"] > LODGE_SEAM_LIMIT:
+            problems.append(f"x seam: wrap step is {wrap['wrap_vs_max_x']}x the largest interior "
+                            f"step (limit {LODGE_SEAM_LIMIT})")
+        if "y" in axes and wrap["wrap_vs_max_y"] > LODGE_SEAM_LIMIT:
+            problems.append(f"y seam: wrap step is {wrap['wrap_vs_max_y']}x the largest interior "
+                            f"step (limit {LODGE_SEAM_LIMIT})")
+        print(f"{slot:>4d} {name:15s} {cls:8s} {axes:>4s} {len(colours):>7d} "
+              f"{alpha['transparent']:>7d} {wrap['wrap_vs_max_x']:>10} {wrap['wrap_vs_max_y']:>6}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"tiles/{name}: " + "; ".join(problems))
+        else:
+            report.ok(f"tiles/{name} (slot {slot}, {cls}): 32x32, {len(colours)} palette colours, "
+                      f"opaque, wrap/max x={wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']} "
+                      f"checked={axes}")
+        if not args.quiet:
+            report.note(f"{name}: colours {' '.join(hexs(c) for c in colours)}")
+
+    # ---- tileset strip: size, palette, AND slot order vs the declared order ------------
+    print("\nTILESET STRIP (512x32, 16 slots of 32px) - order checked against the declared table")
+    sheet_path = os.path.join(root, "tiles", "tileset.png")
+    if not os.path.exists(sheet_path):
+        report.fail("tiles/tileset.png missing")
+    else:
+        sheet = Image.open(sheet_path).convert("RGBA")
+        if sheet.size != (32 * len(order), 32):
+            report.fail(f"tileset.png is {sheet.size}, expected {32 * len(order)}x32")
+        else:
+            report.ok(f"tileset.png is {sheet.size[0]}x{sheet.size[1]} = {len(order)} tiles of 32px")
+        colours, off = palette_check(sheet, allowed=L.PALETTE_RGB)
+        if off:
+            report.fail(f"tileset.png has {len(off)} off-palette colours e.g. {hexs(off[0])}")
+        else:
+            report.ok(f"tileset.png uses {len(colours)} palette colours only")
+        mismatched = []
+        for slot, name in enumerate(order):
+            tile_path = os.path.join(root, "tiles", f"{name}.png")
+            if not os.path.exists(tile_path):
+                continue
+            tile = Image.open(tile_path).convert("RGBA")
+            if sheet.crop((slot * 32, 0, (slot + 1) * 32, 32)).tobytes() != tile.tobytes():
+                mismatched.append(f"slot {slot} != {name}.png")
+        if mismatched:
+            report.fail("tileset.png slot order/content does not match the declared order: "
+                        + "; ".join(mismatched))
+        else:
+            report.ok("every one of the 16 slots holds exactly the tile the declared slot order "
+                      f"names ({', '.join(order[:4])}, ... {order[-1]})")
+        if os.path.exists(map_path):
+            tiles = json.load(open(map_path))["tilesets"][0]["tiles"]
+            map_order = [t["type"] for t in sorted(tiles, key=lambda t: t["id"])]
+            if map_order != order:
+                report.fail(f"tileset slot order {order} != lodge map order {map_order}")
+            else:
+                report.ok(f"slot order matches the lodge map: {', '.join(map_order)}")
+        else:
+            report.note(f"no lodge map at {map_path} yet - the declared table is the authority "
+                        f"and the map cross-check will run once the map lands")
+
+    # ---- props -----------------------------------------------------------------------
+    print("\nPROPS (width = the footprint width the renderer draws; height = declared, or grown "
+          "and reported)")
+    print(f"{'asset':15s} {'shipped':>9s} {'declared':>9s} {'fp px':>7s} {'lift':>5s} "
+          f"{'colours':>7s} {'transp':>7s} {'fringe':>6s} {'base':>5s}  result")
+    for asset in L.PROPS:
+        aid = asset["id"]
+        path = os.path.join(root, "props", f"{aid}.png")
+        if not os.path.exists(path):
+            report.fail(f"props/{aid}.png missing")
+            continue
+        img = Image.open(path)
+        colours, off = palette_check(img, allowed=L.PALETTE_RGB)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        cov = base_row_coverage(img)
+        problems = []
+        if asset["kind"] == "sheet":
+            want = (32 * 4, 32)
+            if img.size != want:
+                problems.append(f"sheet is {img.size}, expected {want}")
+            frames = [img.crop((i * 32, 0, (i + 1) * 32, 32)).convert("RGBA") for i in range(4)]
+            empty = [i for i, f in enumerate(frames) if f.getchannel("A").getbbox() is None]
+            same = [i for i in (1, 2, 3) if frames[i].tobytes() == frames[0].tobytes()]
+            if empty:
+                problems.append(f"empty frames {empty}")
+            if same:
+                problems.append(f"frames {same} identical to frame 0 - the derivation did not "
+                                f"animate them")
+            bottom = min(content_bottom_row(f) or 0 for f in frames)
+        else:
+            want_w, want_h = asset["texture_px"]
+            # SOU-198 AC1 is "exists at the EXACT pixel size", and the lodge props are fitted
+            # inside the declared box so the canvas is exactly it - both axes are asserted, not
+            # just the width. (office-01 fitted by width and let the canvas grow; its reviewer
+            # had to reconcile five props that shipped taller than the published table.)
+            if (img.size[0], img.size[1]) != (want_w, want_h):
+                problems.append(f"size {img.size[0]}x{img.size[1]} != declared {want_w}x{want_h}")
+            bottom = content_bottom_row(img)
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if not alpha["has_real_alpha"]:
+            problems.append("no real alpha")
+        if alpha["partial"]:
+            problems.append(f"{alpha['partial']} partial-alpha pixels")
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+        if asset["kind"] != "sheet" and bottom != img.size[1] - 1:
+            problems.append(f"content stops at row {bottom} of {img.size[1]} - the footprint's "
+                            f"bottom edge is where the renderer anchors, so the prop would float")
+        declared = (f"{asset['texture_px'][0]}x{asset['texture_px'][1]}" if asset["kind"] != "sheet"
+                    else "128x32")
+        over = ""
+        print(f"{aid:15s} {f'{img.size[0]}x{img.size[1]}':>9s} {declared:>9s} "
+              f"{asset['footprint_px'][0]:>3d}x{asset['footprint_px'][1]:<3d} "
+              f"{asset['lift_px']:>5d} {len(colours):>7d} {alpha['transparent']:>7d} "
+              f"{resid['strong_magenta']:>6d} {cov:>5.2f}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+        else:
+            report.ok(f"{aid}: {img.size[0]}x{img.size[1]}{over}, {len(colours)} palette colours, "
+                      f"real alpha, no magenta, content reaches the canvas bottom (row {bottom})")
+        if not args.quiet:
+            report.note(f"{aid}: colours {' '.join(hexs(c) for c in colours)}")
+
+    # ---- manifests: AC3 is "a manifest next to every generated file", so it is checked -------
+    print("\nMANIFESTS (AC3: one next to every file, carrying the model/seed/prompt/dims record)")
+    pairs = [("tiles", f"{name}.png") for name in order] + [("tiles", "tileset.png")] \
+        + [("props", f"{a['id']}.png") for a in L.PROPS]
+    print(f"{'manifest':26s} {'kind':9s} {'seed':>8s}  result")
+    for sub, fname in pairs:
+        png = os.path.join(root, sub, fname)
+        man = png + ".manifest.json"
+        if not os.path.exists(png):
+            continue  # already reported as missing above
+        if not os.path.exists(man):
+            report.fail(f"{sub}/{fname}: no manifest next to it (AC3)")
+            print(f"{sub}/{fname:19s} {'-':9s} {'-':>8s}  FAIL: no manifest")
+            continue
+        try:
+            m = json.load(open(man))
+        except Exception as exc:  # noqa: BLE001
+            report.fail(f"{sub}/{fname}.manifest.json is not valid JSON ({exc})")
+            continue
+        problems = []
+        if m.get("model") != L.MODEL_ID:
+            problems.append(f"model {m.get('model')!r} != {L.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            problems.append("lora_strength is not 0.0 (the LoRA blacks out - ADR-060)")
+        if not (m.get("prompt") or m.get("derivation")):
+            problems.append("no prompt and no derivation")
+        if not m.get("palette"):
+            problems.append("no palette recorded")
+        if m.get("output_dims") and list(m["output_dims"]) != list(Image.open(png).size):
+            problems.append(f"output_dims {m['output_dims']} != the file's "
+                            f"{list(Image.open(png).size)}")
+        if m.get("kind") == "prop" and not m.get("seed"):
+            problems.append("generated prop with no seed")
+        print(f"{sub}/{fname:19s} {str(m.get('kind')):9s} {str(m.get('seed')):>8s}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{sub}/{fname}.manifest.json: " + "; ".join(problems))
+        else:
+            report.ok(f"{sub}/{fname}.manifest.json: model+palette+prompt recorded, "
+                      f"seed={m.get('seed') if m.get('seed') is not None else 'n/a (drawn)'}, "
+                      f"dims match the file")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC1 record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print("RESULT: PASS - every lodge file exists at exactly its declared pixel size (props are "
+          "fitted inside the declared box, so width AND height match the table), on the declared "
+          "61-colour palette, with opaque tiles showing no seam on the axes each slot declares, "
+          "real alpha and no magenta on every prop, a manifest next to every file, and the "
+          "512x32 strip holding the 16 declared slots in order.")
     return 0
 
 

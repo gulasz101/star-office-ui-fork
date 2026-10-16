@@ -16,6 +16,11 @@
     "y": -8,
     "depth": -2
   },
+  "camera": {
+    "scrollX": 0,
+    "scrollY": 0,
+    "zoom": 1
+  },
   "floor": {
     "isTilemapLayer": true,
     "position": {
@@ -43,7 +48,32 @@
       "sprite": {
         "x": 928,
         "y": 415,
-        "depth": 75
+        "depth": 75,
+        "scaleX": 0.45659593679458244,
+        "scaleY": 0.45659593679458244,
+        "originX": 0.50546875,
+        "originY": 0.8390625,
+        "displayWidth": 292.22139954853276,
+        "displayHeight": 292.22139954853276
+      },
+      "grounding": {
+        "art_bbox": [
+          102,
+          105,
+          545,
+          537
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 2.107,
+        "declared_width": 202.27200000000002,
+        "content_width": 202.27200000000002,
+        "content_base": {
+          "x": 928,
+          "y": 415
+        }
       }
     },
     {
@@ -63,7 +93,32 @@
       "sprite": {
         "x": 1216,
         "y": 525,
-        "depth": 128
+        "depth": 128,
+        "scaleX": 1.2829595375722542,
+        "scaleY": 1.2829595375722542,
+        "originX": 0.49765625,
+        "originY": 0.8390625,
+        "displayWidth": 821.0941040462427,
+        "displayHeight": 821.0941040462427
+      },
+      "grounding": {
+        "art_bbox": [
+          232,
+          89,
+          405,
+          537
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 2.312,
+        "declared_width": 221.952,
+        "content_width": 221.95199999999997,
+        "content_base": {
+          "x": 1216,
+          "y": 525
+        }
       }
     },
     {
@@ -83,7 +138,32 @@
       "sprite": {
         "x": 832,
         "y": 470,
-        "depth": 99
+        "depth": 99,
+        "scaleX": 0.15241434262948209,
+        "scaleY": 0.15241434262948209,
+        "originX": 0.5046875,
+        "originY": 0.815625,
+        "displayWidth": 97.54517928286853,
+        "displayHeight": 97.54517928286853
+      },
+      "grounding": {
+        "art_bbox": [
+          72,
+          106,
+          574,
+          522
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 0.797,
+        "declared_width": 76.512,
+        "content_width": 76.512,
+        "content_base": {
+          "x": 832,
+          "y": 470
+        }
       }
     },
     {
@@ -103,7 +183,32 @@
       "sprite": {
         "x": 976,
         "y": 552.5,
-        "depth": 138
+        "depth": 138,
+        "scaleX": 0.38007629427792916,
+        "scaleY": 0.38007629427792916,
+        "originX": 0.50078125,
+        "originY": 0.775,
+        "displayWidth": 243.24882833787467,
+        "displayHeight": 243.24882833787467
+      },
+      "grounding": {
+        "art_bbox": [
+          137,
+          139,
+          504,
+          496
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 1.453,
+        "declared_width": 139.488,
+        "content_width": 139.488,
+        "content_base": {
+          "x": 976,
+          "y": 552.5
+        }
       }
     },
     {
@@ -123,7 +228,32 @@
       "sprite": {
         "x": 1072,
         "y": 662.5,
-        "depth": 189
+        "depth": 189,
+        "scaleX": 0.35707317073170736,
+        "scaleY": 0.35707317073170736,
+        "originX": 0.503125,
+        "originY": 0.7453125,
+        "displayWidth": 228.52682926829272,
+        "displayHeight": 228.52682926829272
+      },
+      "grounding": {
+        "art_bbox": [
+          158,
+          149,
+          486,
+          477
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 1.22,
+        "declared_width": 117.12,
+        "content_width": 117.12000000000002,
+        "content_base": {
+          "x": 1072,
+          "y": 662.5
+        }
       }
     },
     {
@@ -143,7 +273,32 @@
       "sprite": {
         "x": 1216,
         "y": 635,
-        "depth": 178
+        "depth": 178,
+        "scaleX": 0.18651428571428572,
+        "scaleY": 0.18651428571428572,
+        "originX": 0.5078125,
+        "originY": 0.9296875,
+        "displayWidth": 119.36914285714286,
+        "displayHeight": 119.36914285714286
+      },
+      "grounding": {
+        "art_bbox": [
+          80,
+          63,
+          570,
+          595
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 0.952,
+        "declared_width": 91.392,
+        "content_width": 91.392,
+        "content_base": {
+          "x": 1216,
+          "y": 635
+        }
       }
     },
     {
@@ -163,7 +318,32 @@
       "sprite": {
         "x": 208,
         "y": 662.5,
-        "depth": 180
+        "depth": 180,
+        "scaleX": 0.14237974683544305,
+        "scaleY": 0.14237974683544305,
+        "originX": 0.5015625,
+        "originY": 0.821875,
+        "displayWidth": 91.12303797468356,
+        "displayHeight": 91.12303797468356
+      },
+      "grounding": {
+        "art_bbox": [
+          84,
+          100,
+          558,
+          526
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 0.703,
+        "declared_width": 67.488,
+        "content_width": 67.488,
+        "content_base": {
+          "x": 208,
+          "y": 662.5
+        }
       }
     },
     {
@@ -183,7 +363,32 @@
       "sprite": {
         "x": 496,
         "y": 827.5,
-        "depth": 258
+        "depth": 258,
+        "scaleX": 1.033090909090909,
+        "scaleY": 1.033090909090909,
+        "originX": 0.5,
+        "originY": 0.8078125,
+        "displayWidth": 661.1781818181818,
+        "displayHeight": 661.1781818181818
+      },
+      "grounding": {
+        "art_bbox": [
+          56,
+          138,
+          584,
+          517
+        ],
+        "image": [
+          640,
+          640
+        ],
+        "tiles": 5.682,
+        "declared_width": 545.472,
+        "content_width": 545.472,
+        "content_base": {
+          "x": 496,
+          "y": 827.5
+        }
       }
     }
   ],

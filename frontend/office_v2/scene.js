@@ -112,6 +112,10 @@ class RoomScene extends Phaser.Scene {
     // is emitted synchronously at the end of create() - every number below is
     // pure scene-graph state that exists once create() has run.
     this.__v2 = { map, floorLayer, collisionLayer, walls, placed, rowLength };
+    // Tooling handle for the browser proof (SOU-147 pixel diff needs to hide
+    // individual prop images). NOT part of the __SOU2 readout - it is a live
+    // object reference, deliberately kept off the serialisable numbers.
+    window.__SOU2DEBUG = { scene: this };
     {
       window.__SOU2 = {
         ready: true,
@@ -121,6 +125,8 @@ class RoomScene extends Phaser.Scene {
         canvas: { w: d.canvas.w, h: d.canvas.h },
         grid: { w: d.grid.w, h: d.grid.h },
         walls: { x: this.__v2.walls.x, y: this.__v2.walls.y, depth: this.__v2.walls.depth },
+        camera: { scrollX: this.cameras.main.scrollX, scrollY: this.cameras.main.scrollY,
+                  zoom: this.cameras.main.zoom },
         floor: {
           isTilemapLayer: this.__v2.floorLayer instanceof Phaser.Tilemaps.TilemapLayer,
           position: { x: this.__v2.floorLayer.x, y: this.__v2.floorLayer.y },

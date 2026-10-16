@@ -1,0 +1,416 @@
+{
+  "ac1": [
+    {
+      "id": "desk",
+      "latticeY": 415,
+      "spriteY": 415,
+      "originY": 0.8390625,
+      "scaleY": 0.45659593679458244,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        102,
+        105,
+        545,
+        537
+      ],
+      "baseY": 415,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "rack",
+      "latticeY": 525,
+      "spriteY": 525,
+      "originY": 0.8390625,
+      "scaleY": 1.2829595375722542,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        232,
+        89,
+        405,
+        537
+      ],
+      "baseY": 525,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "chair",
+      "latticeY": 470,
+      "spriteY": 470,
+      "originY": 0.815625,
+      "scaleY": 0.15241434262948209,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        72,
+        106,
+        574,
+        522
+      ],
+      "baseY": 470,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "spool",
+      "latticeY": 552.5,
+      "spriteY": 552.5,
+      "originY": 0.775,
+      "scaleY": 0.38007629427792916,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        137,
+        139,
+        504,
+        496
+      ],
+      "baseY": 552.5,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "crate",
+      "latticeY": 662.5,
+      "spriteY": 662.5,
+      "originY": 0.7453125,
+      "scaleY": 0.35707317073170736,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        158,
+        149,
+        486,
+        477
+      ],
+      "baseY": 662.5,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "bass",
+      "latticeY": 635,
+      "spriteY": 635,
+      "originY": 0.9296875,
+      "scaleY": 0.18651428571428572,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        80,
+        63,
+        570,
+        595
+      ],
+      "baseY": 635,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "cat",
+      "latticeY": 662.5,
+      "spriteY": 662.5,
+      "originY": 0.821875,
+      "scaleY": 0.14237974683544305,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        84,
+        100,
+        558,
+        526
+      ],
+      "baseY": 662.5,
+      "delta": 0,
+      "positionDelta": 0
+    },
+    {
+      "id": "jdm_van",
+      "latticeY": 827.5,
+      "spriteY": 827.5,
+      "originY": 0.8078125,
+      "scaleY": 1.033090909090909,
+      "image": [
+        640,
+        640
+      ],
+      "art_bbox": [
+        56,
+        138,
+        584,
+        517
+      ],
+      "baseY": 827.5,
+      "delta": 0,
+      "positionDelta": 0
+    }
+  ],
+  "ac2": [
+    {
+      "id": "desk",
+      "tiles": 2.107,
+      "target": 202.27200000000002,
+      "contentWidth": 202.27200000000002,
+      "pctError": 0,
+      "displayWidth": 292.22139954853276
+    },
+    {
+      "id": "rack",
+      "tiles": 2.312,
+      "target": 221.952,
+      "contentWidth": 221.95199999999997,
+      "pctError": 1.280534053777574e-16,
+      "displayWidth": 821.0941040462427
+    },
+    {
+      "id": "chair",
+      "tiles": 0.797,
+      "target": 76.512,
+      "contentWidth": 76.512,
+      "pctError": 0,
+      "displayWidth": 97.54517928286853
+    },
+    {
+      "id": "spool",
+      "tiles": 1.453,
+      "target": 139.488,
+      "contentWidth": 139.488,
+      "pctError": 0,
+      "displayWidth": 243.24882833787467
+    },
+    {
+      "id": "crate",
+      "tiles": 1.22,
+      "target": 117.12,
+      "contentWidth": 117.12000000000002,
+      "pctError": 1.2133584968580944e-16,
+      "displayWidth": 228.52682926829272
+    },
+    {
+      "id": "bass",
+      "tiles": 0.952,
+      "target": 91.392,
+      "contentWidth": 91.392,
+      "pctError": 0,
+      "displayWidth": 119.36914285714286
+    },
+    {
+      "id": "cat",
+      "tiles": 0.703,
+      "target": 67.488,
+      "contentWidth": 67.488,
+      "pctError": 0,
+      "displayWidth": 91.12303797468356
+    },
+    {
+      "id": "jdm_van",
+      "tiles": 5.682,
+      "target": 545.472,
+      "contentWidth": 545.472,
+      "pctError": 0,
+      "displayWidth": 661.1781818181818
+    }
+  ],
+  "ac3": [
+    {
+      "id": "desk",
+      "diffPixels": 21302,
+      "minX": 827,
+      "maxX": 1028,
+      "minY": 218,
+      "maxY": 414,
+      "drawnWidth": 202,
+      "gapToLattice": 0,
+      "widthVsTargetPct": 0.00134472393608616,
+      "footprintWidthPx": 192,
+      "overWide": true,
+      "baseCornerCells": [
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          1
+        ]
+      ]
+    },
+    {
+      "id": "rack",
+      "diffPixels": 106301,
+      "minX": 1105,
+      "maxX": 1326,
+      "minY": 0,
+      "maxY": 524,
+      "drawnWidth": 222,
+      "gapToLattice": 0,
+      "widthVsTargetPct": 0.0002162629757785549,
+      "footprintWidthPx": 192,
+      "overWide": true,
+      "baseCornerCells": [
+        [
+          6,
+          3
+        ],
+        [
+          9,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "chair",
+      "diffPixels": 2222,
+      "minX": 794,
+      "maxX": 869,
+      "minY": 407,
+      "maxY": 469,
+      "drawnWidth": 76,
+      "gapToLattice": 0,
+      "widthVsTargetPct": 0.006691760769552494,
+      "footprintWidthPx": 96,
+      "overWide": false,
+      "baseCornerCells": [
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "id": "spool",
+      "diffPixels": 11142,
+      "minX": 906,
+      "maxX": 1045,
+      "minY": 417,
+      "maxY": 552,
+      "drawnWidth": 140,
+      "gapToLattice": -0.5,
+      "widthVsTargetPct": 0.0036705666437256285,
+      "footprintWidthPx": 96,
+      "overWide": true,
+      "baseCornerCells": [
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          4
+        ]
+      ]
+    },
+    {
+      "id": "crate",
+      "diffPixels": 9599,
+      "minX": 1013,
+      "maxX": 1130,
+      "minY": 545,
+      "maxY": 661,
+      "drawnWidth": 118,
+      "gapToLattice": 0.5,
+      "widthVsTargetPct": 0.007513661202185753,
+      "footprintWidthPx": 96,
+      "overWide": true,
+      "baseCornerCells": [
+        [
+          8,
+          6
+        ],
+        [
+          9,
+          5
+        ]
+      ]
+    },
+    {
+      "id": "bass",
+      "diffPixels": 2107,
+      "minX": 1170,
+      "maxX": 1261,
+      "minY": 536,
+      "maxY": 634,
+      "drawnWidth": 92,
+      "gapToLattice": 0,
+      "widthVsTargetPct": 0.006652661064425815,
+      "footprintWidthPx": 96,
+      "overWide": false,
+      "baseCornerCells": [
+        [
+          9,
+          4
+        ],
+        [
+          10,
+          3
+        ]
+      ]
+    },
+    {
+      "id": "cat",
+      "diffPixels": 2546,
+      "minX": 174,
+      "maxX": 241,
+      "minY": 602,
+      "maxY": 662,
+      "drawnWidth": 68,
+      "gapToLattice": -0.5,
+      "widthVsTargetPct": 0.007586533902323383,
+      "footprintWidthPx": 96,
+      "overWide": false,
+      "baseCornerCells": [
+        [
+          -1,
+          15
+        ],
+        [
+          0,
+          14
+        ]
+      ]
+    },
+    {
+      "id": "jdm_van",
+      "diffPixels": 70363,
+      "minX": 223,
+      "maxX": 768,
+      "minY": 436,
+      "maxY": 826,
+      "drawnWidth": 546,
+      "gapToLattice": 0.5,
+      "widthVsTargetPct": 0.000967969024991237,
+      "footprintWidthPx": 576,
+      "overWide": false,
+      "baseCornerCells": [
+        [
+          3,
+          17
+        ],
+        [
+          8,
+          12
+        ]
+      ]
+    }
+  ]
+}

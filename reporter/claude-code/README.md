@@ -19,7 +19,7 @@ extensions and background sessions all report.
 | `UserPromptSubmit` | `state_change` | `state: "thinking"`, `session_id` |
 | `PreToolUse` | `tool_call` | `tool`, `status: "started"`, `session_id` |
 | `PostToolUse` (Edit, Write, MultiEdit, NotebookEdit) | `file_edit` | `tool`, `file` (basename only), `status: "ok"`, `session_id`, `duration_ms` |
-| `PostToolUse` (Bash, PowerShell) | `command_run` | `tool`, `command` (**program name only**), `status: "ok"`, `session_id`, `duration_ms` |
+| `PostToolUse` (Bash, PowerShell) | `command_run` | `tool`, `command` (**program name plus one allow-listed subcommand**, see below), `status: "ok"`, `session_id`, `duration_ms` |
 | `PostToolUse` (any other tool, incl. `mcp__server__tool`) | `tool_call` | `tool`, `status: "ok"`, `session_id`, `duration_ms` |
 | `Stop` | `code_completion` | `session_id` |
 | `Notification` | `state_change` | `state: "waiting_for_user"`, `session_id`, `notification_type` |
@@ -31,15 +31,29 @@ Payload keys are the ones the v3 activity map reads (`tool`, `status`, `file`,
 `command`, `state`), so an edit puts the character at the desk, a command at
 the rack, a long build in the garage and a notification at the coffee machine.
 
+**The command label (SOU-173).** `command` carries the program name, plus for
+an allow-list of CLI families the *first bare subcommand token*:
+`git, npm, pnpm, yarn, docker, kubectl, cargo, go, helm, flux, make, uv, pip,
+poetry`. That list mirrors `frontend/v3/activity.js`, which decides desk /
+rack / garage from the verb — `git push`, `docker build` and `kubectl apply`
+go to the garage, `git status` stays at the rack. The subcommand must match
+`^[a-z][a-z0-9-]{0,20}$`, so flags, `key=value` pairs, paths, URLs and values
+are skipped and never echoed: `git -c user.password=SECRET push` is sent as
+`git push`. `npm`/`pnpm`/`yarn` keep `run <script>` as two tokens because
+activity.js reads the runner verb from the token after `run`. Every other
+program is sent as the bare name, as before.
+
 ## Privacy — what never leaves the machine
 
 The script is written so it *cannot* forward prompt text, file contents,
 tool output (`tool_response`), error text, a full command or its arguments,
 absolute paths and directory prefixes, the transcript path, and
-`last_assistant_message`. Only names, statuses, one basename, one program name,
-the session id and a handful of documented enum values are sent. The test
-suite proves this with canary values in every forbidden field
-(`tests/test_privacy.py`).
+`last_assistant_message`. Only names, statuses, one basename, one program name
+plus (for the allow-listed CLI families) one or two bare subcommand tokens,
+the session id and a handful of documented enum values are sent — never a
+flag, value, path or URL from a command line. The test suite proves this with
+canary values in every forbidden field (`tests/test_privacy.py`,
+`tests/test_subcommands.py`).
 
 ## It cannot break your session
 
@@ -83,6 +97,18 @@ Replace `${CLAUDE_PROJECT_DIR}` with the absolute path of this checkout:
   }
 }
 ```
+
+**Why `args` and `statusMessage` are valid here (SOU-173 verification).** The
+current hooks reference (docs.claude.com/en/docs/claude-code/hooks, "Command
+hook fields") documents `args` on command hooks: *"Argument list. When
+present, `command` is resolved as an executable and spawned directly with
+`args` as the argument vector, with no shell involved."*, and its guidance is
+*"Prefer exec form for any hook that references a path placeholder"* — exactly
+what `${CLAUDE_PROJECT_DIR}` is. `statusMessage` is documented under "Common
+fields": *"Custom spinner message displayed while the hook runs."* So the
+example keeps the exec form. If your Claude Code build predates `args`, the
+equivalent shell form is `"command": "python3 /abs/path/star_office_hook.py"`
+(quote the path if it contains spaces); everything else is unchanged.
 
 **B. Project-level — only this repo** (`.claude/settings.json`, committable)
 
@@ -133,8 +159,11 @@ uv run pytest reporter/claude-code/tests -q
 
 * Failed tool calls are not reported: `PostToolUseFailure` is not wired, so a
   call that dies mid-flight leaves a `started` bubble and no result.
-* `command_run` carries the program name only, so `git push` shows as `git`
-  rather than `pushing` — the full command is forbidden, not just redacted.
+* The `command` label carries a subcommand only for the allow-listed CLI
+  families, and only the first bare identifier: wrappers outside the stripped
+  set (`timeout 30 git push` labels as `timeout`), second commands after a
+  `&&` chain, and everything a non-listed program points at stay invisible —
+  the full command is forbidden, not just redacted.
 * A `MultiEdit`/`NotebookEdit` whose path is not under `file_path` /
   `notebook_path` / `path` falls back to a plain `tool_call` instead of
   guessing.

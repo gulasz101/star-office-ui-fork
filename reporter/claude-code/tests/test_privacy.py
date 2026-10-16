@@ -73,14 +73,16 @@ def test_no_raw_newlines_or_giant_values(all_envelopes, name):
             assert len(value) <= 120, (name, value[:120])
 
 
-def test_shell_command_is_the_program_name_only(harness):
-    """Full commands are forbidden, so arguments and subcommands must go."""
+def test_shell_command_is_program_plus_allow_listed_subcommand_only(harness):
+    """Full commands are forbidden: the program name plus, for the allow-listed
+    CLI families (SOU-173), at most a bare subcommand — never a value, path or
+    flag. See test_subcommands.py for the full table."""
     cases = [
-        ("git commit -m 'note to self'", "git"),
-        ("  /usr/bin/env FOO=bar npm run build ", "npm"),
+        ("git commit -m 'note to self'", "git commit"),
+        ("  /usr/bin/env FOO=bar npm run build ", "npm run build"),
         ("sudo -n rm -rf /tmp/x", "rm"),
         ("pytest reporter/claude-code/tests -q", "pytest"),
-        ("docker compose up -d", "docker"),
+        ("docker compose up -d", "docker compose"),
         ("cat notes.txt | grep CANARY", "cat"),
     ]
     for command, expected in cases:

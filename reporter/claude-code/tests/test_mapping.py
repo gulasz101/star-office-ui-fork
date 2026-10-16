@@ -68,11 +68,13 @@ MAPPING = {
         {"tool": "Write", "file": "index.ts", "status": "ok",
          "session_id": SID, "duration_ms": 6},
     ),
-    # PostToolUse -> command_run for the shell tools, program name only
+    # PostToolUse -> command_run for the shell tools: program plus, for an
+    # allow-listed CLI, one bare subcommand token (SOU-173). Arguments of the
+    # fixture command (-m 'CANARY-COMMIT-MSG') must still never appear.
     "post_tool_use_bash.json": (
         "command_run",
-        {"tool": "Bash", "command": "git", "status": "ok", "session_id": SID,
-         "duration_ms": 4187},
+        {"tool": "Bash", "command": "git commit", "status": "ok",
+         "session_id": SID, "duration_ms": 4187},
     ),
     "post_tool_use_powershell.json": (
         "command_run",

@@ -8,7 +8,8 @@ on startup, multi-stage, healthcheck on the event feed).
 
 Phase 5 contract, keyed to the acceptance criteria on SOU-62
   AC1  base image Python 3.10+ (pinned ``python:3.13-slim`` for ``int | None``
-       syntax), deps installed from ``backend/requirements.txt``, backend +
+       syntax), deps installed with uv from ``pyproject.toml`` + ``uv.lock``
+       — the single dependency source since SOU-170 — backend +
        frontend copied, port 19000 / ``STAR_BACKEND_PORT``
   AC2  ``entrypoint.sh`` runs ``alembic upgrade head`` **before** the server,
        resolves the backend through ``DATABASE_URL`` (Postgres) with the SQLite
@@ -16,6 +17,10 @@ Phase 5 contract, keyed to the acceptance criteria on SOU-62
   AC3  multi-stage: a deps stage that installs, a runtime stage that only copies
   AC4  ``HEALTHCHECK --interval=30s --retries=3`` probing ``/events/recent?limit=1``
   +    non-root final user and no baked secrets (the SOU-12 guarantees, kept)
+
+The uv tool stage (``ghcr.io/astral-sh/uv``, COPY --from= target only) is the
+one non-python FROM the contract allows, and it must carry a pinned tag
+(SOU-170).
 
 Exit code 0 = contract satisfied, 1 = violation(s). Run from anywhere:
 
@@ -27,19 +32,26 @@ from __future__ import annotations
 import os
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCKERFILE = ROOT / "Dockerfile"
 DOCKERIGNORE = ROOT / ".dockerignore"
 ENTRYPOINT = ROOT / "entrypoint.sh"
-REQUIREMENTS = ROOT / "backend" / "requirements.txt"
+PYPROJECT = ROOT / "pyproject.toml"
+UV_LOCK = ROOT / "uv.lock"
 
 # AC1: "Base: Python 3.10+ (3.13 preferred, supports int | None syntax)".
+# fullmatch, not match: a permissive pattern let `ghcr.io/astral-sh/uv:0.13`
+# slip through as "python 3.1x" once (SOU-170).
 BASE_IMAGE_RE = re.compile(r"^python:3\.(?P<minor>1[0-9])(?:\.\d+)?-slim$")
 BASE_IMAGE_MIN_MINOR = 10
 # The fork pins one base so the image and the CI smoke test can never drift.
 PINNED_BASE = "python:3.13-slim"
+# The uv tool image (SOU-170): allowed as a FROM, used only as a COPY --from=
+# source, and it must be pinned to a tag, never :latest.
+UV_IMAGE_RE = re.compile(r"^ghcr\.io/astral-sh/uv:[^:]+$")
 
 APP_PORT = "19000"
 HEALTH_PATH = "/events/recent?limit=1"
@@ -154,26 +166,47 @@ def main() -> int:
         "stage plus a runtime stage that copies only what is needed",
     )
 
-    # --- AC1 base image --------------------------------------------------
-    for from_line in froms:
+    # --- AC1 base images --------------------------------------------------
+    uv_stages = [
+        line for line in froms
+        if UV_IMAGE_RE.match(image_of(line))
+    ]
+    py_stages = [
+        line for line in froms
+        if BASE_IMAGE_RE.fullmatch(image_of(line))
+    ]
+    check(
+        len(uv_stages) + len(py_stages) == len(froms),
+        "AC1: a FROM base is neither python:3.x-slim nor the pinned ghcr.io/astral-sh/uv "
+        "tool image (SOU-170)",
+    )
+    for from_line in py_stages:
         base = image_of(from_line)
-        match = BASE_IMAGE_RE.match(base)
         check(
-            match is not None,
-            f"AC1: FROM {base!r} is not a python:-slim base of the form python:3.x-slim",
+            int(BASE_IMAGE_RE.fullmatch(base).group("minor")) >= BASE_IMAGE_MIN_MINOR,
+            f"AC1: FROM {base!r} is older than the Python 3.10 floor",
         )
-        if match:
-            check(
-                int(match.group("minor")) >= BASE_IMAGE_MIN_MINOR,
-                f"AC1: FROM {base!r} is older than the Python 3.10 floor",
-            )
         check(
             base == PINNED_BASE,
             f"AC1: FROM {base!r} is not pinned to {PINNED_BASE!r} (the fork pins 3.13)",
         )
+    check(
+        bool(uv_stages),
+        "AC1: no ghcr.io/astral-sh/uv tool stage; the SOU-170 contract installs "
+        "dependencies with uv, not pip",
+    )
+    check(
+        len(py_stages) >= 1 and all(image_of(l) == PINNED_BASE for l in py_stages),
+        f"AC1: the python bases are not all pinned to {PINNED_BASE!r}",
+    )
 
     last_from = stage_index(df_lines)
     final_stage = df_lines[last_from:] if last_from >= 0 else df_lines
+    if final_stage:
+        check(
+            image_of(final_stage[0]) == PINNED_BASE,
+            f"AC1: the final stage base is {image_of(final_stage[0])!r}, expected {PINNED_BASE!r}",
+        )
 
     # --- AC3 the runtime stage installs nothing ---------------------------
     installs = [
@@ -203,20 +236,40 @@ def main() -> int:
                     f"allowed set {RUNTIME_COPY_ALLOWLIST}",
                 )
 
-    # --- AC1 dependencies from requirements.txt ---------------------------
-    check(REQUIREMENTS.is_file(), "backend/requirements.txt is missing")
-    if REQUIREMENTS.is_file():
-        req_text = REQUIREMENTS.read_text(encoding="utf-8").lower()
-        check("gunicorn" in req_text, "gunicorn is not declared in backend/requirements.txt")
-        for needed in ("sqlalchemy", "alembic", "psycopg2"):
-            check(
-                needed in req_text,
-                f"backend/requirements.txt no longer declares {needed} (Phase 1 DB layer)",
-            )
+    # --- AC1 dependencies from pyproject.toml + uv.lock (SOU-170) ---------
     df_text = "\n".join(df_lines)
     check(
-        "requirements.txt" in df_text,
-        "AC1: Dockerfile does not install backend/requirements.txt",
+        not any("requirements.txt" in line.upper() for line in df_lines),
+        "AC1: the Dockerfile still references backend/requirements.txt; pyproject.toml "
+        "+ uv.lock are the single dependency source (SOU-170)",
+    )
+    check(PYPROJECT.is_file(), "pyproject.toml is missing at repo root")
+    check(UV_LOCK.is_file(), "uv.lock is missing at repo root")
+    if PYPROJECT.is_file():
+        with PYPROJECT.open("rb") as handle:
+            deps_blob = " ".join(
+                str(d) for d in tomllib.load(handle)["project"]["dependencies"]
+            ).lower()
+        check("gunicorn" in deps_blob, "gunicorn is not declared in pyproject.toml")
+        for needed in ("sqlalchemy", "alembic", "psycopg2"):
+            check(
+                needed in deps_blob,
+                f"pyproject.toml no longer declares {needed} (Phase 1 DB layer)",
+            )
+    check(
+        bool([line for line in df_lines if line.upper().startswith("COPY ") and "uv.lock" in line])
+        and bool([line for line in df_lines if line.upper().startswith("COPY ") and "pyproject.toml" in line]),
+        "AC1: the deps stage does not COPY both pyproject.toml and uv.lock",
+    )
+    check(
+        re.search(r"(?im)^\s*RUN\b.*uv sync\b", df_text) is not None
+        and "--frozen" in df_text
+        and "--no-dev" in df_text,
+        "AC1: the Dockerfile does not install with `uv sync --frozen --no-dev`",
+    )
+    check(
+        re.search(r"(?im)\bpip3?\s+install\b", df_text) is None,
+        "AC1: a pip install survived in the Dockerfile",
     )
 
     # --- AC1 copies backend and frontend ----------------------------------

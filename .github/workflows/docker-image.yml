@@ -9,6 +9,8 @@
 #
 # No third-party actions, and no registry credentials in repo secrets: GHCR auth
 # comes from the built-in token, so there is nothing to leak from a public repo.
+# Dependencies come from pyproject.toml + uv.lock via uv (SOU-170); uv itself is
+# bootstrapped with the runner's stock pip, pinned to one version.
 
 name: docker-image
 
@@ -46,15 +48,17 @@ jobs:
       - name: Shell syntax of the entrypoint
         run: sh -n entrypoint.sh
 
-      - name: Install the app requirements exactly like the image does
-        run: |
-          python3 -m venv .venv
-          .venv/bin/pip install --no-cache-dir -r backend/requirements.txt
+      - name: Install uv (SOU-170)
+        # Deliberately pip from PyPI with the runner's stock python3, pinned to
+        # one version: the workflow rule is no third-party actions, so no
+        # astral-sh/setup-uv, and no curl|bash.
+        run: python3 -m pip install --quiet --target ./ci-uv 'uv==0.13.1'
+
+      - name: Sync the locked environment exactly like the image resolves it
+        run: ./ci-uv/bin/uv sync --frozen
 
       - name: Backend suite (SQLite; the Postgres legs skip without TEST_POSTGRES_URL)
-        run: |
-          source .venv/bin/activate
-          python -m pytest backend/tests -q
+        run: ./ci-uv/bin/uv run pytest backend/tests -q
 
   image:
     name: Build, smoke on SQLite + Postgres, publish

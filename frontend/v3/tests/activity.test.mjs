@@ -330,7 +330,12 @@ const COMMAND_CASES = [
   { cmd: 'helm upgrade --install sou ./chart', zone: 'build', activity: 'building', bubble: '$ helm' },
   { cmd: 'git push origin master', zone: 'build', activity: 'building', bubble: '$ git push' },
   { cmd: 'sudo systemctl restart nginx', zone: 'ops', activity: 'terminal', bubble: '$ systemctl' },
-  { cmd: 'GH_TOKEN=abc gh pr create', zone: 'ops', activity: 'terminal', bubble: '$ gh' },
+  { cmd: 'GH_TOKEN=abc gh pr create', zone: 'ops', activity: 'terminal', bubble: '$ gh' },  // SOU-191: setup segments ("cd dir && …") give way to the real work.
+  { cmd: "cd ~/.hermes/hermes-agent && sed -n '480,560p' gateway/x.py", zone: 'ops', activity: 'terminal', bubble: '$ sed' },
+  { cmd: 'cd /srv/app && git push origin main', zone: 'build', activity: 'building', bubble: '$ git push' },
+  { cmd: 'export A=1; npm test', zone: 'build', activity: 'building', bubble: '$ npm test' },
+  { cmd: 'source .venv/bin/activate && python3 -m pytest', zone: 'ops', activity: 'terminal', bubble: '$ python3' },
+  { cmd: 'cd /tmp/secret-dir', zone: 'ops', activity: 'terminal', bubble: '$ cd' },
 ];
 
 for (const c of COMMAND_CASES) {

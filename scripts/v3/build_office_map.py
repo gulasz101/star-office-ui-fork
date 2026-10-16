@@ -122,15 +122,17 @@ PROPS = {
     "crate": (14, 10, 1, 1, True),
 }
 
-# zones: id -> (tile x, tile y) where the character stands
+# zones: id -> (tile x, tile y, face, seat). (x, y) is the walkable tile the character
+# stands on; `face` is where it looks while working; `seat` is an optional one-tile hop onto
+# furniture (sitting on the couch) that the character controller animates.
 ZONES = {
-    "work": (2, 5),      # in the chair, facing the desk
-    "ops": (5, 4),       # in front of the rack
-    "read": (7, 4),      # in front of the bookshelf
-    "wait": (2, 7),      # in front of the coffee machine
-    "rest": (4, 9),      # on the couch
-    "build": (11, 8),    # next to the van
-    "entry": (6, 10),    # just inside the door
+    "work": (2, 5, "up", None),       # in the chair, facing the desk
+    "ops": (5, 4, "up", None),        # in front of the rack
+    "read": (7, 4, "up", None),       # in front of the bookshelf
+    "wait": (2, 7, "up", None),       # in front of the coffee machine
+    "rest": (4, 10, "down", "up"),    # in front of the couch, then sit on it
+    "build": (11, 8, "right", None),  # next to the van
+    "entry": (6, 10, "down", None),   # just inside the door
 }
 
 
@@ -153,9 +155,12 @@ def build_map():
         prop_objs.append(obj(oid, key, tx * T, ty * T, tw * T, th * T, {"collides": collides}))
         oid += 1
     zone_objs = []
-    for key, (tx, ty) in ZONES.items():
+    for key, (tx, ty, face, seat) in ZONES.items():
+        props = {"face": face}
+        if seat:
+            props["seat"] = seat
         # point at the centre of the tile
-        zone_objs.append(obj(oid, key, tx * T + T // 2, ty * T + T // 2, 0, 0, point=True))
+        zone_objs.append(obj(oid, key, tx * T + T // 2, ty * T + T // 2, 0, 0, props, point=True))
         oid += 1
     flat = lambda grid: [v for row in grid for v in row]
     return {

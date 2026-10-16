@@ -800,7 +800,14 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "up"
+      }
+     ]
     },
     {
      "id": 15,
@@ -812,7 +819,14 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "up"
+      }
+     ]
     },
     {
      "id": 16,
@@ -824,7 +838,14 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "up"
+      }
+     ]
     },
     {
      "id": 17,
@@ -836,19 +857,38 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "up"
+      }
+     ]
     },
     {
      "id": 18,
      "name": "rest",
      "type": "",
      "x": 144,
-     "y": 304,
+     "y": 336,
      "width": 0,
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "down"
+      },
+      {
+       "name": "seat",
+       "type": "string",
+       "value": "up"
+      }
+     ]
     },
     {
      "id": 19,
@@ -860,7 +900,14 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "right"
+      }
+     ]
     },
     {
      "id": 20,
@@ -872,7 +919,14 @@
      "height": 0,
      "rotation": 0,
      "visible": true,
-     "point": true
+     "point": true,
+     "properties": [
+      {
+       "name": "face",
+       "type": "string",
+       "value": "down"
+      }
+     ]
     }
    ]
   }

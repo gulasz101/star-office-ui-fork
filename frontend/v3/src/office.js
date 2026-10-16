@@ -3,6 +3,7 @@
 // origin so the Building can put many offices side by side (M2).
 import { TILE, COLORS } from './config.js';
 import { ensurePropTexture, ensureCharacterTexture } from './placeholders.js';
+import { buildGrid, findPath } from './grid.js';
 
 export class OfficeModule {
   /**
@@ -33,9 +34,11 @@ export class OfficeModule {
     this.widthTiles = this.map.width;
     this.heightTiles = this.map.height;
 
-    this.zones = this._readZones();
+    // walkability, props and zones come from the same pure module the tests use
+    this.grid = buildGrid(scene.cache.tilemap.get(mapKey).data);
+    this.zones = this.grid.zones;
+    this.blocked = this.grid.blocked;
     this.props = this._createProps();
-    this.blocked = this._buildCollisionGrid();
     this.character = this._createCharacter(color);
     this.label = this._createLabel();
     this.debug = null;
@@ -50,15 +53,6 @@ export class OfficeModule {
     return { x: this.ox + tx * TILE + TILE / 2, y: this.oy + ty * TILE + TILE / 2 };
   }
 
-  _readZones() {
-    const layer = this.map.getObjectLayer('zones');
-    const zones = {};
-    for (const o of layer ? layer.objects : []) {
-      zones[o.name] = { tx: Math.floor(o.x / TILE), ty: Math.floor(o.y / TILE) };
-    }
-    return zones;
-  }
-
   _createProps() {
     const layer = this.map.getObjectLayer('props');
     const props = [];
@@ -68,39 +62,16 @@ export class OfficeModule {
       const x = this.ox + o.x + o.width / 2;
       const y = this.oy + o.y + o.height;
       const img = this.scene.add.image(x, y, key).setOrigin(0.5, 1);
-      const collides = (o.properties || []).find((p) => p.name === 'collides');
       const flat = o.name === 'rug';
       img.setDepth(flat ? -500 : y);
-      props.push({
-        name: o.name, image: img,
-        tx: Math.floor(o.x / TILE), ty: Math.floor(o.y / TILE),
-        tw: Math.round(o.width / TILE), th: Math.round(o.height / TILE),
-        collides: collides ? collides.value : true,
-      });
+      props.push({ name: o.name, image: img });
     }
     return props;
   }
 
-  // true = can't walk. Walls come from tile property `collides`, props from their footprint.
-  _buildCollisionGrid() {
-    const grid = [];
-    for (let y = 0; y < this.heightTiles; y++) {
-      const row = [];
-      for (let x = 0; x < this.widthTiles; x++) {
-        const t = this.walls.getTileAt(x, y);
-        row.push(Boolean(t && t.properties && t.properties.collides));
-      }
-      grid.push(row);
-    }
-    for (const p of this.props) {
-      if (!p.collides) continue;
-      for (let y = p.ty; y < p.ty + p.th; y++) {
-        for (let x = p.tx; x < p.tx + p.tw; x++) {
-          if (grid[y] && x < this.widthTiles) grid[y][x] = true;
-        }
-      }
-    }
-    return grid;
+  // path between two tiles of this office, or null
+  path(from, to) {
+    return findPath(this.grid, from, to);
   }
 
   _createCharacter(color) {

@@ -19,6 +19,7 @@ import db
 import event_schema
 import ingest_auth
 import sanitize
+import sou_mode
 from store_utils import (
     load_asset_positions as _store_load_asset_positions,
     save_asset_positions as _store_save_asset_positions,
@@ -85,7 +86,32 @@ STATE_TO_AREA_MAP = {
 }
 
 
-app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="/static")
+# SOU_MODE picks the face this process serves (SOU-220,
+# docs/public-lodge.md §1): public | ingest | dev. Resolved once at import;
+# an unknown value raises right here — the process refuses to guess,
+# because guessing "dev" from a typo'd "pubic" would expose the whole v1
+# surface to the internet. dev (unset) keeps today's app exactly.
+SOU_MODE = sou_mode.resolve_mode(os.environ.get(sou_mode.MODE_ENV))
+
+
+class FaceFlask(Flask):
+    """Flask app that registers only its own face's routes (SOU-220).
+
+    Rules outside the face's allow-list never reach ``url_map`` — the
+    public face enumerates six GET rules, the ingest face the door's
+    four, so a probe and a design doc agree, and an unregistered path
+    answers 404 because it does not exist in this process (not a 403
+    that would confirm it does). The view functions stay in the module;
+    they are simply unreachable.
+    """
+
+    def add_url_rule(self, rule, endpoint=None, view_func=None, **options):
+        if not sou_mode.rule_allowed(SOU_MODE, rule):
+            return
+        super().add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
+
+
+app = FaceFlask(__name__, static_folder=FRONTEND_DIR, static_url_path="/static")
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("STAR_OFFICE_SECRET") or "star-office-dev-secret-change-me"
 
 # Session hardening
@@ -121,10 +147,12 @@ if is_production_mode():
 # agent. Configured -> POST /events answers 401/403/429 before touching the
 # body; unset -> today's dev/LAN behaviour with exactly one loud warning, so
 # old untokened reporters keep working on the private box. SOU_MODE=ingest
-# (P13-C) refuses to start without tokens. Tests reassign app.INGEST_STORE;
+# refuses to start without tokens (build_from_env raises; SOU-220 wired the
+# face, this line is where it fires). The public face has no /events at all,
+# so it neither warns nor needs tokens. Tests reassign app.INGEST_STORE;
 # the endpoint reads this global per request.
 INGEST_STORE = ingest_auth.build_from_env()
-if INGEST_STORE is None:
+if INGEST_STORE is None and SOU_MODE == sou_mode.MODE_DEV:
     print(
         "WARNING: SOU_INGEST_TOKENS is not set - POST /events accepts unauthenticated writes. "
         "Fine on the dev/LAN box, never on a public or ingest face: create tokens with "
@@ -144,16 +172,36 @@ def _require_asset_editor_auth():
     return jsonify({"ok": False, "code": "UNAUTHORIZED", "msg": "Asset editor auth required"}), 401
 
 
+# /public/* reads (SOU-220): short enough that the Lodge still feels live
+# behind the CDN, long enough that a polling viewer does not stampede the
+# DB. Pinned as a literal in tests — operators wanting a different number
+# change one line here.
+PUBLIC_CACHE_MAX_AGE_SECONDS = 5
+
+
 @app.after_request
 def add_no_cache_headers(response):
     """Apply cache policy by path:
-    - HTML/API/state: no-cache (always fresh)
     - /static assets (2xx only): long cache (filenames are versioned with ?v=VERSION_TIMESTAMP)
-    - /static assets (non-2xx, e.g. 404): no-cache to prevent CDN from caching errors
+    - /public/* reads (2xx only): short public cache (SOU-220) — the viewer
+      polls, and Cloudflare in front of the public face should absorb that
+      without stampeding the Lodge DB. Errors stay no-store.
+    - everything else (HTML/API/state): no-cache (always fresh)
+    - non-2xx static (e.g. 404): no-cache to prevent CDN from caching errors
+
+    CORS same-origin (SOU-220): the app emits no Access-Control-Allow-*
+    header on any face — a public page is only ever read by scripts
+    served from the very same origin under /v3/*, never cross-origin.
     """
     path = (request.path or "")
     if path.startswith('/static/') and 200 <= response.status_code < 300:
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        response.headers.pop("Pragma", None)
+        response.headers.pop("Expires", None)
+    elif path.startswith('/public/') and 200 <= response.status_code < 300:
+        response.headers["Cache-Control"] = (
+            f"public, max-age={PUBLIC_CACHE_MAX_AGE_SECONDS}, must-revalidate"
+        )
         response.headers.pop("Pragma", None)
         response.headers.pop("Expires", None)
     else:
@@ -284,8 +332,11 @@ def ensure_electron_standalone_snapshot():
 
 
 # The main state itself now lives in the database: init_database() seeds the
-# main agent and its default state on a fresh install (SOU-19).
-ensure_electron_standalone_snapshot()
+# main agent and its default state on a fresh install (SOU-19). The
+# frontend snapshot is a v1/Electron artefact — only the dev face serves
+# those pages, so only the dev face materialises them (SOU-220).
+if SOU_MODE == sou_mode.MODE_DEV:
+    ensure_electron_standalone_snapshot()
 
 
 _INDEX_HTML_CACHE = None
@@ -424,7 +475,15 @@ def init_database():
     return engine
 
 
-init_database()
+if SOU_MODE == sou_mode.MODE_PUBLIC:
+    # The public face never writes to the database (SOU-220 AC5): no
+    # migration run, no main-agent seed, just the shared DB opened with the
+    # read-only guard from db.py. An unmigrated DB is an operator error —
+    # the reads then fail loudly while /health keeps telling the truth.
+    # dev and ingest keep today's behaviour: migrate if needed, seed once.
+    db.init(read_only=True)
+else:
+    init_database()
 
 
 def _agent_id_for_row(row) -> str:
@@ -1576,6 +1635,44 @@ def _iso_instant(value) -> str:
     return value.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _parse_feed_limit(raw_limit):
+    """``limit`` for the feed-shaped reads: default 50, capped 200.
+
+    Returns ``(limit, error)``; ``error`` is a ``(body, status)`` tuple to
+    return straight away, or None. The 400 body is the one
+    GET /events/recent has always written (SOU-45 contract) — every read
+    door answers the same way, so a reporter or the renderer can treat
+    them as one family.
+    """
+    if raw_limit in (None, ""):
+        return EVENTS_RECENT_DEFAULT_LIMIT, None
+    try:
+        parsed = int(raw_limit)
+    except ValueError:
+        parsed = -1
+    if parsed < 1:
+        return None, (jsonify({
+            "ok": False,
+            "error": f"limit: must be a positive integer, got {raw_limit!r}",
+        }), 400)
+    return min(parsed, EVENTS_RECENT_MAX_LIMIT), None
+
+
+def _parse_feed_since(raw_since):
+    """Inclusive ISO 8601 floor for the feed-shaped reads, normalised
+    through the same ``parse_timestamp`` as ingest (SOU-45). Returns
+    ``(since, error)`` with the same shared 400 body."""
+    if raw_since in (None, ""):
+        return None, None
+    try:
+        return event_schema.parse_timestamp(raw_since), None
+    except event_schema.EventValidationError as exc:
+        return None, (jsonify({
+            "ok": False,
+            "error": str(exc).replace("timestamp:", "since", 1),
+        }), 400)
+
+
 def feed_item(row, name):
     """One Event row in the GET /events/recent item shape (the SOU-45
     contract): ``{id, agent, event_type, payload, created_at}``.
@@ -1605,30 +1702,12 @@ def events_recent_endpoint():
     ``since`` is an inclusive ISO 8601 floor, normalised through the same
     ``parse_timestamp`` as ingest so the two ends of the stream agree.
     """
-    limit = EVENTS_RECENT_DEFAULT_LIMIT
-    raw_limit = request.args.get("limit")
-    if raw_limit not in (None, ""):
-        try:
-            parsed = int(raw_limit)
-        except ValueError:
-            parsed = -1
-        if parsed < 1:
-            return jsonify({
-                "ok": False,
-                "error": f"limit: must be a positive integer, got {raw_limit!r}",
-            }), 400
-        limit = min(parsed, EVENTS_RECENT_MAX_LIMIT)
-
-    since = None
-    raw_since = request.args.get("since")
-    if raw_since not in (None, ""):
-        try:
-            since = event_schema.parse_timestamp(raw_since)
-        except event_schema.EventValidationError as exc:
-            return jsonify({
-                "ok": False,
-                "error": str(exc).replace("timestamp:", "since", 1),
-            }), 400
+    limit, error = _parse_feed_limit(request.args.get("limit"))
+    if error is not None:
+        return error
+    since, error = _parse_feed_since(request.args.get("since"))
+    if error is not None:
+        return error
 
     event_type = request.args.get("event_type") or None
     agent_name = request.args.get("agent") or None
@@ -1668,16 +1747,9 @@ def events_agents_endpoint():
     list (``Star``) belongs to the renderer, not the feed. Bad ``since`` is
     a 400 with the same body ``/events/recent`` writes.
     """
-    since = None
-    raw_since = request.args.get("since")
-    if raw_since not in (None, ""):
-        try:
-            since = event_schema.parse_timestamp(raw_since)
-        except event_schema.EventValidationError as exc:
-            return jsonify({
-                "ok": False,
-                "error": str(exc).replace("timestamp:", "since", 1),
-            }), 400
+    since, error = _parse_feed_since(request.args.get("since"))
+    if error is not None:
+        return error
     if since is None:
         # naive UTC, the storage convention db.agent_activity compares against
         since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
@@ -1699,6 +1771,97 @@ def events_agents_endpoint():
                 "last_seen": _iso_instant(last_seen),
                 "count": count,
                 "last_event": feed_item(newest_row, name),
+            })
+    return jsonify(entries)
+
+
+def public_feed_item(row, name):
+    """One Event row in the **public projection shape** (SOU-220,
+    docs/public-lodge.md §4): the SOU-45 feed item minus its ``id``, with
+    the payload run back through the P13-A sanitiser at this door.
+
+    Two deliberate differences from ``feed_item``:
+
+    * no ``id`` — the public face hands out nothing enumerable. Paging
+      walks the ``created_at`` timeline through ``since`` (the inclusive
+      floor), which is the only cursor by design: "no id-guessing beyond
+      paging".
+    * re-sanitised payload — rows written by a pre-SOU-218 backend (or
+      poked straight into the DB) get projected here too. The ingest door
+      is the promise, this read is the guarantee behind it.
+    """
+    return {
+        "agent": name,
+        "event_type": row.event_type,
+        "payload": sanitize.sanitize_payload(row.event_type, row.payload),
+        "created_at": _iso_instant(row.created_at),
+    }
+
+
+@app.route("/public/feed", methods=["GET"])
+def public_feed_endpoint():
+    """The viewer's feed: sanitised projection, newest first (SOU-220).
+
+    GET /public/feed?since=&limit= — two knobs, that is the whole surface.
+    ``limit`` defaults 50, capped 200 (the shared feed-door numbers);
+    ``since`` is the inclusive ISO floor parsed by the same
+    ``parse_timestamp`` as ingest; both answer 400 with the family's one
+    body. No ``agent``/``event_type`` filter: fewer probes to bang on,
+    and the v3 renderer already filters (its ignore list is a renderer
+    concern, SOU-201). 2xx gets ``Cache-Control: public, max-age=5`` from
+    the path policy; CORS headers exist on no face at all — the page is
+    read same-origin from under /v3/*. Registered only on the public
+    face: on dev and ingest this rule is not in ``url_map``.
+    """
+    limit, error = _parse_feed_limit(request.args.get("limit"))
+    if error is not None:
+        return error
+    since, error = _parse_feed_since(request.args.get("since"))
+    if error is not None:
+        return error
+
+    with db.session_scope() as session:
+        rows = db.list_events(session, limit=limit, since=since)
+        names = {a.id: a.name for a in db.list_agents(session)}
+        feed = [public_feed_item(row, names.get(row.agent_id)) for row in rows]
+    return jsonify(feed)
+
+
+@app.route("/public/agents", methods=["GET"])
+def public_agents_endpoint():
+    """The viewer's discovery read: agents seen since a floor, projected.
+
+    The public-face twin of GET /events/agents (SOU-201): one entry per
+    agent with activity at or after ``since`` (default now − 24 h),
+    newest first, ``{agent, first_seen, last_seen, count, last_event}`` —
+    and ``last_event`` is a ``public_feed_item``, not a ``feed_item``:
+    no id, payload projected here at the door. Same cache and CORS
+    contract as /public/feed.
+    """
+    since, error = _parse_feed_since(request.args.get("since"))
+    if error is not None:
+        return error
+    if since is None:
+        # naive UTC, the storage convention db.agent_activity compares against
+        since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            hours=EVENTS_AGENTS_DEFAULT_WINDOW_HOURS
+        )
+
+    with db.session_scope() as session:
+        names = {a.id: a.name for a in db.list_agents(session)}
+        entries = []
+        for agent_id, first_seen, last_seen, count, newest_row in db.agent_activity(
+            session, since
+        ):
+            name = names.get(agent_id)
+            if name is None:  # pragma: no cover - FK cascade makes this unreachable
+                continue
+            entries.append({
+                "agent": name,
+                "first_seen": _iso_instant(first_seen),
+                "last_seen": _iso_instant(last_seen),
+                "count": count,
+                "last_event": public_feed_item(newest_row, name),
             })
     return jsonify(entries)
 
@@ -2494,6 +2657,7 @@ if __name__ == "__main__":
     print("Star Office UI - Backend State Service")
     print("=" * 50)
     print(f"Database: {db.get_engine().url.render_as_string(hide_password=True)}")
+    print(f"Face: {SOU_MODE} (SOU_MODE; see docs/public-lodge.md)")
     print(f"Listening on: http://0.0.0.0:{backend_port}")
     if backend_port != 19000:
         print(f"(Port override: set STAR_BACKEND_PORT to change; current: {raw_port})")

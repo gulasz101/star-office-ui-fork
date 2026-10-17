@@ -1,11 +1,15 @@
 // Night at the Lodge (SOU-197): cold blue snow outside, warm light pools inside, blinking LEDs
-// on the racks, snowfall that stops at the roofline, rooms whose lights go out when their
-// agent sleeps, and a cat that patrols the corridor when nobody is around.
+// on the racks, season weather that stops at the roofline (SOU-273), rooms whose lights go out
+// when their agent sleeps, and a cat that patrols the corridor when nobody is around.
 import { TILE } from './config.js';
 import { rng } from './lodge.js';
 import { CORRIDOR_Y, CORRIDOR_H, FRONT_Y } from './world.js';
+import { SEASONS, NIGHT_TINT } from './seasons.js';
 
-export const NIGHT_TINT = 0x8a98c4; // multiplies the snow and the forest
+// the night multiply lives with the seasons now (winter's tint is the SOU-197 one); re-exported
+// here because this module is where the night ambience is described
+export { NIGHT_TINT };
+
 const WARM = 0xffb35a;
 const LED_COLORS = [0x4fe0b8, 0x4fe0b8, 0xff9a3a, 0x7cff6a];
 
@@ -51,6 +55,18 @@ export function ensureAmbienceTextures(scene) {
     g.destroy();
   }
   if (!scene.textures.exists('ph-cat-walk')) drawCat(scene);
+  // SOU-273 season weather: leaves, petals and fireflies, each a small strip whose frames are
+  // numbered 0..n-1 so an emitter picks one at random with `frame: [0, 1, ...]`.
+  particleSheet(scene, 'leaf', 6, 6, [
+    (c, x) => drawLeaf(c, x, 0xd9822b, 0x9a5a18),
+    (c, x) => drawLeaf(c, x, 0xb8392e, 0x7e241c),
+    (c, x) => drawLeaf(c, x, 0x8a5a2b, 0x5c3a18),
+  ]);
+  particleSheet(scene, 'petal', 4, 4, [
+    (c, x) => drawPetal(c, x, 0xf2a6c0),
+    (c, x) => drawPetal(c, x, 0xf6f2f7),
+  ]);
+  particleSheet(scene, 'firefly', 3, 3, [(c, x) => drawFirefly(c, x)]);
 }
 
 export function glow(scene, x, y, r, color, alpha, depth = 61000) {
@@ -101,19 +117,74 @@ export function roomShade(scene, office) {
     .setOrigin(0, 0).setAlpha(0).setDepth(60000);
 }
 
-/** Snowfall over the whole field that melts at the building's footprint. */
-export function snowfall(scene, building) {
+// fireflies blink: a hard on/off, three cycles over a particle's life
+const blink = (particle) => (Math.sin(particle.lifeT * Math.PI * 6) > 0 ? 1 : 0.12);
+
+/**
+ * The season's weather over the whole field, melting at the building's footprint (SOU-273).
+ * Every season shares this emit zone and this roof death zone, so nothing falls on the building.
+ */
+export function weather(scene, building, season = 'winter') {
+  const w = (SEASONS[season] || SEASONS.winter).weather;
   const wb = building.worldBounds;
   const b = building.bounds;
   const roof = new Phaser.Geom.Rectangle(b.x, b.y, b.width, (FRONT_Y + 1) * TILE - b.y);
-  const emitter = scene.add.particles(0, 0, 'flake', {
+  const config = {
     emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(wb.x, wb.y, wb.width, wb.height) },
     deathZone: { type: 'onEnter', source: roof },
-    lifespan: 9000, speedY: { min: 14, max: 30 }, speedX: { min: -8, max: 6 },
-    scale: { min: 0.5, max: 1.2 }, alpha: { start: 0.9, end: 0 }, frequency: 22, quantity: 2,
-  });
+    lifespan: w.lifespan, speedY: w.speedY, speedX: w.speedX, scale: w.scale,
+    alpha: w.blink ? { onUpdate: blink } : w.alpha,
+    frequency: w.frequency, quantity: w.quantity,
+  };
+  if (w.rotate) config.rotate = w.rotate;
+  if (w.frame) config.frame = w.frame;
+  const emitter = scene.add.particles(0, 0, w.texture, config);
+  if (w.blend) emitter.setBlendMode(Phaser.BlendModes[w.blend]);
   emitter.setDepth(70000);
   return emitter;
+}
+
+const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+
+// a strip of w x h frames, one painter per frame, drawn once
+function particleSheet(scene, key, w, h, painters) {
+  if (scene.textures.exists(key)) return;
+  const tex = scene.textures.createCanvas(key, w * painters.length, h);
+  tex.context.imageSmoothingEnabled = false;
+  painters.forEach((paint, i) => paint(tex.context, i * w));
+  tex.refresh();
+  painters.forEach((_, i) => tex.add(i, 0, i * w, 0, w, h));
+}
+
+// 6x6 leaf: a rounded blade with a darker midrib and a stem
+function drawLeaf(c, x, colour, rib) {
+  c.fillStyle = hex(colour);
+  c.fillRect(x + 2, 0, 2, 1);
+  c.fillRect(x + 1, 1, 4, 2);
+  c.fillRect(x, 2, 6, 3);
+  c.fillRect(x + 1, 4, 4, 1);
+  c.fillRect(x + 2, 5, 2, 1);
+  c.fillStyle = hex(rib);
+  c.fillRect(x + 3, 1, 1, 4);
+  c.fillRect(x + 2, 5, 2, 1);
+}
+
+// 4x4 petal: a small round blade
+function drawPetal(c, x, colour) {
+  c.fillStyle = hex(colour);
+  c.fillRect(x + 1, 0, 2, 1);
+  c.fillRect(x, 1, 4, 2);
+  c.fillRect(x + 1, 3, 2, 1);
+}
+
+// 3x3 firefly: yellow-green with a brighter core (drawn additive on screen)
+function drawFirefly(c, x) {
+  c.fillStyle = '#d8ff6a';
+  c.fillRect(x + 1, 0, 1, 1);
+  c.fillRect(x, 1, 3, 1);
+  c.fillRect(x + 1, 2, 1, 1);
+  c.fillStyle = '#f2ffb0';
+  c.fillRect(x + 1, 1, 1, 1);
 }
 
 // 4-frame orange tabby, 20x14 per frame, walking right

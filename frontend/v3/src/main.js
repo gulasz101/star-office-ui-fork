@@ -2,12 +2,13 @@ import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
-import { snowfall, CorridorCat } from './ambience.js';
+import { weather, CorridorCat } from './ambience.js';
 import { RoomCard } from './card.js';
 import { Roster } from './roster.js';
 import { detectFace, agentsUrl, feedUrl, normalise } from './api.js';
 import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
+import { SEASONS, TREE_FILES, pickSeason } from './seasons.js';
 
 export const ART_SET = 'office-01';
 
@@ -18,6 +19,11 @@ const PINNED = (params.get('agents') || '').split(',').map((s) => s.trim()).filt
 const DEMO = params.get('demo') === '1';
 const LIVE = !PINNED.length && !DEMO;
 const POLL_MS = 1500;
+
+// SOU-273: one season per page load — ?season=<name> pins it, otherwise it is random. The ground,
+// path, trees, night tint and weather outside the Lodge all come from this one choice.
+const SEASON = pickSeason(location.search);
+const SEASON_LABEL = SEASONS[SEASON].label;
 const hud = (text) => {
   const el = document.getElementById('status');
   if (el) el.textContent = text;
@@ -49,6 +55,14 @@ class OfficeScene extends Phaser.Scene {
         for (const name of Object.keys(LODGE_PROPS)) this.load.image(lodgePropKey(name), `assets/lodge/props/${name}.png`);
         this.load.spritesheet('lodge-cat-walk', 'assets/lodge/props/cat_walk.png', { frameWidth: 32, frameHeight: 32 });
       }
+      // SOU-273: the chosen season's own art (SOU-274..276 deliver it). A 404 is fine — lodge.js
+      // draws the tile or tree it has no texture for. Only the chosen season is loaded.
+      if (SEASON !== 'winter') {
+        this.load.image(`season-tiles-${SEASON}`, `assets/seasons/${SEASON}/tiles.png`);
+        SEASONS[SEASON].trees.forEach((name, i) => {
+          this.load.image(lodgePropKey(name), `assets/seasons/${SEASON}/props/${TREE_FILES[i]}.png`);
+        });
+      }
       this.load.on('loaderror', (file) => console.info(`[v3] art fallback: ${file.key} not found`));
     }
   }
@@ -59,7 +73,7 @@ class OfficeScene extends Phaser.Scene {
       if (!this.textures.exists(`prop-${name}`)) continue;
       this.anims.create({ key: `prop-anim-${name}`, frames: this.anims.generateFrameNumbers(`prop-${name}`, { start: 0, end: frames - 1 }), frameRate, repeat: -1 });
     }
-    this.building = new Building(this);
+    this.building = new Building(this, SEASON);
     for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
 
     this.card = new RoomCard();
@@ -70,10 +84,10 @@ class OfficeScene extends Phaser.Scene {
     this.events.on('room-focus', renderRoster);
     this.events.on('building-grew', renderRoster);
     this.time.addEvent({ delay: 1000, loop: true, callback: renderRoster });
-    this.snow = snowfall(this, this.building);
+    this.weather = weather(this, this.building, SEASON);
     this.events.on('building-grew', () => {
-      this.snow.destroy();
-      this.snow = snowfall(this, this.building);
+      this.weather.destroy();
+      this.weather = weather(this, this.building, SEASON);
     });
     // owner: "more agents <=> more cats in corridor": one cat per room, at least one, at most 8
     this.cats = [];
@@ -94,6 +108,7 @@ class OfficeScene extends Phaser.Scene {
     window.office = {
       scene: this,
       building: this.building,
+      season: SEASON,
       offices: () => [...this.building.offices.keys()],
       // office.agent('claude-code').do({ zone: 'build', activity: 'building', bubble: '$ docker build' })
       // office.bg('claude-code', 'start', { id: 't1', kind: 'shell', label: 'sleep' })
@@ -105,6 +120,8 @@ class OfficeScene extends Phaser.Scene {
     };
     if (DEMO) this.demo();
     if (LIVE) this.startLive();
+    // the season is part of the caption in every mode, not just while the feed is up
+    else hud(`${PINNED.length ? 'pinned' : 'demo'} · ${SEASON_LABEL}`);
   }
 
   // arrive = walk in from the bottom of the world; agents found already idle on page load
@@ -183,10 +200,12 @@ class OfficeScene extends Phaser.Scene {
         this.applyBackground(this.feed.takeBackground());
         first = false;
         const n = this.building.offices.size;
-        hud(n ? `live · ${n} agent${n > 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}` : 'live · waiting for the first agent event…');
+        hud(n
+          ? `live · ${SEASON_LABEL} · ${n} agent${n > 1 ? 's' : ''}`
+          : `live · ${SEASON_LABEL} · waiting for the first agent event…`);
         this.caption();
       } catch (err) {
-        hud(`feed error: ${err.message} (retrying)`);
+        hud(`live · ${SEASON_LABEL} · feed error: ${err.message} (retrying)`);
       } finally {
         busy = false;
       }

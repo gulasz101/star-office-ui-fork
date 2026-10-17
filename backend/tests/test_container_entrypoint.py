@@ -227,6 +227,51 @@ class EntrypointSandbox(unittest.TestCase):
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assert_migrated(self.server_record(), backend="sqlite (second start)")
 
+    # -- SOU-270: the SOU_MIGRATE switch ------------------------------------
+
+    def test_sou_migrate_zero_skips_the_migration_and_still_starts_the_server(self) -> None:
+        """The public face: no alembic run, and the server still comes up.
+
+        ``sou-public`` starts with SOU_MIGRATE=0 against the schema
+        ``sou-ingest`` already brought to head (docs/public-lodge.md). This
+        sandbox has never migrated, so what this case pins is the other half of
+        the contract: the entrypoint runs no migration, does not fail, and hands
+        a readable-but-unmigrated database to the server — the public face
+        reports that loudly at read time instead of writing to the database.
+        """
+        proc = self.run_entrypoint({"SOU_MIGRATE": "0"})
+        self.assertEqual(proc.returncode, 0, f"{proc.stdout}\n{proc.stderr}")
+        blob = proc.stdout + proc.stderr
+        self.assertIn("[entrypoint] SOU_MIGRATE=0: skipping migrations", blob)
+        self.assertNotIn(
+            "upgrade head", blob, "SOU_MIGRATE=0 still ran (or announced) a migration"
+        )
+        record = self.server_record()
+        self.assertNotEqual(
+            record.get("alembic_version"),
+            [HEAD_REVISION],
+            "SOU_MIGRATE=0 migrated the schema anyway",
+        )
+        self.assertIn(
+            "db_error",
+            record,
+            "this sandbox never migrated, so the stub server must find no schema "
+            "(that is the loud operator error the public face wants, not a silent pass)",
+        )
+
+    def test_sou_migrate_zero_keeps_an_already_migrated_database_at_head(self) -> None:
+        """The deployed shape: ingest migrates, public skips and reads head."""
+        first = self.run_entrypoint()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        os.remove(self.stub_record)
+
+        second = self.run_entrypoint({"SOU_MIGRATE": "0"})
+        self.assertEqual(second.returncode, 0, f"{second.stdout}\n{second.stderr}")
+        blob = second.stdout + second.stderr
+        self.assertIn("[entrypoint] SOU_MIGRATE=0: skipping migrations", blob)
+        self.assertNotIn("upgrade head", blob)
+        self.assert_migrated(self.server_record(), backend="sqlite (SOU_MIGRATE=0)")
+
     # -- AC2 / AC1: how the server is started --------------------------------
 
     def test_server_command_keeps_the_image_contract(self) -> None:

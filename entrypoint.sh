@@ -26,8 +26,25 @@ esac
 
 # set -e makes this the hard gate: a server on a half-migrated schema is worse
 # than no server at all, so a failed migration aborts the start-up here.
-echo "[entrypoint] alembic upgrade head"
-alembic -c "$ALEMBIC_INI" upgrade head
+#
+# SOU_MIGRATE (SOU-270) is what lets ONE image run as the two Deployments of
+# docs/public-lodge.md: `sou-ingest` migrates (the default, unchanged) and
+# `sou-public` starts with SOU_MIGRATE=0 against the schema the ingest
+# deployment already brought to head. The public face is read-only, so it must
+# never be the process that writes a migration.
+case "${SOU_MIGRATE:-1}" in
+  1)
+    echo "[entrypoint] alembic upgrade head"
+    alembic -c "$ALEMBIC_INI" upgrade head
+    ;;
+  0)
+    echo "[entrypoint] SOU_MIGRATE=0: skipping migrations"
+    ;;
+  *)
+    echo "[entrypoint] SOU_MIGRATE must be 0 or 1, got '${SOU_MIGRATE}'" >&2
+    exit 1
+    ;;
+esac
 
 # Debugging escape hatch: `docker run IMAGE sh` must still work.
 if [ "$#" -gt 0 ]; then

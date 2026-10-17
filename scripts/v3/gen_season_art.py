@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the v3 SEASONAL OUTDOOR art sets: autumn (SOU-274) and spring (SOU-275).
+"""Generate the v3 SEASONAL OUTDOOR art sets: autumn (SOU-274), spring (SOU-275), summer (SOU-276).
+
+One module carries every season's set; `--season <name>` selects it (`SEASONS` is the table).
+Everything below the season tables is shared machinery, so a new season is a palette extension,
+four tile specs, three tree prompts and one `SEASONS` entry - no new pipeline.  The three seasons
+were built by three sessions off the same base (SOU-283 merged spring and summer back in), so the
+rule for every edit here is that a season's table entry is ADDITIVE and table-shaped: that is what
+kept the merge confined to `SEASONS` and the two shared tables above it.
 
 This is the third art module on the same pipeline as `gen_office01_art.py` (SOU-158) and
 `gen_lodge_art.py` (SOU-198), and it imports the shared machinery from them rather than
@@ -125,12 +132,20 @@ GUIDANCE = lodge.GUIDANCE
 # --------------------------------------------------------------------------------------
 LODGE_PALETTE = list(lodge.PALETTE)
 
-AUTUMN_EXTRA = [
+# The FOREST FLOOR is shared by every season: summer's trodden path crosses the same earth the
+# autumn forest floor is made of.  Two near-identical brown ramps (one per season) would quantise
+# to two different colours in two sets that have to read as one game, so the ramp is declared once
+# and both seasons take it.  (This is a no-op for autumn: `AUTUMN_EXTRA` is still earth-then-leaves
+# in the same order, so its palette - and therefore its shipped bytes - is unchanged.)
+EARTH_EXTRA = [
     # earth: the forest floor, warm brown and clearly not the honey timber ramp
     ("earth", "#6b4f2c"),
     ("earth_light", "#8a6a3e"),
     ("earth_pale", "#a98a56"),
     ("earth_dust", "#c4a878"),
+]
+
+AUTUMN_LEAF_EXTRA = [
     # fallen leaves: orange
     ("leaf_orange_deep", "#8f4a12"),
     ("leaf_orange", "#d4791c"),
@@ -149,20 +164,26 @@ AUTUMN_EXTRA = [
     ("leaf_russet", "#8a4a1e"),
 ]
 
+# A season's extension is a CONCATENATION of shared ramps plus its own colours, and the ORDER is
+# load-bearing: the palette order is the quantiser's index order, so a hoist that moved a colour
+# within a list would move shipped bytes.  Each season's earths therefore sit exactly where that
+# season's own branch put them (autumn first, spring last) - proven a no-op on SOU-283.
+AUTUMN_EXTRA = EARTH_EXTRA + AUTUMN_LEAF_EXTRA
+
 # The spring extension (SOU-275): "start from the Lodge palette and add spring greens and
 # blossom pinks".  Same rule as the autumn extension and now MEASURED BY THE GATE rather than
 # claimed here (`check_v3_assets.py --set spring` asserts every extension colour is at least
-# `MIN_PALETTE_DISTANCE` from every lodge colour and from every other extension colour, both
-# seasons).  The closest pair in this list is `earth_light` vs the lodge's `cardboard_dark` at
-# 12.0 units; everything else is further away.
+# `MIN_PALETTE_DISTANCE` from every lodge colour and from every other extension colour in the
+# same season).  The closest pair in this list is `earth_light` vs the lodge's `cardboard_dark`
+# at 12.0 units; everything else is further away.
 #
-# The four `earth` browns are the SAME values as the autumn extension's, deliberately: the
-# trodden path and the tree trunks are the same forest-floor material in both seasons, and the
-# gate's trunk-family lookup names them, so a season-local respelling would be a second copy of
-# one material.  The greens are the spring's own daylight ramp, and they are LIGHT on purpose -
-# the renderer multiplies the outside by the season tint (0x94a8a0 for spring), so the grass is
-# drawn bright and the tint takes it down to night.
-SPRING_EXTRA = [
+# The four `earth` browns are the SHARED `EARTH_EXTRA` above, deliberately: the trodden path and
+# the tree trunks are the same forest-floor material in every season, and the gate's trunk-family
+# lookup names them, so a season-local respelling would be a second copy of one material.  The
+# greens are the spring's own daylight ramp, and they are LIGHT on purpose - the renderer
+# multiplies the outside by the season tint (0x94a8a0 for spring), so the grass is drawn bright
+# and the tint takes it down to night.
+SPRING_GREEN_EXTRA = [
     # fresh spring grass: the daylight ramp the ground and the new leaves are drawn from
     ("grass_deep", "#3d6b1c"),
     ("grass_dark", "#4f8624"),
@@ -170,18 +191,37 @@ SPRING_EXTRA = [
     ("grass_light", "#7cbc41"),
     ("grass_pale", "#98d257"),
     ("grass_lime", "#b4e578"),
-    # blossom: the pink ramp the flower dots and tree_b's crown are drawn from
+]
+
+# blossom: the pink ramp the flower dots and tree_b's crown are drawn from
+SPRING_BLOSSOM_EXTRA = [
     ("blossom_deep", "#a8457a"),
     ("blossom", "#dd7aa6"),
     ("blossom_light", "#f2adc9"),
     ("blossom_pale", "#fbd7e5"),
     ("blossom_white", "#fdf1f6"),
-    # trodden earth for the path, and the trunk browns (same values as autumn's)
-    ("earth", "#6b4f2c"),
-    ("earth_light", "#8a6a3e"),
-    ("earth_pale", "#a98a56"),
-    ("earth_dust", "#c4a878"),
 ]
+
+SPRING_EXTRA = SPRING_GREEN_EXTRA + SPRING_BLOSSOM_EXTRA + EARTH_EXTRA
+
+# Summer (SOU-276).  The lawn ramp is deliberately BRIGHTER and YELLOWER than the lodge's own pine
+# ramp, and the tree crowns are drawn from that pine ramp - so the grass reads as grass and the
+# trees stay measurably darker than the ground they stand on (the ticket asks for "full dark-green
+# summer deciduous trees" over "deep green summer grass"; two greens that close together would
+# dissolve the trees into the lawn).  `clover_bloom` is the pale flower head, not a second white.
+# Distance rule as for autumn: every colour here is at least 12.0 RGB units from every lodge
+# colour (measured; the nearest pair is grass_deep against pine_dark at 14.8).
+SUMMER_GREEN_EXTRA = [
+    ("grass_deep", "#26401c"),
+    ("grass_dark", "#37592a"),
+    ("grass", "#4a7a33"),
+    ("grass_light", "#63993f"),
+    ("grass_pale", "#86b552"),
+    ("clover", "#a8c96b"),
+    ("clover_bloom", "#f2f4e0"),
+]
+
+SUMMER_EXTRA = SUMMER_GREEN_EXTRA + EARTH_EXTRA
 
 # The stated rule for every extension colour, asserted in the gate for every season.
 MIN_PALETTE_DISTANCE = 12.0
@@ -215,14 +255,30 @@ def palette_rgb(season_name: str) -> list[tuple[int, int, int]]:
 # shadow.  Declaring that instead of hiding it is the point.
 # --------------------------------------------------------------------------------------
 TILE_SUBJECTS = {
-    "ground_a": "a forest floor in late autumn: bare brown earth underfoot with a scattering of "
-                "fallen orange, red and ochre leaves",
-    "ground_b": "a forest floor in late autumn under the trees: bare brown earth almost covered "
-                "with fallen orange, red and ochre leaves",
-    "path": "a trodden earth footpath through an autumn forest: packed bare brown earth worn "
-            "through fallen leaves, the running direction horizontal",
-    "edge": "the foot of a building wall in autumn: dark shadowed ground along the top edge "
-            "where the wall meets it, brown earth with a few fallen leaves below",
+    # Keyed by SEASON, then slot: the four slot names are the same every season, so a single flat
+    # table would describe autumn's floor for every season's `ground_a`.  (These strings feed only
+    # the tile EXPLORE path - the shipped tiles are drawn, not generated - so a wrong entry here
+    # cannot reach the delivered set; it would just waste a GPU pass on the wrong prompt.)
+    "autumn": {
+        "ground_a": "a forest floor in late autumn: bare brown earth underfoot with a scattering of "
+                    "fallen orange, red and ochre leaves",
+        "ground_b": "a forest floor in late autumn under the trees: bare brown earth almost covered "
+                    "with fallen orange, red and ochre leaves",
+        "path": "a trodden earth footpath through an autumn forest: packed bare brown earth worn "
+                "through fallen leaves, the running direction horizontal",
+        "edge": "the foot of a building wall in autumn: dark shadowed ground along the top edge "
+                "where the wall meets it, brown earth with a few fallen leaves below",
+    },
+    "summer": {
+        "ground_a": "a summer lawn: short deep-green grass with a few small clover plants and "
+                    "scattered grass tufts",
+        "ground_b": "a summer lawn under the trees: short deep-green grass with many more grass "
+                    "tufts and clover than an open lawn",
+        "path": "a trodden earth footpath through a summer meadow: packed bare brown earth worn "
+                "through the green grass, the running direction horizontal",
+        "edge": "the foot of a building wall in summer: dark shadowed ground along the top edge "
+                "where the wall meets it, green grass with a few tufts below",
+    },
 }
 
 SPRING_TILE_SUBJECTS = {
@@ -234,6 +290,22 @@ SPRING_TILE_SUBJECTS = {
             "through short green grass, the running direction horizontal",
     "edge": "the foot of a building wall in spring: dark shadowed green grass along the top "
             "edge where the wall meets it, with a few tiny pink and white flower dots below",
+}
+
+# Summer's own copy of the same table, in the same per-season shape as spring's.  The summer
+# branch keyed one table by season instead (`TILE_SUBJECTS[season][slot]`); SOU-283 folded that
+# into the target's per-season form.  Either shape is fine because these strings feed ONLY the
+# tile EXPLORE path - the shipped tiles are drawn, not generated - so a wrong entry here cannot
+# reach the delivered set (the gate never reads it).
+SUMMER_TILE_SUBJECTS = {
+    "ground_a": "a summer lawn: short deep-green grass with a few small clover plants and "
+                "scattered grass tufts",
+    "ground_b": "a summer lawn under the trees: short deep-green grass with many more grass "
+                "tufts and clover than an open lawn",
+    "path": "a trodden earth footpath through a summer meadow: packed bare brown earth worn "
+            "through the green grass, the running direction horizontal",
+    "edge": "the foot of a building wall in summer: dark shadowed ground along the top edge "
+            "where the wall meets it, green grass with a few tufts below",
 }
 
 AUTUMN_TILES = [
@@ -282,6 +354,38 @@ SPRING_TILES = [
      {"base": "grass", "seed": 2754, "shadow": ["wood_deep", "wood_dark"],
       "edge_light": "grass_light", "edge_speck": "grass_pale",
       "dots": 8, "dot_colours": ["blossom", "blossom_white"]}),
+]
+
+# Summer (SOU-276).  Same four slots, same classes and the same seam axes as autumn - the slot
+# order is the contract SOU-273's `seasons.js` names, so it CANNOT differ per season.  `render`
+# picks the drawing routine: the ground is a lawn rather than a leaf litter, so it needs its own
+# renderer, while the path and the wall edge are the same shapes in greens.
+#
+# `ground_a` and `ground_b` differ only in how much detail is scattered on them (the ticket: "same
+# with more tufts, so the two can alternate"), which is exactly what makes the two readable as one
+# material while the renderer alternates them.  Both share the base colour, and every scatter keeps
+# to the interior ring, so they also tile against each other with no join.
+SUMMER_TILES = [
+    ("ground_a", "material", "xy",
+     {"render": "grass", "base": "grass", "seed": 2761,
+      "patch": "grass_light", "patches": 3, "speck": "grass_pale", "specks": 5,
+      "tufts": 7, "tuft_colours": ["grass_light", "grass_pale"],
+      "clover": 3, "clover_colour": "clover", "blooms": 1}),
+    ("ground_b", "material", "xy",
+     {"render": "grass", "base": "grass", "seed": 2762,
+      "patch": "grass_light", "patches": 4, "speck": "grass_pale", "specks": 6,
+      "tufts": 16, "tuft_colours": ["grass_light", "grass_pale", "clover"],
+      "clover": 7, "clover_colour": "clover", "blooms": 3}),
+    ("path", "material", "xy",
+     {"render": "path", "base": "grass", "seed": 2763,
+      "band": "earth_dust", "band_top": "earth_pale",
+      "band_bottom": "earth", "trodden": "earth_light", "foot": "wood_deep",
+      "leaves": 4, "leaf_colours": ["grass_light", "grass_pale"]}),
+    ("edge", "decal", "x",
+     {"render": "edge", "base": "grass", "seed": 2764,
+      "shadow": ["wood_deep", "wood_dark"], "band_light": "grass_light",
+      "speck": "grass_pale", "leaves": 6,
+      "leaf_colours": ["grass_light", "grass_pale"]}),
 ]
 
 # --------------------------------------------------------------------------------------
@@ -363,9 +467,47 @@ SPRING_PROPS = [
           "replaces pine_small one for one"),
 ]
 
+# Summer (SOU-276).  The ticket asks for "full dark-green summer deciduous trees, round crowns,
+# transparent background, the trunk base at the bottom centre", replacing pine_a/pine_b/pine_small
+# one for one - so the declared sizes, footprints and lifts are the pines' own and are unchanged.
+#
+# Three wording choices carry measured weight from the lodge/autumn passes:
+#   * the crown is named a colour AND a shape ("DENSE DEEP DARK GREEN", "full round") - a numeric
+#     AC cannot see a missing crown, and "green" alone comes back as a bright spring green that
+#     then quantises onto the lawn ramp;
+#   * the trunk is stated as a FRACTION of the object's width, never in pixels - a 3px trunk in a
+#     300px object is a quarter of a pixel once fitted into a 64x96 box and the despeckle chain
+#     erases it, leaving the crown floating;
+#   * the aspect is stated numerically by `_ratio_clause`, which is what makes the model draw to
+#     the declared rectangle instead of inventing its own.
+SUMMER_PROPS = [
+    _prop("tree_a",
+          "a deciduous tree in summer: a full round crown of DENSE DEEP DARK GREEN leaves, rounded "
+          "and evenly full with a few small gaps between the leaf clusters showing short dark "
+          "twigs, and a SHORT dark brown bare trunk at the very bottom. The trunk is about a tenth "
+          "of the object's width and is centred under the crown. The silhouette is about two "
+          "thirds as wide as it is tall",
+          (64, 96), (64, 32), 64,
+          "exterior tree; replaces pine_a one for one; trunk base centred on the bottom row"),
+    _prop("tree_b",
+          "a tall deciduous tree in summer: a large dense rounded crown of DEEP DARK GREEN leaves, "
+          "deeper and taller than a young tree's, with a few small gaps between the leaf clusters "
+          "showing short dark twigs, and a SHORT dark brown bare trunk at the very bottom. The "
+          "trunk is about a tenth of the object's width and is centred under the crown. The "
+          "silhouette is about half as wide as it is tall",
+          (64, 128), (64, 32), 96,
+          "tall variant of tree_a; replaces pine_b one for one"),
+    _prop("tree_small",
+          "a small young deciduous sapling in summer: a small rounded crown of DEEP DARK GREEN "
+          "leaves on a slender bare dark brown trunk that is clearly visible below the crown. The "
+          "trunk is about a fifth of the object's width and is centred. Tall and narrow",
+          (32, 64), (32, 32), 32,
+          "replaces pine_small one for one"),
+]
+
 # --------------------------------------------------------------------------------------
-# Seasons.  One entry per season; SOU-275 (spring) and SOU-276 (summer) add one each and
-# need no change to the machinery below.
+# Seasons.  One entry per season; SOU-275 (spring) adds one more and needs no change to the
+# machinery below.
 # --------------------------------------------------------------------------------------
 SEASONS = {
     "autumn": {
@@ -409,6 +551,31 @@ SEASONS = {
         "note": "SOU-275 ticket 3 of 4 of the v2.1.0 seasons initiative. Same camera, palette "
                 "family and pixel scale as the lodge and autumn sets; drawn in daylight colours "
                 "because the renderer multiplies the outside by the spring tint (0x94a8a0).",
+    },
+    # `ticket` and `extension_colours` are not decoration: the shared machinery below reads both
+    # (`SEASONS[season_name]["ticket"]` labels the manifest, the tileset record and the header;
+    # `extension_colours` is quoted in the palette report).  The summer branch predates those
+    # readers, so SOU-283 added them here rather than leaving a season that KeyErrors the moment
+    # `--season summer` reaches the assemble or publish pass.
+    "summer": {
+        "name": "summer",
+        "label": "summer",
+        "seed_base": 27600,
+        "extra": SUMMER_EXTRA,
+        "tiles": SUMMER_TILES,
+        "props": SUMMER_PROPS,
+        "tile_subjects": SUMMER_TILE_SUBJECTS,
+        "ticket": "SOU-276",
+        "extension_colours": "summer lawn greens and clover, on the shared earth",
+        "look": (
+            "High-summer deciduous forest and meadow in DAYLIGHT: lush deep-green short grass, "
+            "full dense dark-green foliage on every tree, strong warm sunlight coming from the "
+            "top-left, no flowers except the small clover in the lawn. "
+        ),
+        "note": "SOU-276 ticket 4 of 4 of the v2.1.0 seasons initiative. The renderer multiplies "
+                "this set by the season tint, so it is drawn in daylight colours on purpose; the "
+                "crowns use the lodge's own dark pine greens so the trees stay darker than the "
+                "lawn they stand on.",
     },
 }
 
@@ -454,6 +621,8 @@ def compose_prop_prompt(season_name: str, asset) -> str:
 
 def compose_tile_prompt(season_name: str, name: str) -> str:
     season = SEASONS[season_name]
+    # The subject comes from the season's OWN table (SOU-275): the four slot names are shared, so a
+    # single flat table would describe autumn's floor for every season's `ground_a`.
     head = (f"seamless tileable pixel art texture: {season['tile_subjects'][name]}. "
             "Orthographic top-down view, flat and evenly lit, the pattern repeats without seams "
             "in every direction, no perspective, no single object, no border. ")
@@ -636,6 +805,46 @@ def _floor(season_name: str, spec: dict) -> Image.Image:
     return img
 
 
+def _grass(season_name: str, spec: dict) -> Image.Image:
+    """A summer lawn: a green base, patches of a second green, grass tufts and a little clover.
+
+    Same modulo-plot rule as `_floor` (which is what makes it periodic by construction) and the
+    same interior scatter ring (which keeps the wrap column/row representative).  A tuft is a 2-3px
+    vertical stroke and a clover is a 3px trefoil - both at the scale of a 32px tile, exactly as a
+    fallen leaf was 1-2px there.
+    """
+    img = _blank(season_name, spec["base"])
+    rnd = random.Random(spec["seed"])
+    px = img.load()
+    for _ in range(spec.get("patches", 0)):
+        x, y = rnd.randrange(SCATTER_LO, 24), rnd.randrange(SCATTER_LO, 29)
+        w, h = rnd.choice((3, 4, 5)), rnd.choice((2, 3))
+        for dy in range(h):
+            for dx in range(w):
+                if rnd.random() < 0.6:
+                    _put(px, x + dx, y + dy, _rgb(season_name, spec["patch"]) + (255,))
+    for _ in range(spec.get("specks", 0)):
+        sx, sy = _scatter_xy(rnd)
+        _put(px, sx, sy, _rgb(season_name, spec["speck"]) + (255,))
+    for _ in range(spec.get("tufts", 0)):
+        tx, ty = _scatter_xy(rnd)
+        colour = _rgb(season_name, rnd.choice(spec["tuft_colours"])) + (255,)
+        _put(px, tx, ty, colour)
+        _put(px, tx, ty + 1, colour)
+        if rnd.random() < 0.5:
+            _put(px, tx + 1, ty + 1, colour)
+    for _ in range(spec.get("clover", 0)):
+        cx, cy = _scatter_xy(rnd)
+        colour = _rgb(season_name, spec["clover_colour"]) + (255,)
+        _put(px, cx, cy, colour)
+        _put(px, cx + 1, cy, colour)
+        _put(px, cx, cy + 1, colour)
+    for _ in range(spec.get("blooms", 0)):
+        bx, by = _scatter_xy(rnd)
+        _put(px, bx, by, _rgb(season_name, "clover_bloom") + (255,))
+    return img
+
+
 def _path(season_name: str, spec: dict) -> Image.Image:
     """A trodden earth band across the middle, with footmarks and a few stray dots.
 
@@ -676,9 +885,15 @@ def _edge(season_name: str, spec: dict) -> Image.Image:
     The lit strip and the specks below the shadow are the season's own material through
     `spec["edge_light"]` / `spec["edge_speck"]`, defaulting to the autumn ground colours this
     tile shipped with so the autumn tile stays byte-identical.
+
+    SOU-283 merge note: spring added `edge_light`/`edge_speck` and summer independently added
+    `band_light`/`speck` for the same two bands, each with the autumn default.  Both spellings are
+    read here rather than renaming one side's spec keys, because renaming would change the drawn
+    spec that the delivered manifests record - and both spellings resolve to the same colour, so
+    every season's tile is byte-identical to the one its branch shipped.
     """
-    light = spec.get("edge_light", "earth_light")
-    speck = spec.get("edge_speck", "earth_pale")
+    light = spec.get("edge_light", spec.get("band_light", "earth_light"))
+    speck = spec.get("edge_speck", spec.get("speck", "earth_pale"))
     img = _blank(season_name, spec["base"])
     d = ImageDraw.Draw(img)
     px = img.load()
@@ -695,16 +910,20 @@ def _edge(season_name: str, spec: dict) -> Image.Image:
     return img
 
 
+# The routine each slot NAME is drawn with.  `draw_tile` dispatches on the spec's own `render`
+# key first, so a season can draw the same slot with a different material without renaming it -
+# the four slot names are the renderer's contract and cannot change per season.
 DRAWN_TILES = {
     "ground_a": _floor,
     "ground_b": _floor,
     "path": _path,
     "edge": _edge,
+    "grass": _grass,
 }
 
 
 def draw_tile(season_name: str, name: str, spec: dict) -> Image.Image:
-    return DRAWN_TILES[name](season_name, spec)
+    return DRAWN_TILES[spec.get("render", name)](season_name, spec)
 
 
 # --------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the v3 SEASONAL OUTDOOR art sets: autumn first (SOU-274).
+"""Generate the v3 SEASONAL OUTDOOR art sets: autumn (SOU-274) and spring (SOU-275).
 
 This is the third art module on the same pipeline as `gen_office01_art.py` (SOU-158) and
 `gen_lodge_art.py` (SOU-198), and it imports the shared machinery from them rather than
@@ -56,6 +56,19 @@ Usage::
     python3 scripts/v3/gen_season_art.py publish  --season autumn     # into frontend/
     python3 scripts/v3/gen_season_art.py publish  --season autumn --check
     python3 scripts/v3/gen_season_art.py clean    --season autumn     # derived only, raws kept
+
+SOU-275 (spring) added a season without touching the machinery, which is what the season table
+was for.  What it did have to touch, and why:
+
+  * the tile subjects are per-season (`tile_subjects` on the season table).  They were keyed by
+    slot name alone, so a spring run with `--force-all-tiles` would have prompted FLUX for "a
+    forest floor in late autumn".  One dict per season, selected through the season entry.
+  * the scatter spec keys are now `dot_colours` / `dots` (with `leaf_colours` / `leaves` still
+    honoured): spring scatters flower dots, autumn scatters fallen leaves, and the mechanism is
+    the same 1-2px modulo plot in both cases.
+  * `_edge` took two hardcoded autumn palette names (`earth_light`, `earth_pale`) for its lit
+    strip and its specks; they are now `spec["edge_light"]` / `spec["edge_speck"]` with the old
+    values as defaults, so the autumn tile is byte-identical and the spring edge is green.
 """
 
 from __future__ import annotations
@@ -136,6 +149,43 @@ AUTUMN_EXTRA = [
     ("leaf_russet", "#8a4a1e"),
 ]
 
+# The spring extension (SOU-275): "start from the Lodge palette and add spring greens and
+# blossom pinks".  Same rule as the autumn extension and now MEASURED BY THE GATE rather than
+# claimed here (`check_v3_assets.py --set spring` asserts every extension colour is at least
+# `MIN_PALETTE_DISTANCE` from every lodge colour and from every other extension colour, both
+# seasons).  The closest pair in this list is `earth_light` vs the lodge's `cardboard_dark` at
+# 12.0 units; everything else is further away.
+#
+# The four `earth` browns are the SAME values as the autumn extension's, deliberately: the
+# trodden path and the tree trunks are the same forest-floor material in both seasons, and the
+# gate's trunk-family lookup names them, so a season-local respelling would be a second copy of
+# one material.  The greens are the spring's own daylight ramp, and they are LIGHT on purpose -
+# the renderer multiplies the outside by the season tint (0x94a8a0 for spring), so the grass is
+# drawn bright and the tint takes it down to night.
+SPRING_EXTRA = [
+    # fresh spring grass: the daylight ramp the ground and the new leaves are drawn from
+    ("grass_deep", "#3d6b1c"),
+    ("grass_dark", "#4f8624"),
+    ("grass", "#63a12f"),
+    ("grass_light", "#7cbc41"),
+    ("grass_pale", "#98d257"),
+    ("grass_lime", "#b4e578"),
+    # blossom: the pink ramp the flower dots and tree_b's crown are drawn from
+    ("blossom_deep", "#a8457a"),
+    ("blossom", "#dd7aa6"),
+    ("blossom_light", "#f2adc9"),
+    ("blossom_pale", "#fbd7e5"),
+    ("blossom_white", "#fdf1f6"),
+    # trodden earth for the path, and the trunk browns (same values as autumn's)
+    ("earth", "#6b4f2c"),
+    ("earth_light", "#8a6a3e"),
+    ("earth_pale", "#a98a56"),
+    ("earth_dust", "#c4a878"),
+]
+
+# The stated rule for every extension colour, asserted in the gate for every season.
+MIN_PALETTE_DISTANCE = 12.0
+
 
 def _hex_to_rgb(hexv: str) -> tuple[int, int, int]:
     return tuple(int(hexv[i : i + 2], 16) for i in (1, 3, 5))  # type: ignore[return-value]
@@ -175,6 +225,17 @@ TILE_SUBJECTS = {
             "where the wall meets it, brown earth with a few fallen leaves below",
 }
 
+SPRING_TILE_SUBJECTS = {
+    "ground_a": "a fresh green spring lawn: short bright green grass with a few tiny pink and "
+                "white flower dots scattered over it",
+    "ground_b": "a fresh green spring meadow: short bright green grass covered with many tiny "
+                "pink and white flower dots",
+    "path": "a trodden earth footpath through a spring meadow: packed bare brown earth worn "
+            "through short green grass, the running direction horizontal",
+    "edge": "the foot of a building wall in spring: dark shadowed green grass along the top "
+            "edge where the wall meets it, with a few tiny pink and white flower dots below",
+}
+
 AUTUMN_TILES = [
     ("ground_a", "material", "xy",
      {"base": "earth", "seed": 2741, "leaves": 15, "patch": "earth_light", "patches": 3,
@@ -192,6 +253,35 @@ AUTUMN_TILES = [
     ("edge", "decal", "x",
      {"base": "earth", "seed": 2744, "shadow": ["wood_deep", "wood_dark"], "leaves": 6,
       "leaf_colours": ["leaf_orange", "leaf_red", "leaf_ochre"]}),
+]
+
+# Spring's four slots, same order and same classes as autumn's (the strip order is a published
+# contract, so it is not a per-season choice).  Two things differ and both are the ticket's
+# wording rather than taste:
+#
+#   * the ground is GRASS with flower dots, so the scatter list is `dot_colours` (pink and
+#     white) rather than `leaf_colours`, and `ground_b` gets 16 dots against `ground_a`'s 6 -
+#     "ground_b (same with more flowers, so the two can alternate)" is a MEASURABLE relation,
+#     and the gate asserts it from the two PNGs.
+#   * the path's band is trodden earth through grass (the ticket says "trodden earth path"),
+#     so it keeps the earth ramp while its base is the grass.
+SPRING_TILES = [
+    ("ground_a", "material", "xy",
+     {"base": "grass", "seed": 2751, "patch": "grass_light", "patches": 3,
+      "speck": "grass_pale", "specks": 6,
+      "dot_colours": ["blossom", "blossom_light", "blossom_white"], "dots": 6}),
+    ("ground_b", "material", "xy",
+     {"base": "grass", "seed": 2752, "patch": "grass_light", "patches": 4,
+      "speck": "grass_pale", "specks": 6,
+      "dot_colours": ["blossom", "blossom_light", "blossom_pale", "blossom_white"], "dots": 16}),
+    ("path", "material", "xy",
+     {"base": "grass", "seed": 2753, "band": "earth_dust", "band_top": "earth_pale",
+      "band_bottom": "earth_light", "trodden": "earth_light", "foot": "wood_deep",
+      "dots": 4, "dot_colours": ["blossom", "blossom_white"]}),
+    ("edge", "decal", "x",
+     {"base": "grass", "seed": 2754, "shadow": ["wood_deep", "wood_dark"],
+      "edge_light": "grass_light", "edge_speck": "grass_pale",
+      "dots": 8, "dot_colours": ["blossom", "blossom_white"]}),
 ]
 
 # --------------------------------------------------------------------------------------
@@ -241,6 +331,38 @@ AUTUMN_PROPS = [
           "replaces pine_small one for one"),
 ]
 
+# Spring's three trees.  The ticket: "light-green deciduous trees, one variant (tree_b) in pink
+# blossom".  So the crown colour is a SPECIFICATION and it is stated as a fraction (the SOU-200
+# ruling: a fraction of the object survives the pixelize, a pixel count does not), and the two
+# silhouettes the ticket does not pin down keep the pines' proportions.
+SPRING_PROPS = [
+    _prop("tree_a",
+          "a deciduous tree in spring: a broad rounded crown of fresh LIGHT GREEN leaves, the "
+          "green leaves clearly dominant and making up at least four fifths of the crown, with "
+          "only a few small pale pink and white blossoms among them, a few small gaps between "
+          "the leaf clusters showing short bare dark twigs, and a SHORT dark brown bare trunk at "
+          "the very bottom. The trunk is about a tenth of the object's width and is centred "
+          "under the crown. The silhouette is about two thirds as wide as it is tall",
+          (64, 96), (64, 32), 64,
+          "exterior tree; replaces pine_a one for one; trunk base centred on the bottom row"),
+    _prop("tree_b",
+          "a tall deciduous tree in full spring blossom: a large dense rounded crown that is "
+          "almost entirely soft PINK BLOSSOM - the pink blossom clearly dominant and making up at "
+          "least four fifths of the crown - with only a few small fresh green leaves and short "
+          "dark twigs showing between the blossom clusters, and a SHORT dark brown bare trunk at "
+          "the very bottom. The trunk is about a tenth of the object's width and is centred "
+          "under the crown. The silhouette is about half as wide as it is tall",
+          (64, 128), (64, 32), 96,
+          "the blossom variant the ticket names; replaces pine_b one for one"),
+    _prop("tree_small",
+          "a small young deciduous sapling in spring: a small rounded crown of fresh LIGHT GREEN "
+          "leaves with only a few small pale pink blossoms, on a slender bare dark brown trunk "
+          "that is clearly visible below the crown. The trunk is about a fifth of the object's "
+          "width and is centred. Tall and narrow",
+          (32, 64), (32, 32), 32,
+          "replaces pine_small one for one"),
+]
+
 # --------------------------------------------------------------------------------------
 # Seasons.  One entry per season; SOU-275 (spring) and SOU-276 (summer) add one each and
 # need no change to the machinery below.
@@ -253,6 +375,9 @@ SEASONS = {
         "extra": AUTUMN_EXTRA,
         "tiles": AUTUMN_TILES,
         "props": AUTUMN_PROPS,
+        "tile_subjects": TILE_SUBJECTS,
+        "ticket": "SOU-274",
+        "extension_colours": "oranges, reds and ochres",
         "look": (
             "Late-autumn deciduous forest in DAYLIGHT: warm brown bare earth, a thick litter of "
             "fallen orange, red and ochre leaves, dark bare branches, soft sunlight coming from "
@@ -260,6 +385,30 @@ SEASONS = {
         ),
         "note": "SOU-274 ticket 2 of 4 of the v2.1.0 seasons initiative. The renderer multiplies "
                 "this set by the season tint, so it is drawn in daylight colours on purpose.",
+    },
+    "spring": {
+        "name": "spring",
+        "label": "spring",
+        # 27500 is the ticket-number convention (SOU-274 -> 27400, SOU-276 -> 27600).  The
+        # GENERATE pass for this set was run with `--seed-shift 1000`, so the seeds that actually
+        # shipped are 28528/28535/28542: autumn's ACCEPTED pass landed on 27528/27535/27542
+        # (its base 27400 plus a +100 re-roll shift), and two seasons must not be generated from
+        # the same numbers.  Recorded in the generated set's SPRING-RERUNS.json.
+        "seed_base": 27500,
+        "extra": SPRING_EXTRA,
+        "tiles": SPRING_TILES,
+        "props": SPRING_PROPS,
+        "tile_subjects": SPRING_TILE_SUBJECTS,
+        "ticket": "SOU-275",
+        "extension_colours": "fresh greens and blossom pinks",
+        "look": (
+            "Fresh spring deciduous forest in DAYLIGHT: bright new green grass, young light "
+            "green leaves and small pink and white blossoms, thin bare twigs, soft sunlight "
+            "coming from the top-left. "
+        ),
+        "note": "SOU-275 ticket 3 of 4 of the v2.1.0 seasons initiative. Same camera, palette "
+                "family and pixel scale as the lodge and autumn sets; drawn in daylight colours "
+                "because the renderer multiplies the outside by the spring tint (0x94a8a0).",
     },
 }
 
@@ -305,7 +454,7 @@ def compose_prop_prompt(season_name: str, asset) -> str:
 
 def compose_tile_prompt(season_name: str, name: str) -> str:
     season = SEASONS[season_name]
-    head = (f"seamless tileable pixel art texture: {TILE_SUBJECTS[name]}. "
+    head = (f"seamless tileable pixel art texture: {season['tile_subjects'][name]}. "
             "Orthographic top-down view, flat and evenly lit, the pattern repeats without seams "
             "in every direction, no perspective, no single object, no border. ")
     tail = (_palette_clause(season_name) + season["look"] + STYLE + NO_TEXT +
@@ -435,7 +584,12 @@ SCATTER_LO, SCATTER_HI = 1, 29
 
 
 def _leaf(px, x, y, colour, rnd) -> None:
-    """A 1- or 2-pixel fallen leaf.  A leaf at a leaf's own scale is 1-2 px at 32px/tile."""
+    """A 1- or 2-pixel dot at the scale of the thing being dotted.
+
+    Autumn dots fallen leaves, spring dots flowers: at 32px/tile both are a 1-2px feature, so
+    the same modulo plot serves both and the name is the autumn one only because autumn came
+    first.
+    """
     _put(px, x, y, colour)
     if rnd.random() < 0.45:
         _put(px, x + 1, y, colour)
@@ -443,12 +597,26 @@ def _leaf(px, x, y, colour, rnd) -> None:
         _put(px, x, y + 1, colour)
 
 
+def _dot_count(spec: dict) -> int:
+    """How many dots to scatter. `dots` is the current key; `leaves` is what autumn shipped."""
+    return spec.get("dots", spec.get("leaves", 0))
+
+
+def _dot_colours(spec: dict) -> list[str]:
+    """The scatter's colour list. `dot_colours` is the current key; `leaf_colours` is autumn's.
+
+    One mechanism, two names for what is being dotted - which is the point: spring's flowers and
+    autumn's fallen leaves are the same 1-2px scatter.
+    """
+    return spec.get("dot_colours") or spec["leaf_colours"]
+
+
 def _scatter_xy(rnd) -> tuple[int, int]:
     return rnd.randrange(SCATTER_LO, SCATTER_HI + 1), rnd.randrange(SCATTER_LO, SCATTER_HI + 1)
 
 
 def _floor(season_name: str, spec: dict) -> Image.Image:
-    """Bare earth with a scatter of fallen leaves - the forest floor."""
+    """Bare earth with a scatter of fallen leaves - or grass with a scatter of flowers."""
     img = _blank(season_name, spec["base"])
     rnd = random.Random(spec["seed"])
     px = img.load()
@@ -462,19 +630,19 @@ def _floor(season_name: str, spec: dict) -> Image.Image:
     for _ in range(spec.get("specks", 0)):
         sx, sy = _scatter_xy(rnd)
         _put(px, sx, sy, _rgb(season_name, spec["speck"]) + (255,))
-    for _ in range(spec.get("leaves", 0)):
+    for _ in range(_dot_count(spec)):
         lx, ly = _scatter_xy(rnd)
-        _leaf(px, lx, ly, _rgb(season_name, rnd.choice(spec["leaf_colours"])) + (255,), rnd)
+        _leaf(px, lx, ly, _rgb(season_name, rnd.choice(_dot_colours(spec))) + (255,), rnd)
     return img
 
 
 def _path(season_name: str, spec: dict) -> Image.Image:
-    """A trodden earth band across the middle, with footmarks and a few stray leaves.
+    """A trodden earth band across the middle, with footmarks and a few stray dots.
 
     The band is uniform in x and sits at fixed rows, so the tile repeats in BOTH axes: the
     renderer draws the path as a 2-wide, N-tall strip, and a horizontal band repeated
     vertically is what reads as one continuous path.  The footmarks repeat on an 8px period
-    and the leaves wrap, so nothing lands on a boundary as a discontinuity.
+    and the dots wrap, so nothing lands on a boundary as a discontinuity.
     """
     img = _blank(season_name, spec["base"])
     px = img.load()
@@ -491,9 +659,9 @@ def _path(season_name: str, spec: dict) -> Image.Image:
         for dx in (0, 1):
             for dy in (0, 1, 2):
                 _put(px, x + dx, y + dy, _rgb(season_name, spec["foot"]) + (255,))
-    for _ in range(spec.get("leaves", 0)):
+    for _ in range(_dot_count(spec)):
         lx, ly = _scatter_xy(rnd)
-        _leaf(px, lx, ly, _rgb(season_name, rnd.choice(spec["leaf_colours"])) + (255,), rnd)
+        _leaf(px, lx, ly, _rgb(season_name, rnd.choice(_dot_colours(spec))) + (255,), rnd)
     return img
 
 
@@ -504,20 +672,26 @@ def _edge(season_name: str, spec: dict) -> Image.Image:
     shadow onto the first rows of ground.  Drawn as a one-tile-high strip across the whole
     building width, so it must repeat in x; the top rows are the shadow, so it is NOT
     periodic in y and does not pretend to be.
+
+    The lit strip and the specks below the shadow are the season's own material through
+    `spec["edge_light"]` / `spec["edge_speck"]`, defaulting to the autumn ground colours this
+    tile shipped with so the autumn tile stays byte-identical.
     """
+    light = spec.get("edge_light", "earth_light")
+    speck = spec.get("edge_speck", "earth_pale")
     img = _blank(season_name, spec["base"])
     d = ImageDraw.Draw(img)
     px = img.load()
     d.rectangle([0, 0, TILE - 1, 0], fill=_rgb(season_name, spec["shadow"][0]) + (255,))
     d.rectangle([0, 1, TILE - 1, 2], fill=_rgb(season_name, spec["shadow"][1]) + (255,))
-    d.rectangle([0, 3, TILE - 1, 4], fill=_rgb(season_name, "earth_light") + (255,))
+    d.rectangle([0, 3, TILE - 1, 4], fill=_rgb(season_name, light) + (255,))
     rnd = random.Random(spec["seed"])
-    for _ in range(spec.get("leaves", 0)):
+    for _ in range(_dot_count(spec)):
         _leaf(px, rnd.randrange(SCATTER_LO, SCATTER_HI + 1), 5 + rnd.randrange(4),
-              _rgb(season_name, rnd.choice(spec["leaf_colours"])) + (255,), rnd)
+              _rgb(season_name, rnd.choice(_dot_colours(spec))) + (255,), rnd)
     for _ in range(6):
         _put(px, rnd.randrange(SCATTER_LO, SCATTER_HI + 1), 10 + rnd.randrange(19),
-             _rgb(season_name, "earth_pale") + (255,))
+             _rgb(season_name, speck) + (255,))
     return img
 
 
@@ -728,12 +902,14 @@ def cmd_assemble(args) -> int:
         "hex": palette_hex(season_name),
         "why": (
             f"One palette for the whole {season_name} set, and it is the LODGE palette plus a "
-            "declared extension: the SOU-274 ticket asks for the same palette family and pixel "
-            "scale as the Lodge set, so the family is imported from gen_lodge_art rather than "
-            "restated, and the gate asserts the superset relation. The extension is the autumn "
-            "oranges, reds and ochres the ticket asks for (16 colours, each at least 12.0 RGB "
-            "units from every lodge colour). Every tile and prop in this set is quantised to "
-            "exactly these colours by scripts/v3/gen_season_art.py assemble."
+            f"declared extension: the {SEASONS[season_name]['ticket']} ticket asks for the same "
+            "palette family and pixel scale as the Lodge set, so the family is imported from "
+            "gen_lodge_art rather than restated, and the gate asserts the superset relation. The "
+            f"extension is the {SEASONS[season_name]['extension_colours']} the ticket asks for "
+            f"({len(SEASONS[season_name]['extra'])} colours, each at least "
+            f"{MIN_PALETTE_DISTANCE:.1f} RGB units from every lodge colour). Every tile and prop "
+            "in this set is quantised to exactly these colours by scripts/v3/gen_season_art.py "
+            "assemble."
         ),
         "light": "top-left (same as office-01 and the lodge): each material ramp runs dark "
                  "(bottom-right faces) to light (top-left faces)",
@@ -828,8 +1004,8 @@ def cmd_assemble(args) -> int:
                 "columns": len(order),
                 "firstgid": 1,
                 "order": order,
-                "order_authority": "the SOU-274 ticket table; seasons.js consumes the same four "
-                                   "keys in the same order",
+                "order_authority": f"the {SEASONS[season_name]['ticket']} ticket table; seasons.js "
+                                   "consumes the same four keys in the same order",
                 "slot_class": {n: c for n, c, _s, _spec in SEASONS[season_name]["tiles"]},
                 "slot_seam_axes": {n: s for n, _c, s, _spec in SEASONS[season_name]["tiles"]},
             },
@@ -1022,10 +1198,10 @@ def build_contact_sheets(season_name: str, results) -> None:
         img = _backdrop(season_name, "ground_a", (width, sheet_h), scale)
         _grid_overlay(img, scale)
         _label(img, (margin, y_tiles_label),
-               f"{season_name} v3 outdoor art set (SOU-274) - TILES, each tiled 3x3 to show the "
-               f"seams. {len(palette_hex(season_name))}-colour declared palette "
-               f"({len(LODGE_PALETTE)} lodge family + "
-               f"{len(SEASONS[season_name]['extra'])} autumn), 32px tiles.", scale=scale)
+               f"{season_name} v3 outdoor art set ({SEASONS[season_name]['ticket']}) - TILES, each "
+               f"tiled 3x3 to show the seams. {len(palette_hex(season_name))}-colour declared "
+               f"palette ({len(LODGE_PALETTE)} lodge family + "
+               f"{len(SEASONS[season_name]['extra'])} {season_name}), 32px tiles.", scale=scale)
         for slot, (label, tile, px, py, h) in enumerate(tiles_placed):
             img.alpha_composite(tile, (px, y_tiles + py))
             _label(img, (px, y_tiles + py + h + 2), label, scale=scale)
@@ -1121,7 +1297,7 @@ def cmd_publish(args) -> int:
         "pack": f"season-{season_name}-v1",
         "set": season_name,
         "season": season_name,
-        "issue": "SOU-274",
+        "issue": SEASONS[season_name]["ticket"],
         "generated_from": f"assets/generated/v3/seasons/{season_name}",
         "model": MODEL_ID,
         "lora": "not used (collapses to black in diffusers - ADR-060)",
@@ -1133,7 +1309,8 @@ def cmd_publish(args) -> int:
             "path": f"assets/seasons/{season_name}/tiles.png",
             "tile_px": TILE, "columns": len(order), "firstgid": 1,
             "order": order,
-            "order_authority": "the SOU-274 ticket table; seasons.js (SOU-273) consumes the same "
+            "order_authority": f"the {SEASONS[season_name]['ticket']} ticket table; seasons.js "
+                               "(SOU-273) consumes the same "
                                "four keys in the same order",
             "slot_class": {n: c for n, c, _s, _spec in SEASONS[season_name]["tiles"]},
             "slot_seam_axes": {n: s for n, _c, s, _spec in SEASONS[season_name]["tiles"]},

@@ -45,7 +45,7 @@ import json
 import os
 import subprocess
 import sys
-from collections import deque
+from collections import Counter, deque
 
 from PIL import Image
 
@@ -69,8 +69,9 @@ EXIT_ERROR = 2
 
 # The v2.1.0 seasonal OUTDOOR sets (SOU-274 autumn, SOU-275 spring, SOU-276 summer).  One entry
 # here is all a new season needs to get its own gate branch: `main_season` reads the set's own
-# tables from `gen_season_art` and asserts them against the hand-typed TICKET_E table.
-SEASON_SETS = ("autumn",)
+# tables from `gen_season_art` and asserts them against the hand-typed ticket table for that
+# season (TICKET_E_SEASONS), with the season's own crown rules (SEASON_CROWN_RULES).
+SEASON_SETS = ("autumn", "spring")
 
 
 class Report:
@@ -103,16 +104,26 @@ def unique_colours(img) -> list[tuple[int, int, int]]:
     return sorted(seen)
 
 
-def magenta_residue(img) -> dict:
+def magenta_residue(img, palette=None) -> dict:
     """Count the pixels the keying contract should have removed.
 
     Two families, both fatal: the strong residue (a pink/magenta pixel anywhere in the
     image) and the wide fringe rule the de-fringe pass uses (r-g>20 AND b-g>10 AND g<150),
     which is what shows up as a 1px contour at 4x zoom.
+
+    `palette` is the set's declared RGB palette, and passing it exempts those colours from the
+    FRINGE count only.  Reason, measured on SOU-275: the fringe rule was written for palettes
+    with no pink material in them, and spring's blossom pink satisfies it - #dd7aa6 is
+    (221,122,166), so r-g=99, b-g=44, g=122<150 - which reported a legitimate pink flower as a
+    keying remnant.  Every asset is QUANTISED to the declared palette, so a pixel that IS a
+    declared colour cannot be keying residue; what the rule is for is a colour nobody declared.
+    The strong rule stays strict for every set (no declared colour in any v3 palette matches it:
+    checked across the lodge's 61, office-01's 32, autumn's 77 and spring's 76).
     """
     img = img.convert("RGBA")
     px = img.load()
     w, h = img.size
+    allowed = set(palette) if palette else set()
     strong = fringe = 0
     for y in range(h):
         for x in range(w):
@@ -121,7 +132,7 @@ def magenta_residue(img) -> dict:
                 continue
             if r > 180 and b > 180 and g < 120:
                 strong += 1
-            if (r - g) > 20 and (b - g) > 10 and g < 150:
+            if (r - g) > 20 and (b - g) > 10 and g < 150 and (r, g, b) not in allowed:
                 fringe += 1
     return {"strong_magenta": strong, "fringe": fringe}
 
@@ -2393,31 +2404,40 @@ def main_polish(args) -> int:
 
 
 # ---------------------------------------------------------------------------------------
-# SOU-274: the v2.1.0 SEASONAL OUTDOOR sets (autumn first; SOU-275/276 add spring/summer).
+# SOU-274/275: the v2.1.0 SEASONAL OUTDOOR sets (autumn, spring; SOU-276 adds summer).
 #
-# The oracle is the TICKET's table, typed out again below (TICKET_E), never the generator's own
-# declarations - a gate that only compares an asset to the module that produced it agrees with
-# itself by construction (the SOU-199 lesson).  Three claims in the SOU-274 ticket are not
-# covered by any earlier branch and are asserted here:
+# The oracle is the TICKET's table, typed out again below (TICKET_E_SEASONS), never the
+# generator's own declarations - a gate that only compares an asset to the module that produced
+# it agrees with itself by construction (the SOU-199 lesson).  The seasonal tickets share one
+# table because they share one contract (four 32px slots in a 128x32 strip, three trees at
+# 64x96 / 64x128 / 32x64 replacing the pines one for one) - but it is typed once PER SEASON on
+# purpose, so a later ticket that changes one season's sizes cannot silently ride on the other's
+# entry.  Four claims in the seasonal tickets are not covered by any earlier branch:
 #
-#   * the palette FAMILY.  The ticket says "same palette family and pixel scale as the Lodge
-#     set. Start from the Lodge palette and add autumn oranges and ochres", so the declared
-#     palette must be a SUPERSET of the lodge's - asserted as a set relation against
-#     `gen_lodge_art.PALETTE`, imported rather than restated.
+#   * the palette FAMILY.  "same palette family and pixel scale as the Lodge set. Start from the
+#     Lodge palette and add <the season's colours>", so the declared palette must be a SUPERSET
+#     of the lodge's - asserted as a set relation against `gen_lodge_art.PALETTE`, imported
+#     rather than restated.  SOU-275 added the second half of that claim as a MEASUREMENT: every
+#     extension colour must be at least MIN_PALETTE_DISTANCE from every lodge colour AND from
+#     every other extension colour, which the autumn module had only claimed in prose.
 #   * the CROSS-tile seam.  "ground_a, ground_b and path must tile seamlessly with themselves
 #     and WITH EACH OTHER" - and self-periodicity does NOT imply mutual tileability, so every
 #     ordered pair is measured across an explicit boundary.  The one pair that is a content
 #     feature rather than a seam (the trodden path's own edge against the ground) is reported
 #     with its number and excluded from the assertion, and the classification comes from
 #     `gen_season_art.cross_seam_axes` so the generator and the gate cannot disagree.
-#   * the FORM of the three trees.  "deciduous trees with orange, red and ochre crowns and dark
-#     trunks ... the trunk base at the bottom centre" - a numeric-only AC cannot see a missing
-#     crown, so: the crown must carry at least two of the three declared leaf families, the
-#     trunk band must be measurably darker than the crown, the bottom row must carry content at
-#     the canvas centre column, and the bottom row must be a TRUNK (a narrow run) rather than a
-#     crown sitting on the ground.
+#   * the FORM of the three trees.  "deciduous trees with <the season's> crowns and dark trunks
+#     ... the trunk base at the bottom centre" - a numeric-only AC cannot see a missing crown,
+#     so: the crown must carry the season's declared hue families, the trunk band must be
+#     measurably darker than the crown, the bottom row must carry content at the canvas centre
+#     column, and the bottom row must be a TRUNK (a narrow run) rather than a crown sitting on
+#     the ground.  Spring adds a second, per-tree claim - "light-green deciduous trees, one
+#     variant (tree_b) in pink blossom" names WHICH tree is which colour - so the dominant
+#     family is asserted per tree, and "light" is measured against the pines these trees replace.
+#   * the FLOWER DENSITY, spring only.  "ground_b (same with more flowers, so the two can
+#     alternate)" is a comparison between two delivered files, so it is measured as one.
 # ---------------------------------------------------------------------------------------
-TICKET_E = {
+TICKET_E_AUTUMN = {
     "tile_px": 32,
     "strip": (128, 32),
     "slots": (("ground_a", "xy"), ("ground_b", "xy"), ("path", "xy"), ("edge", "x")),
@@ -2426,13 +2446,27 @@ TICKET_E = {
         "tree_b": {"texture_px": (64, 128), "footprint_px": (64, 32), "lift_px": 96},
         "tree_small": {"texture_px": (32, 64), "footprint_px": (32, 32), "lift_px": 32},
     },
+    "ticket": "SOU-274",
 }
 
-SEASON_LEAF_FAMILIES = {
-    "orange": ("leaf_orange", "leaf_orange_deep", "leaf_orange_light", "leaf_russet"),
-    "red": ("leaf_scarlet", "leaf_red", "leaf_red_deep", "leaf_red_light"),
-    "ochre": ("leaf_ochre", "leaf_ochre_deep", "leaf_ochre_light", "leaf_gold"),
+# SOU-275's own copy of the same table.  Identical values, typed separately: the sizes and the
+# slot order are the contract the SOU-275 ticket states in its own words, and if a future ticket
+# moves them for one season the other season's entry must not move with it.
+TICKET_E_SPRING = {
+    "tile_px": 32,
+    "strip": (128, 32),
+    "slots": (("ground_a", "xy"), ("ground_b", "xy"), ("path", "xy"), ("edge", "x")),
+    "props": {
+        "tree_a": {"texture_px": (64, 96), "footprint_px": (64, 32), "lift_px": 64},
+        "tree_b": {"texture_px": (64, 128), "footprint_px": (64, 32), "lift_px": 96},
+        "tree_small": {"texture_px": (32, 64), "footprint_px": (32, 32), "lift_px": 32},
+    },
+    "ticket": "SOU-275",
 }
+
+TICKET_E_SEASONS = {"autumn": TICKET_E_AUTUMN, "spring": TICKET_E_SPRING}
+
+
 SEASON_TRUNK_FAMILY = ("wood_deep", "wood_dark", "wood", "plank_dark", "earth")
 # The 1px outline the STYLE string MANDATES is not a material, so it is excluded from the
 # "what is this band made of" denominator.  Measured reason (first autumn pass): counting it as
@@ -2447,19 +2481,19 @@ SEASON_OUTLINE_FAMILY = ("outline", "ink", "metal_dark")
 # correct one.
 SEASON_DARK_LUMINANCE = 90.0
 SEASON_DARK_MIN_SHARE = 0.9
-# The crown families are measured by HUE, not by palette name: what the ticket asks for
-# ("orange, red and ochre crowns") is a colour the eye can see, and naming a family after the
-# colours I happened to add would let a crown of the lodge's amber ramp pass as "ochre" while
-# the ochre the ticket asked for is absent.
+# The crown families are measured by PIXEL PREDICATE, not by palette name: what the ticket asks
+# for is a colour the eye can see, and naming a family after the colours I happened to add would
+# let a crown of the lodge's amber ramp pass as "ochre" while the ochre the ticket asked for is
+# absent.
 #
-# The boundaries are drawn where the warm autumn ramp actually divides, and they were CORRECTED
-# once on the measurement rather than to make a red gate green.  First attempt put ochre at
-# 42-65 degrees, which is above goldenrod (#DAA520, 43 deg) and far above the common ochre
-# #CC7722 (32 deg) - so it called the art's golden-amber leaves "orange" and reported ochre:0%
-# for every tree.  Reading the actual crown pixels: the ramp has three separable regions -
-# 6-16 deg (scarlet/crimson), 26-31 deg (pumpkin orange), 35-40 deg (golden amber: amber
-# #e8a33d 35.8, leaf_orange_light #f7b452 35.6, brass #b98f3c 39.8) - which is exactly red,
-# orange and ochre.  The boundary is now 34 deg.
+# Autumn (warm ramp), boundaries drawn where the ramp actually divides and CORRECTED once on the
+# measurement rather than to make a red gate green.  First attempt put ochre at 42-65 degrees,
+# which is above goldenrod (#DAA520, 43 deg) and far above the common ochre #CC7722 (32 deg) -
+# so it called the art's golden-amber leaves "orange" and reported ochre:0% for every tree.
+# Reading the actual crown pixels: the ramp has three separable regions - 6-16 deg
+# (scarlet/crimson), 26-31 deg (pumpkin orange), 35-40 deg (golden amber: amber #e8a33d 35.8,
+# leaf_orange_light #f7b452 35.6, brass #b98f3c 39.8) - which is exactly red, orange and ochre.
+# The boundary is now 34 deg.
 #
 # NEGATIVE CONTROL, and this is why the correction is not goalpost-moving.  The first FLUX pass
 # (seeds 27428/27435/27442, kept on disk as *.rejected-r1.raw.png) measured red 65%/27%/60%,
@@ -2469,8 +2503,61 @@ SEASON_DARK_MIN_SHARE = 0.9
 # the SET rather than per tree, and that weaker form would have PASSED the rejected pass on the
 # strength of the sapling alone; it was tightened to per-tree on that measurement.)  A boundary
 # that only failed to fire on the bad pass would have been a check wired to pass.
-SEASON_CROWN_HUES = (("red", 0.0, 20.0), ("orange", 20.0, 34.0), ("ochre", 34.0, 65.0))
+#
+# Spring (green + blossom) CANNOT use hue for the blossom half: a soft pink is a warm hue.
+# #dd7aa6 (blossom) has hue 26.7 deg and #f2adc9 24.4 deg - both inside autumn's "orange" band -
+# so a hue band would call the blossoms orange and a hue-based check would be measuring nothing.
+# The discriminator is the BLUE-vs-GREEN relation the reporters had to learn for the same reason
+# (SOU-192): a pink has b >= g, while every brown, tan, cream and orange in the palette has
+# b < g.  Checked against the whole palette: the pink predicate selects exactly the five
+# `blossom*` colours and nothing else.
+SEASON_CROWN_FAMILIES = {
+    "autumn": {
+        "red": lambda p: 0.0 <= _hue(p) < 20.0,
+        "orange": lambda p: 20.0 <= _hue(p) < 34.0,
+        "ochre": lambda p: 34.0 <= _hue(p) < 65.0,
+    },
+    "spring": {
+        "green": lambda p: p[1] > p[0] and p[1] >= p[2],
+        "blossom": lambda p: p[0] > p[1] and p[2] >= p[1],
+    },
+}
 SEASON_CROWN_MIN_SHARE = 0.05
+# Per-season rules.  `require_all` is the autumn claim ("a MIX of three colours in roughly equal
+# parts ... deep scarlet red, bright orange, and golden ochre-yellow"): every tree must carry all
+# three.  `dominant` is the spring claim, which is per TREE because the ticket names which tree
+# is which colour ("light-green deciduous trees, one variant (tree_b) in pink blossom") - a
+# set-level check would pass a set of three identical blossom trees.
+SEASON_CROWN_RULES = {
+    "autumn": {
+        "require_all": ("red", "orange", "ochre"),
+        "min_share": SEASON_CROWN_MIN_SHARE,
+        "dominant": {},
+        "what": "an orange, red AND ochre crown on every tree",
+        "set_what": "deciduous trees with orange, red AND ochre crowns",
+    },
+    "spring": {
+        "require_all": (),
+        "min_share": SEASON_CROWN_MIN_SHARE,
+        "dominant": {"tree_a": "green", "tree_b": "blossom", "tree_small": "green"},
+        "dominant_min": 0.5,
+        "light_green": True,
+        "what": "a light-green crown (tree_b: pink blossom)",
+        "set_what": "light-green deciduous trees, one variant (tree_b) in pink blossom",
+    },
+}
+# "Light-green" (SOU-275) as a measurement whose ORACLE is the tree this set replaces.  The floor
+# is the brightest green of the lodge's pine ramp - i.e. a spring crown is "light green" exactly
+# when its green pixels are brighter than the brightest green of the winter tree it stands in
+# for.  The ramp itself is the negative control: pine_deep 38.3, pine_dark 51.5, pine 74.4,
+# pine_light 99.9, so a crown drawn in those greens fails the floor rather than defining it.
+# Resolved in main_season from gen_lodge_art.PALETTE (no magic number in the source).
+SEASON_PINE_RAMP = ("pine_deep", "pine_dark", "pine", "pine_light")
+# The spring ground: "fresh green grass with tiny pink and white flower dots" (ground_a, "same
+# with MORE flowers" ground_b).  Both halves are measured from the two PNGs - the base colour
+# must be a green-family palette colour, and ground_b must carry strictly more blossom pixels
+# than ground_a.
+SEASON_FLOWER_FAMILY = "blossom"
 SEASON_SEAM_LIMIT = 1.05
 # The bottom row of a tree is its trunk.  A run wider than this share of the canvas is a crown
 # touching the ground, not a trunk: the ticket says the trees have "dark trunks ... the trunk
@@ -2511,6 +2598,15 @@ def main_season(args, season_name: str) -> int:
     import gen_lodge_art as L
     import gen_season_art as S
 
+    # The ticket table for THIS season (the oracle), and the season's own rules.
+    TICKET_E = TICKET_E_SEASONS[season_name]
+    ticket = TICKET_E["ticket"]
+    crown_rules = SEASON_CROWN_RULES[season_name]
+    crown_families = SEASON_CROWN_FAMILIES[season_name]
+    # The "light-green" floor is the brightest green of the pine ramp this set replaces.
+    light_floor = max(0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+                      for c in (S._hex_to_rgb(dict(L.PALETTE)[n]) for n in SEASON_PINE_RAMP))
+
     root = os.path.abspath(args.root or str(S.out_dir(season_name)))
     served = str(S.served_dir(season_name))
     report = Report()
@@ -2523,7 +2619,7 @@ def main_season(args, season_name: str) -> int:
         return EXIT_ERROR
 
     print("=" * 96)
-    print(f"{season_name} v3 outdoor art set check (SOU-274)   root={root}")
+    print(f"{season_name} v3 outdoor art set check ({ticket})   root={root}")
     print(f"palette: {len(pal_hex)} declared colours ({len(L.PALETTE)} lodge family + "
           f"{len(S.SEASONS[season_name]['extra'])} {season_name})")
     print("=" * 96)
@@ -2532,7 +2628,7 @@ def main_season(args, season_name: str) -> int:
     declared_order = [n for n, _c, _s, _spec in S.SEASONS[season_name]["tiles"]]
     ticket_order = [n for n, _ax in TICKET_E["slots"]]
     if declared_order != ticket_order:
-        report.fail(f"the generator's slot order {declared_order} != the SOU-274 ticket table "
+        report.fail(f"the generator's slot order {declared_order} != the {ticket} ticket table "
                     f"{ticket_order}")
     else:
         report.ok(f"the generator declares the ticket's four slots in order: "
@@ -2580,16 +2676,48 @@ def main_season(args, season_name: str) -> int:
                         f"{len(pal_hex)}")
         else:
             report.ok(f"palette.json declares {len(hexes)} colours, identical to the generator")
-        lodge_hex = [h for _n, h in L.PALETTE]
+        lodge_hex = [h for n, h in L.PALETTE]
         missing = [h for h in lodge_hex if h not in hexes]
         if missing:
             report.fail(f"the declared palette is not the lodge family plus an extension: "
                         f"{len(missing)} of the lodge's {len(lodge_hex)} colours are absent, "
-                        f"e.g. {missing[:3]} - SOU-274 requires starting from the Lodge palette")
+                        f"e.g. {missing[:3]} - {ticket} requires starting from the Lodge palette")
         else:
             report.ok(f"the declared palette is a SUPERSET of the lodge's {len(lodge_hex)} "
                       f"colours: same family, plus {len(hexes) - len(lodge_hex)} "
                       f"{season_name} colours")
+
+        # The other half of "start from the Lodge palette and add <colours>": the additions must
+        # be ADDITIONS, i.e. reachable and distinct.  A colour a hair away from a lodge one is a
+        # palette entry the nearest-colour quantiser can never select, which is a dead entry that
+        # still looks like a declared colour.  Measured for both seasons; the autumn module had
+        # only claimed this in a comment.
+        import math
+        ext = S.SEASONS[season_name]["extra"]
+        floor = S.MIN_PALETTE_DISTANCE
+        closest = None
+        for name, hexv in ext:
+            rgb = S._hex_to_rgb(hexv)
+            for other_name, other_hex in L.PALETTE:
+                d = math.dist(rgb, S._hex_to_rgb(other_hex))
+                if d < floor:
+                    report.fail(f"palette extension colour {name} {hexv} is only {d:.1f} units "
+                                f"from the lodge's {other_name} {other_hex} (floor {floor}) - a "
+                                f"near-duplicate the quantiser can never reach")
+                if closest is None or d < closest[0]:
+                    closest = (d, name, other_name)
+            for other_name, other_hex in ext:
+                if other_name == name:
+                    continue
+                d = math.dist(rgb, S._hex_to_rgb(other_hex))
+                if d < floor:
+                    report.fail(f"palette extension colours {name} {hexv} and {other_name} "
+                                f"{other_hex} are only {d:.1f} units apart (floor {floor})")
+        if closest:
+            report.ok(f"every one of the {len(ext)} {season_name} extension colours is at least "
+                      f"{floor:.1f} units from every lodge colour and from every other extension "
+                      f"colour (closest pair: {closest[1]} vs the lodge's {closest[2]}, "
+                      f"{closest[0]:.1f})")
 
     # ---- tiles -----------------------------------------------------------------------
     print("\nTILES (32x32, full-bleed; seam asserted only on the axes the slot DECLARES)")
@@ -2626,6 +2754,44 @@ def main_season(args, season_name: str) -> int:
             report.ok(f"tiles/{name} (slot {slot}): 32x32, {len(colours)} palette colours, "
                       f"opaque, wrap/max x={wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']} "
                       f"checked={axes}")
+
+    # ---- the spring ground (SOU-275 only): green base, MORE flowers on ground_b -------
+    if season_name == "spring":
+        print("\nSPRING GROUND (the ticket's two ground claims, measured from the two PNGs)")
+        counts = {}
+        problems = []
+        for name in ("ground_a", "ground_b"):
+            path = os.path.join(root, "tiles", f"{name}.png")
+            if not os.path.exists(path):
+                problems.append(f"tiles/{name}.png missing")
+                continue
+            img = Image.open(path).convert("RGBA")
+            px = img.load()
+            w, h = img.size
+            opaque = [px[x, y][:3] for y in range(h) for x in range(w) if px[x, y][3]]
+            modal = Counter(opaque).most_common(1)[0][0]
+            flowers = sum(1 for p in opaque if crown_families[SEASON_FLOWER_FAMILY](p))
+            counts[name] = flowers
+            green_base = crown_families["green"](modal)
+            print(f"        {name:9s} base=#{modal[0]:02x}{modal[1]:02x}{modal[2]:02x} "
+                  f"green={green_base}  flower px={flowers:3d} / {len(opaque)}")
+            if not green_base:
+                problems.append(f"{name}'s base colour #{modal[0]:02x}{modal[1]:02x}{modal[2]:02x} "
+                                f"is not a green - the ticket says fresh green grass")
+        if "ground_a" in counts and "ground_b" in counts:
+            more = counts["ground_b"] > counts["ground_a"]
+            print(f"        ground_b - ground_a = {counts['ground_b'] - counts['ground_a']:+d} "
+                  f"blossom px  (ticket: 'same with MORE flowers')")
+            if not more:
+                problems.append(f"ground_b carries {counts['ground_b']} flower pixels against "
+                                f"ground_a's {counts['ground_a']} - the ticket says ground_b is "
+                                f"the same with MORE flowers")
+        if problems:
+            report.fail("spring ground: " + "; ".join(problems))
+        else:
+            report.ok(f"both ground tiles stand on a green-family base colour and ground_b "
+                      f"carries {counts['ground_b']} blossom pixels against ground_a's "
+                      f"{counts['ground_a']} (strictly more flowers, as the ticket says)")
 
     # ---- the strip: the file the renderer actually preloads ---------------------------
     print(f"\nTILESET STRIP ({TICKET_E['strip'][0]}x{TICKET_E['strip'][1]}, "
@@ -2720,11 +2886,10 @@ def main_season(args, season_name: str) -> int:
                               f"(x={m['ratio_x']}x y={m['ratio_y']}x)")
 
     # ---- props: size, alpha, palette, and the FORM the ticket describes ---------------
-    print("\nPROPS (exact declared size; crown hue families; dark trunk, base at the bottom centre)")
-    print(f"{'asset':12s} {'shipped':>9s} {'declared':>9s} {'crown hue shares':>34s} "
+    print("PROPS (exact declared size; the season's crown families; dark trunk, base at the "
+          "bottom centre)")
+    print(f"{'asset':12s} {'shipped':>9s} {'declared':>9s} {'crown families':>34s} "
           f"{'lum t/c':>8s} {'dark':>5s} {'brown':>6s} {'base run':>9s}  result")
-    fam_rgb = {fam: {S._hex_to_rgb(by_name[n]) for n in names}
-               for fam, names in SEASON_LEAF_FAMILIES.items()}
     trunk_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_TRUNK_FAMILY}
     outline_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_OUTLINE_FAMILY}
     crown_families_seen: set[str] = set()
@@ -2739,7 +2904,7 @@ def main_season(args, season_name: str) -> int:
         px = img.load()
         colours, off = palette_check(img, allowed=pal_rgb)
         alpha = alpha_profile(img)
-        resid = magenta_residue(img)
+        resid = magenta_residue(img, palette=pal_rgb)
         bottom = content_bottom_row(img)
         problems = []
         if (w, h) != want_px:
@@ -2758,17 +2923,38 @@ def main_season(args, season_name: str) -> int:
 
         crown = [px[x, y] for y in range(0, int(h * 0.6)) for x in range(w) if px[x, y][3]]
         trunk = [px[x, y] for y in range(int(h * 0.75), h) for x in range(w) if px[x, y][3]]
-        hues = [_hue(p) for p in crown]
-        fam_hits = {name: sum(1 for hv in hues if lo <= hv < hi)
-                    for name, lo, hi in SEASON_CROWN_HUES}
+        fam_hits = {name: sum(1 for p in crown if pred(p))
+                    for name, pred in crown_families.items()}
         fam_share = {k: v / max(len(crown), 1) for k, v in fam_hits.items()}
-        present = sorted(k for k, v in fam_share.items() if v >= SEASON_CROWN_MIN_SHARE)
+        present = sorted(k for k, v in fam_share.items() if v >= crown_rules["min_share"])
         crown_families_seen.update(present)
-        crown_txt = "/".join(f"{k}:{fam_share[k]:.0%}" for k, _lo, _hi in SEASON_CROWN_HUES)
-        if set(present) != {"red", "orange", "ochre"}:
-            problems.append(f"the crown carries only {present or 'no'} hue family at >= "
-                            f"{SEASON_CROWN_MIN_SHARE:.0%} ({crown_txt}) - the ticket says each "
-                            f"tree has an orange, red AND ochre crown")
+        crown_txt = " ".join(f"{k}:{fam_share[k]:.0%}" for k in crown_families)
+        if crown_rules["require_all"] and set(present) != set(crown_rules["require_all"]):
+            problems.append(f"the crown carries only {present or 'no'} family at >= "
+                            f"{crown_rules['min_share']:.0%} ({crown_txt}) - the ticket says each "
+                            f"tree has {crown_rules['what']}")
+        want_dominant = crown_rules["dominant"].get(aid)
+        if want_dominant:
+            best = max(fam_share, key=lambda k: fam_share[k])
+            if best != want_dominant or fam_share[want_dominant] < crown_rules["dominant_min"]:
+                problems.append(f"the crown's dominant family is {best} "
+                                f"({fam_share[best]:.0%}) and {want_dominant} is "
+                                f"{fam_share[want_dominant]:.0%}; the ticket says {aid} has "
+                                f"{crown_rules['what']}, so {want_dominant} must be dominant at "
+                                f">= {crown_rules['dominant_min']:.0%}")
+        # "light-green": measured against the winter pine ramp this tree replaces.
+        green_pred = crown_families.get("green")
+        green_lum = None
+        if crown_rules.get("light_green") and green_pred:
+            greens = [p for p in crown if green_pred(p)]
+            if not greens:
+                problems.append("no green-family pixel in the crown at all")
+            else:
+                green_lum = _mean([_lum(p) for p in greens])
+                if want_dominant == "green" and green_lum <= light_floor:
+                    problems.append(f"the crown's green pixels average luminance {green_lum:.1f}, "
+                                    f"at or below the brightest green of the pine it replaces "
+                                    f"({light_floor:.1f}) - the ticket says LIGHT green")
 
         crown_l = _mean([_lum(p) for p in crown])
         trunk_l = _mean([_lum(p) for p in trunk])
@@ -2799,25 +2985,32 @@ def main_season(args, season_name: str) -> int:
         if run > SEASON_TRUNK_MAX_ROW_SHARE * w:
             problems.append(f"the bottom row is a {run}px run on a {w}px canvas - that is a crown "
                             f"sitting on the ground, not a trunk")
+        crown_extra = f" greenlum={green_lum:.0f}" if green_lum is not None else ""
         print(f"{aid:12s} {f'{w}x{h}':>9s} {f'{want_px[0]}x{want_px[1]}':>9s} "
               f"{crown_txt:>34s} {lum_txt:>8s} {dark_share:>5.0%} {brown_share:>6.0%} "
-              f"{run:>9d}  {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+              f"{run:>9d}  {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}"
+              f"{crown_extra}")
         if problems:
             report.fail(f"{aid}: " + "; ".join(problems))
         else:
             report.ok(f"{aid}: {w}x{h} exactly, {len(colours)} palette colours, real alpha, no "
-                      f"magenta, content reaches the canvas bottom (row {bottom}); crown hue "
-                      f"families {crown_txt} ({present}); trunk band is darker than the crown "
+                      f"magenta, content reaches the canvas bottom (row {bottom}); crown families "
+                      f"{crown_txt} ({present}){crown_extra}; trunk band is darker than the crown "
                       f"({trunk_l:.0f} vs {crown_l:.0f}), {dark_share:.0%} of it dark and "
                       f"{brown_share:.0%} of its non-outline pixels a declared dark brown; bottom "
                       f"row is a {run}px trunk run with content at the centre column")
-    if crown_families_seen != {"red", "orange", "ochre"}:
-        report.fail(f"across the three trees the crowns carry only {sorted(crown_families_seen)} "
-                    f"of the ticket's orange/red/ochre - the ticket describes the set as "
-                    f"deciduous trees with orange, red AND ochre crowns")
+    if crown_rules["require_all"]:
+        if crown_families_seen != set(crown_rules["require_all"]):
+            report.fail(f"across the three trees the crowns carry only "
+                        f"{sorted(crown_families_seen)} of the ticket's "
+                        f"{'/'.join(crown_rules['require_all'])} - the ticket describes the set as "
+                        f"{crown_rules['set_what']}")
+        else:
+            report.ok(f"across the three trees the crowns carry all of the ticket's families: "
+                      f"{', '.join(crown_rules['require_all'])}")
     else:
-        report.ok("across the three trees the crowns carry all three of the ticket's hue "
-                  "families: red, orange and ochre")
+        report.ok(f"every tree's crown is the colour the ticket names for it "
+                  f"({crown_rules['set_what']})")
 
     # ---- manifests, in BOTH trees, and the served copy being byte-identical -----------
     print("\nMANIFESTS + SERVED COPY (a manifest next to every PNG; the served file is the "
@@ -2877,11 +3070,12 @@ def main_season(args, season_name: str) -> int:
         return EXIT_FAIL
     print(f"RESULT: PASS - the {season_name} set is the ticket's four 32px slots in order in a "
           f"128x32 strip plus the three trees at exactly 64x96 / 64x128 / 32x64, on a palette "
-          f"that is a superset of the lodge's, with every declared seam axis measured (self AND "
-          f"cross-tile, the path's own edge reported rather than asserted), every crown carrying "
-          f"all three of the orange/red/ochre hue families, trunk bands measurably darker than "
-          f"their crowns with the base at the bottom centre, a manifest next to every PNG, and "
-          f"every served file byte-identical to the generated one.")
+          f"that is a superset of the lodge's with every extension colour measurably distinct, "
+          f"with every declared seam axis measured (self AND cross-tile, the path's own edge "
+          f"reported rather than asserted), every crown carrying {crown_rules['what']}, trunk "
+          f"bands measurably darker than their crowns with the base at the bottom centre, a "
+          f"manifest next to every PNG, and every served file byte-identical to the generated "
+          f"one.")
     return 0
 
 

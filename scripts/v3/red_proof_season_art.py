@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""RED proof for the SOU-274 gate: mutate a COPY of the autumn set and show the gate fails.
+"""RED proof for the seasonal gate: mutate a COPY of the set and show the gate fails.
 
 A gate that has never failed is not evidence (SOU-198 precedent), and a gate written by the
 same session that wrote the art is the one most likely to be wired to pass.  So every assertion
-the autumn branch adds gets a mutation that targets it, plus a CONTROL run of the unmutated
+the seasonal branch adds gets a mutation that targets it, plus a CONTROL run of the unmutated
 copy which must PASS - without the control, a gate that fails everything would look like a
 triumph.
 
 Each case prints only the gate's FAIL lines and its RESULT, so the mapping from mutation to
-assertion is readable.
+assertion is readable, and the run ends with a count: a case whose mutation does NOT fire is a
+finding about the GATE, not about the art.
 
-    python3 scripts/v3/red_proof_season_art.py            # writes /tmp/sou274-red-* and runs the gate
+    python3 scripts/v3/red_proof_season_art.py           # autumn (the SOU-274 branch)
+    python3 scripts/v3/red_proof_season_art.py spring    # spring (the SOU-275 branch)
+
+The spring battery is aimed at the assertions SOU-275 added, and two of its cases are about the
+CHECKER rather than the art: the palette-aware magenta exemption (an undeclared pink must still
+count as residue) and the palette-distance floor (a near-duplicate extension colour must fire).
 """
 
 from __future__ import annotations
@@ -27,9 +33,11 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import gen_season_art as S  # noqa: E402
 
-SEASON = "autumn"
+SEASON = (sys.argv[1] if len(sys.argv) > 1 else "autumn").strip()
+if SEASON not in S.SEASONS:
+    sys.exit(f"unknown season {SEASON!r}; known: {sorted(S.SEASONS)}")
 OUT = Path("/tmp")
-RED_ROOT = OUT / f"sou274-red-{SEASON}"
+RED_ROOT = OUT / f"sou-red-{SEASON}"
 
 
 def fresh() -> Path:
@@ -99,7 +107,7 @@ def mutate_tile_wrap(root: Path) -> None:
     Every interior column step is one palette step, but the step from column 31 back to column 0
     is the whole ramp - which is exactly the seam the wrap measurement exists to find.
     """
-    ramp = ["earth", "earth_light", "earth_pale", "earth_dust"]
+    ramp = [n for n, _h in S.SEASONS[SEASON]["extra"][:4]]
     by_name = dict(S.palette_of(SEASON))
     img = _tile(root, "ground_b")
     px = img.load()
@@ -116,18 +124,31 @@ def mutate_cross_seam(root: Path) -> None:
 
     The self-seam stays 0.0 (the base is uniform), so only the cross-tile assertion can fire -
     which is the point: self-periodicity is not mutual tileability.
+
+    The base colour is read from the season's OWN tile spec and the replacement is the declared
+    colour furthest from it, because hard-coding autumn's `earth` made this case a NO-OP on a set
+    whose ground is green: spring's first battery run had nothing to recolour, the copy stayed
+    clean, and the case reported RESULT: PASS - the false-PASS direction, where the gate looks
+    green and the battery looks like a hole.
     """
     by_name = dict(S.palette_of(SEASON))
+    spec = next(s for n, _c, _s, s in S.SEASONS[SEASON]["tiles"] if n == "ground_b")
+    old_name = spec["base"]
+    old = S._hex_to_rgb(by_name[old_name])
+    ext = [n for n, _h in S.SEASONS[SEASON]["extra"]]
+    new_name = max(ext, key=lambda n: sum(abs(a - b)
+                                          for a, b in zip(S._hex_to_rgb(by_name[n]), old)))
+    new = S._hex_to_rgb(by_name[new_name]) + (255,)
     img = _tile(root, "ground_b")
     px = img.load()
-    old = S._hex_to_rgb(by_name["earth"])
-    new = S._hex_to_rgb(by_name["earth_dust"])
     for y in range(32):
         for x in range(32):
             if px[x, y][:3] == old:
-                px[x, y] = new + (255,)
+                px[x, y] = new
     _save(img, root, "ground_b")
     restamp(root)
+    print(f"  [{SEASON}] ground_b base {old_name} -> {new_name} (the declared colour furthest "
+          f"from it)")
 
 
 def mutate_cross_json(root: Path) -> None:
@@ -180,7 +201,7 @@ def mutate_crown_families(root: Path) -> None:
 def mutate_trunk_light(root: Path) -> None:
     """Paint tree_b's trunk band a light palette colour: no longer a dark trunk."""
     by_name = dict(S.palette_of(SEASON))
-    light = S._hex_to_rgb(by_name["snow"]) + (255,)
+    light = S._hex_to_rgb(by_name[_first_declared(by_name, "snow", "snow_light")]) + (255,)
     img = _prop(root, "tree_b")
     w, h = img.size
     px = img.load()
@@ -208,10 +229,18 @@ def mutate_trunk_offcentre(root: Path) -> None:
     _save_prop(img, root, "tree_small")
 
 
+def _first_declared(by_name: dict, *candidates: str) -> str:
+    """The first palette name this season actually declares - the battery runs for every season."""
+    for c in candidates:
+        if c in by_name:
+            return c
+    raise KeyError(f"none of {candidates} is in the {SEASON} palette")
+
+
 def mutate_crown_on_ground(root: Path) -> None:
     """Fill tree_b's bottom row edge to edge: a crown sitting on the ground, not a trunk."""
     by_name = dict(S.palette_of(SEASON))
-    leaf = S._hex_to_rgb(by_name["leaf_red_deep"]) + (255,)
+    leaf = S._hex_to_rgb(by_name[_first_declared(by_name, "leaf_red_deep", "blossom_deep")]) + (255,)
     img = _prop(root, "tree_b")
     w, h = img.size
     px = img.load()
@@ -225,6 +254,138 @@ def mutate_off_palette(root: Path) -> None:
     px = img.load()
     px[1, 1] = (1, 254, 3, 255)  # a colour that is in no declared palette
     _save_prop(img, root, "tree_a")
+
+
+# ---------------------------------------------------------------------------------------
+# spring-only mutations (SOU-275).  Each targets ONE of the assertions the spring branch
+# adds, and two of them target the CHECKER rather than the art.
+# ---------------------------------------------------------------------------------------
+def _repaint_crown(root: Path, name: str, colour: str) -> None:
+    by_name = dict(S.palette_of(SEASON))
+    rgb = S._hex_to_rgb(by_name[colour]) + (255,)
+    img = _prop(root, name)
+    w, h = img.size
+    px = img.load()
+    for y in range(0, int(h * 0.6)):
+        for x in range(w):
+            if px[x, y][3]:
+                px[x, y] = rgb
+    _save_prop(img, root, name)
+
+
+def mutate_spring_crown_green(root: Path) -> None:
+    """tree_a's crown repainted blossom pink: the light-green tree is gone (dominance fires)."""
+    _repaint_crown(root, "tree_a", "blossom")
+
+
+def mutate_spring_crown_blossom(root: Path) -> None:
+    """tree_b's crown repainted green: the blossom VERSION the ticket names is gone."""
+    _repaint_crown(root, "tree_b", "grass")
+
+
+def mutate_spring_crown_dark(root: Path) -> None:
+    """tree_a and tree_small repainted in the pine ramp's own green.
+
+    The dominant family is still `green`, so the dominance clause stays quiet - only the
+    "LIGHT green" floor can fire, which is exactly the assertion under test.  The colour is a
+    declared palette colour (the lodge's pine_deep), so nothing else objects.
+    """
+    _repaint_crown(root, "tree_a", "pine_deep")
+    _repaint_crown(root, "tree_small", "pine_deep")
+
+
+def mutate_spring_base(root: Path) -> None:
+    """Re-base BOTH ground tiles on earth: no longer fresh green grass.
+
+    Both, not just ground_a, to keep the mutation aimed at one assertion: re-basing only one
+    would also move the cross-tile join and fire that check too.
+    """
+    by_name = dict(S.palette_of(SEASON))
+    old = S._hex_to_rgb(by_name["grass"])
+    new = S._hex_to_rgb(by_name["earth"]) + (255,)
+    for name in ("ground_a", "ground_b"):
+        img = _tile(root, name)
+        px = img.load()
+        for y in range(32):
+            for x in range(32):
+                if px[x, y][:3] == old:
+                    px[x, y] = new
+        _save(img, root, name)
+    restamp(root)
+
+
+def mutate_spring_flowers(root: Path) -> None:
+    """Erase ground_b's flowers, leaving ground_a's: 'ground_b has MORE flowers' is then false."""
+    by_name = dict(S.palette_of(SEASON))
+    family = S._hex_to_rgb(by_name["grass"]) + (255,)
+    blossom = {S._hex_to_rgb(h) for h in
+               (by_name[n] for n in ("blossom", "blossom_light", "blossom_pale", "blossom_white"))}
+    img = _tile(root, "ground_b")
+    px = img.load()
+    for y in range(32):
+        for x in range(32):
+            if px[x, y][3] and tuple(px[x, y][:3]) in blossom:
+                px[x, y] = family
+    _save(img, root, "ground_b")
+    restamp(root)
+
+
+def mutate_undeclared_pink(root: Path) -> None:
+    """A pink that is NOT in the declared palette, painted into tree_a's crown.
+
+    (230,110,180) satisfies the de-fringe rule but is nobody's declared colour, so it is
+    residue by definition.  This case exists because SOU-275 made the fringe count
+    palette-aware, and a blanket exemption would have been the lazy version of that fix: the
+    exemption must clear the DECLARED blossom and still catch everything else.
+    """
+    img = _prop(root, "tree_a")
+    px = img.load()
+    for y in range(6, 10):
+        for x in range(6, 10):
+            px[x, y] = (230, 110, 180, 255)
+    _save_prop(img, root, "tree_a")
+
+
+def palette_distance_drift(root: Path | None = None) -> None:
+    """Drift a spring extension colour to a near-duplicate of a lodge colour, in-process.
+
+    No file can express this cleanly: the gate checks palette.json against the generator FIRST,
+    so the mutation has to move both at once (and the manifests, or the manifest-palette check
+    fires instead).  Done in-process so the mutation is exactly one thing.
+    """
+    import argparse
+    import contextlib
+    import io
+
+    import check_v3_assets as C
+
+    root = fresh()
+    ext = list(S.SEASONS[SEASON]["extra"])
+    names = [n for n, _h in ext]
+    ext[names.index("grass_light")] = ("grass_light", "#b98f3e")  # 2.0 units from the lodge brass
+    old = S.SEASONS[SEASON]["extra"]
+    S.SEASONS[SEASON]["extra"] = ext
+    try:
+        new_hex = S.palette_hex(SEASON)
+        for sub in ("tiles", "props"):
+            for man in sorted((root / sub).glob("*.manifest.json")):
+                data = json.loads(man.read_text())
+                data["palette"] = new_hex
+                man.write_text(json.dumps(data, indent=2) + "\n")
+        pal = root / "palette.json"
+        data = json.loads(pal.read_text())
+        data["hex"] = new_hex
+        data["colors"] = len(new_hex)
+        pal.write_text(json.dumps(data, indent=2) + "\n")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = C.main_season(argparse.Namespace(root=str(root), map=None, quiet=True), SEASON)
+        print("MUTATION [palette distance] grass_light drifted to #b98f3e, a near-duplicate of "
+              "the lodge brass (in-process, palette.json + manifests moved with it)")
+        lines = [ln for ln in buf.getvalue().splitlines() if "FAIL" in ln or ln.startswith("RESULT")]
+        print("\n".join(lines) or f"NO FAILURE FIRED (gate exit {rc})")
+    finally:
+        S.SEASONS[SEASON]["extra"] = old
 
 
 # ---------------------------------------------------------------------------------------
@@ -286,7 +447,7 @@ def mutate_rejected_pass(root: Path) -> None:
         q.save(root / "props" / f"{aid}.png")
 
 
-CASES = [
+CASES_AUTUMN = [
     ("strip slot 0/1 swapped", mutate_strip_order),
     ("ground_b ramped - the tile no longer wraps", mutate_tile_wrap),
     ("ground_b recoloured - wraps, but no longer joins ground_a", mutate_cross_seam),
@@ -304,8 +465,38 @@ CASES = [
     ("palette.json loses one lodge colour", mutate_palette_family),
 ]
 
+# The SOU-275 battery.  The shared mutations come first (they must keep firing on a set with
+# pink materials in it), then the six assertions the spring branch adds, then the two cases
+# that are about the checker: the palette-aware fringe exemption and the palette-distance floor.
+CASES_SPRING = [
+    ("strip slot 0/1 swapped", mutate_strip_order),
+    ("ground_b ramped - the tile no longer wraps", mutate_tile_wrap),
+    ("ground_b recoloured - wraps, but no longer joins ground_a", mutate_cross_seam),
+    ("cross_seam.json tampered (ratio + classification)", mutate_cross_json),
+    ("tree_b resized 4px shorter", mutate_prop_size),
+    ("tree_small manifest deleted", mutate_manifest),
+    ("tree_a magenta reintroduced under alpha", mutate_magenta),
+    ("tree_b trunk band painted light", mutate_trunk_light),
+    ("tree_small trunk base moved off centre", mutate_trunk_offcentre),
+    ("tree_b bottom row filled edge to edge", mutate_crown_on_ground),
+    ("tree_a one off-palette pixel", mutate_off_palette),
+    ("palette.json loses one lodge colour", mutate_palette_family),
+    ("both ground tiles re-based on earth - no longer fresh green grass", mutate_spring_base),
+    ("ground_b's flowers erased - fewer than ground_a's", mutate_spring_flowers),
+    ("tree_a's crown repainted blossom pink - no longer the green tree",
+     mutate_spring_crown_green),
+    ("tree_b's crown repainted green - no longer the blossom variant",
+     mutate_spring_crown_blossom),
+    ("tree_a + tree_small repainted in the pine ramp's own dark green",
+     mutate_spring_crown_dark),
+    ("an UNDECLARED pink that satisfies the fringe rule (the exemption is not a muzzle)",
+     mutate_undeclared_pink),
+]
 
-def generator_declaration_drift() -> None:
+CASES_BY_SEASON = {"autumn": CASES_AUTUMN, "spring": CASES_SPRING}
+
+
+def generator_declaration_drift(root: Path | None = None) -> None:
     """Drift the generator's own slot order away from the ticket, in-process.
 
     No file can express this mutation - the assertion compares the MODULE's declaration to the
@@ -317,33 +508,52 @@ def generator_declaration_drift() -> None:
         f"sys.path.insert(0, {str(HERE)!r});"
         "import gen_season_art as S;"
         "import check_v3_assets as C;"
-        "t = list(S.SEASONS['autumn']['tiles']);"
+        f"t = list(S.SEASONS[{SEASON!r}]['tiles']);"
         "t[0], t[1] = t[1], t[0];"
-        "S.SEASONS['autumn']['tiles'] = t;"
+        f"S.SEASONS[{SEASON!r}]['tiles'] = t;"
         f"a = argparse.Namespace(root={str(RED_ROOT)!r}, map=None, quiet=True);"
-        "rc = C.main_season(a, 'autumn');"
+        f"rc = C.main_season(a, {SEASON!r});"
         "print('gate exit', rc)"
     )
     proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     lines = [ln for ln in proc.stdout.splitlines() if "FAIL" in ln or "gate exit" in ln]
-    print("MUTATION [generator] slot order drifted from the ticket table (in-process)")
+    print(f"MUTATION [generator] slot order drifted from the ticket table (in-process, {SEASON})")
     print("\n".join(lines) or proc.stderr[-400:])
 
 
 def main() -> int:
+    # Cases that have to run IN-PROCESS (no file can express the mutation on its own).  Defined
+    # here so both functions exist first.
+    extra_cases = [("generator slot order drifted from the ticket table (in-process)",
+                    generator_declaration_drift)]
+    if SEASON == "spring":
+        extra_cases.insert(0, ("palette EXTENSION colour drifted to a near-duplicate of a lodge "
+                               "colour (in-process)", palette_distance_drift))
     print("=" * 90)
+    print(f"SEASON: {SEASON}")
     print(f"CONTROL: the unmutated copy must PASS (a gate that fails everything proves nothing)")
     root = fresh()
     print(run(root))
-    for label, fn in CASES:
+    cases = CASES_BY_SEASON[SEASON]
+    for label, fn in cases:
         root = fresh()
         fn(root)
         print("=" * 90)
         print(f"MUTATION {label!r}")
         print(run(root))
+    # The in-process cases mutate the MODULE, so the on-disk copy they are given stays clean and
+    # re-running the gate on it would print a PASS that means nothing.  They print their own
+    # gate output instead - which is why the label says so.
+    for label, fn in extra_cases:
+        print("=" * 90)
+        print(f"MUTATION {label!r} - self-reporting: the gate output above/below IS this case's "
+              f"result (the mutation exists only in memory, so there is no mutated copy to re-run)")
+        fn(fresh())
     print("=" * 90)
     fresh()
-    generator_declaration_drift()
+    total = len(cases) + len(extra_cases)
+    print(f"{total} mutation case(s) run for {SEASON}: every one above must show RESULT: FAIL "
+          f"and exit!=0; a case with 'NO FAILURE FIRED' or a PASS is a hole in the gate.")
     return 0
 
 

@@ -130,17 +130,28 @@ jobs:
           echo "POST /events -> 201, and the row reads back from GET /events/recent"
 
           echo "--- entrypoint.sh migrated the schema before the server started ---"
-          docker exec -i sou-sqlite python3 - <<'PY'
+          # The head revision is read from the IMAGE, never hard-coded here
+          # (SOU-270): pinning the first migration's id is what kept this
+          # workflow red for the six merges after migration 002 landed.
+          head_rev=$(docker exec -w /app sou-sqlite alembic -c /app/backend/alembic.ini heads \
+            | sed -n 's/^\([0-9A-Za-z_]*\) (head)$/\1/p' | head -1)
+          test -n "$head_rev" || { echo "could not read the alembic head out of the image"; exit 1; }
+          echo "alembic heads -> $head_rev"
+          docker exec -i -w /app sou-sqlite python3 - "$head_rev" <<'PY'
           import sqlite3
+          import sys
+          head = sys.argv[1]
           conn = sqlite3.connect("/app/backend/sou.db")
           version = conn.execute("SELECT version_num FROM alembic_version").fetchall()
           tables = sorted(r[0] for r in conn.execute(
               "SELECT name FROM sqlite_master WHERE type='table'"))
           events = conn.execute("SELECT count(*) FROM events").fetchone()[0]
           print("backend/sou.db:", version, tables, "events:", events)
-          assert version == [("001_initial_schema", )], version
+          assert version == [(head,)], version
           assert {"agents", "events", "sessions", "alembic_version"} <= set(tables), tables
-          assert events >= 2, events
+          # >= 1, not >= 2: this step posts exactly one event, and migration 003
+          # drops the v1 rows (and the v1 seed) that the old floor counted.
+          assert events >= 1, events
           PY
 
           echo "--- Docker HEALTHCHECK reaches healthy (AC4: 30s interval, 3 retries) ---"
@@ -172,8 +183,12 @@ jobs:
           done
           docker logs sou-pg
 
-          code=$(curl -s -o /tmp/index-pg.html -w '%{http_code}' http://127.0.0.1:19001/)
-          test "$code" = "200" || { echo "GET / -> $code"; exit 1; }
+          # SOU-226: `/` is a 302 to /v3/ on every face that registers it.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19001/)
+          test "$code" = "302" || { echo "GET / -> $code (expected the redirect to /v3/)"; exit 1; }
+          code=$(curl -s -o /tmp/index-pg.html -w '%{http_code}' http://127.0.0.1:19001/v3/)
+          test "$code" = "200" || { echo "GET /v3/ -> $code"; exit 1; }
+          echo "GET / -> 302, GET /v3/ -> 200 ($(wc -c < /tmp/index-pg.html) bytes)"
           code=$(curl -s -o /tmp/feed-pg.json -w '%{http_code}' 'http://127.0.0.1:19001/events/recent?limit=1')
           test "$code" = "200" || { echo "GET /events/recent -> $code"; exit 1; }
 
@@ -184,7 +199,20 @@ jobs:
             http://127.0.0.1:19001/events)
           test "$code" = "201" || { echo "POST /events -> $code: $(cat /tmp/post-pg.json)"; exit 1; }
           curl -s 'http://127.0.0.1:19001/events/recent?limit=20' | grep -q ci-postgres
-          echo "Postgres leg: dashboard 200, feed 200, POST /events 201 (STAR_BACKEND_PORT=19001 honoured)"
+          echo "Postgres leg: / -> 302, /v3/ 200, feed 200, POST /events 201 (STAR_BACKEND_PORT=19001 honoured)"
+
+          echo "--- plant the marker the public face must never serve (SOU-270) ---"
+          # `session_start` is one of the few event types whose ingest allow-list
+          # keeps `cwd` (backend/sanitize.py), so this is a real path arriving at
+          # the door. The public-face step below asserts the Lodge never serves
+          # it: that check is vacuous unless something planted it first.
+          code=$(curl -s -o /tmp/post-marker.json -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"version\":1,\"agent\":\"ci-postgres\",\"event_type\":\"session_start\",\"timestamp\":\"$now\",\"payload\":{\"cwd\":\"/home/ci-postgres-secret-path/x\",\"source\":\"ci\"}}" \
+            http://127.0.0.1:19001/events)
+          test "$code" = "201" || { echo "POST /events (marker) -> $code: $(cat /tmp/post-marker.json)"; exit 1; }
+          curl -s 'http://127.0.0.1:19001/events/recent?limit=20' | grep -q session_start
+          echo "planted /home/ci-postgres-secret-path/x via session_start -> 201, read back from the feed"
 
           echo "--- head is stamped in Postgres, and no SQLite file was created ---"
           docker run --rm --network host postgres:16 \
@@ -211,6 +239,69 @@ jobs:
           test "$status" = "healthy"
           docker rm -f sou-pg
 
+      - name: Smoke the public face on Postgres (SOU_MODE=public, SOU_MIGRATE=0)
+        run: |
+          set -euo pipefail
+          # Same Postgres the step above migrated; the public container must NOT
+          # migrate it again (SOU_MIGRATE=0) and must not register a write door.
+          URL='postgresql+psycopg2://postgres@127.0.0.1:5432/sou'
+          docker run -d --name sou-public --network host \
+            -e DATABASE_URL="$URL" \
+            -e SOU_MODE=public \
+            -e SOU_MIGRATE=0 \
+            -e STAR_BACKEND_PORT=19002 \
+            "$IMAGE:ci"
+
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:19002/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker logs sou-public
+
+          echo "--- /health answers on the public face (the image's own probe path) ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19002/health)
+          test "$code" = "200" || { echo "GET /health -> $code"; exit 1; }
+          echo "GET /health -> 200"
+
+          echo "--- the Lodge renders on the public face ---"
+          code=$(curl -s -o /tmp/index-public.html -w '%{http_code}' http://127.0.0.1:19002/v3/)
+          test "$code" = "200" || { echo "GET /v3/ -> $code"; exit 1; }
+          grep -qiE 'phaser|canvas' /tmp/index-public.html
+          echo "GET /v3/ -> 200, renderer markup present ($(wc -c < /tmp/index-public.html) bytes)"
+
+          echo "--- /public/feed answers, and never serves the planted cwd path ---"
+          code=$(curl -s -o /tmp/public-feed.json -w '%{http_code}' \
+            'http://127.0.0.1:19002/public/feed?limit=50')
+          test "$code" = "200" || { echo "GET /public/feed -> $code"; exit 1; }
+          # Not vacuous: the marker's own agent has to be in this body.
+          grep -q ci-postgres /tmp/public-feed.json
+          if grep -q 'ci-postgres-secret-path' /tmp/public-feed.json; then
+            echo "FAIL: the public feed served the planted path"
+            cat /tmp/public-feed.json
+            exit 1
+          fi
+          echo "GET /public/feed -> 200 ($(wc -c < /tmp/public-feed.json) bytes), ci-postgres present, no ci-postgres-secret-path"
+
+          echo "--- the ingest door and the debug read do not exist on this face ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:19002/events/recent')
+          test "$code" = "404" || { echo "GET /events/recent -> $code (expected 404)"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:19002/events)
+          case "$code" in
+            404|405) ;;
+            *) echo "POST /events -> $code (expected 404 or 405)"; exit 1 ;;
+          esac
+          echo "GET /events/recent -> 404, POST /events -> $code"
+
+          echo "--- SOU_MIGRATE=0: this container never ran a migration ---"
+          if docker logs sou-public 2>&1 | grep -q 'alembic upgrade head'; then
+            echo "FAIL: the public container ran migrations; SOU_MIGRATE=0 was ignored"
+            exit 1
+          fi
+          docker logs sou-public 2>&1 | grep -q 'SOU_MIGRATE=0: skipping migrations'
+          echo "no 'alembic upgrade head' in the logs, and the skip notice is there"
+          docker rm -f sou-public
+
       - name: Publish to GHCR (master pushes and v* tags only)
         if: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
         env:
@@ -219,19 +310,26 @@ jobs:
           set -euo pipefail
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
-          docker tag "$IMAGE:ci" "$IMAGE:latest"
-          docker push "$IMAGE:latest"
-          echo "pushed $IMAGE:latest"
-
+          # SOU-270: Flux cannot order `:latest`, so a master push publishes a
+          # sortable tag next to it — `master-<sha7>-<epoch>`, the shape the
+          # ImagePolicy in docs/public-lodge.md sorts numerically. The epoch is
+          # read ONCE here, in this step: a tag recomputed in another step would
+          # name a different image and never be found in the registry.
           TAGS="latest"
           case "$GITHUB_REF" in
+            refs/heads/master)
+              TAGS="latest master-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)-$(date +%s)"
+              ;;
             refs/tags/v*)
-              docker tag "$IMAGE:ci" "$IMAGE:$GITHUB_REF_NAME"
-              docker push "$IMAGE:$GITHUB_REF_NAME"
-              echo "pushed $IMAGE:$GITHUB_REF_NAME"
               TAGS="latest $GITHUB_REF_NAME"
               ;;
           esac
+
+          for tag in $TAGS; do
+            docker tag "$IMAGE:ci" "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+            echo "pushed $IMAGE:$tag"
+          done
 
           {
             echo "## Published image"

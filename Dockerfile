@@ -106,11 +106,12 @@ USER app
 # The app listens on 19000; override the port with STAR_BACKEND_PORT.
 EXPOSE 19000
 
-# Liveness on the read path the dashboard itself uses (AC4): /events/recent
-# answers from the migrated database, so this probe fails when the schema or the
-# connection is broken while /health would still lie. Stdlib urllib only -
-# there is no curl in this image.
+# Liveness on a path that exists on EVERY face (SOU-270): /health answers on
+# dev, ingest and public alike. The probe used to read /events/recent, which the
+# public face never registers (backend/sou_mode.py) - that container answered
+# 404 forever, so it could never go healthy. Stdlib urllib only - there is no
+# curl in this image.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python3 -c 'import os,sys,urllib.request; p=os.environ.get("STAR_BACKEND_PORT","19000"); sys.exit(0 if urllib.request.urlopen("http://127.0.0.1:"+p+"/events/recent?limit=1", timeout=3).status == 200 else 1)'
+    CMD python3 -c 'import os,sys,urllib.request; p=os.environ.get("STAR_BACKEND_PORT","19000"); sys.exit(0 if urllib.request.urlopen("http://127.0.0.1:"+p+"/health", timeout=3).status == 200 else 1)'
 
 ENTRYPOINT ["/app/entrypoint.sh"]

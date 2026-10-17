@@ -4,7 +4,8 @@
 Stdlib only, no Docker needed: this parses ``Dockerfile``, ``entrypoint.sh`` and
 ``.dockerignore`` and asserts the container contract agreed on **SOU-12** (the
 first production image) and extended for **SOU-62 / Phase 5** (Alembic migration
-on startup, multi-stage, healthcheck on the event feed).
+on startup, multi-stage, healthcheck) and **SOU-270** (the probe moved to
+``/health``; ``SOU_MIGRATE=0`` is a legal switch whose default still migrates).
 
 Phase 5 contract, keyed to the acceptance criteria on SOU-62
   AC1  base image Python 3.10+ (pinned ``python:3.13-slim`` for ``int | None``
@@ -15,7 +16,8 @@ Phase 5 contract, keyed to the acceptance criteria on SOU-62
        resolves the backend through ``DATABASE_URL`` (Postgres) with the SQLite
        fallback left to ``backend/migrations/env.py`` — never a hard-coded URL
   AC3  multi-stage: a deps stage that installs, a runtime stage that only copies
-  AC4  ``HEALTHCHECK --interval=30s --retries=3`` probing ``/events/recent?limit=1``
+  AC4  ``HEALTHCHECK --interval=30s --retries=3`` probing ``/health`` — the one
+       path every face registers (SOU-270; ``/events/recent`` 404s on public)
   +    non-root final user and no baked secrets (the SOU-12 guarantees, kept)
 
 The uv tool stage (``ghcr.io/astral-sh/uv``, COPY --from= target only) is the
@@ -57,7 +59,10 @@ PINNED_BASE = "python:3.13-slim"
 UV_IMAGE_RE = re.compile(r"^ghcr\.io/astral-sh/uv:[^:]+$")
 
 APP_PORT = "19000"
-HEALTH_PATH = "/events/recent?limit=1"
+# SOU-270: the probe path. /health is registered on all three faces
+# (backend/sou_mode.py), so the same image goes healthy as sou-ingest and as
+# sou-public; /events/recent only exists on dev and ingest.
+HEALTH_PATH = "/health"
 
 # AC3: the runtime stage may only copy what the server actually serves.
 # Anything else (docs, tests, desktop shells, tooling) stays out of the image.
@@ -497,6 +502,23 @@ def main() -> int:
             "AC2: entrypoint.sh hard-codes a database URL; DATABASE_URL and "
             "alembic.ini/env.py own that decision",
         )
+        # SOU-270: the SOU_MIGRATE switch. Text can only prove the shape — the
+        # default is 1 (so an unset variable still migrates) and the skip path
+        # announces itself in the start-up log; that the skip path really runs
+        # no migration is behaviour, and it is proved in
+        # backend/tests/test_container_entrypoint.py (both cases) plus the
+        # "public face on Postgres" CI smoke step.
+        check(
+            re.search(r"SOU_MIGRATE:-1\b", ep_text) is not None,
+            "SOU-270: entrypoint.sh must default SOU_MIGRATE to 1, so an "
+            "unset variable still runs `alembic upgrade head`",
+        )
+        check(
+            "SOU_MIGRATE=0: skipping migrations" in ep_text,
+            "SOU-270: the SOU_MIGRATE=0 path must print "
+            "`[entrypoint] SOU_MIGRATE=0: skipping migrations` — the CI smoke "
+            "step greps for exactly that line",
+        )
         check(
             "STAR_BACKEND_PORT" in ep_text,
             "AC1: entrypoint.sh does not honour STAR_BACKEND_PORT",
@@ -526,17 +548,23 @@ def main() -> int:
         del ep_lines
 
     # --- AC4 healthcheck --------------------------------------------------
+    # SOU-270 moved the probe off /events/recent: the public face never
+    # registers that rule, so a sou-public container answered 404 forever and
+    # could never go healthy. The contract now pins the path that all three
+    # faces register, and keeps the interval/retries that SOU-62 agreed.
     health = [line for line in df_lines if line.upper().startswith("HEALTHCHECK ")]
     check(bool(health), "AC4: Dockerfile has no HEALTHCHECK instruction")
     if health:
         probe = health[-1]
         check(
             HEALTH_PATH in probe,
-            f"AC4: HEALTHCHECK must probe {HEALTH_PATH} (the DB-backed feed), got: {probe!r}",
+            f"AC4: HEALTHCHECK must probe {HEALTH_PATH} (the path every face "
+            f"registers, SOU-270), got: {probe!r}",
         )
         check(
-            "/health" not in probe,
-            f"AC4: HEALTHCHECK still probes /health, which answers without touching the database: {probe!r}",
+            "/events/recent" not in probe,
+            f"AC4: HEALTHCHECK still probes /events/recent, which the public "
+            f"face does not register: {probe!r}",
         )
         check(
             re.search(r"--interval=30s", probe) is not None,

@@ -10,12 +10,14 @@ import math
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 from pathlib import Path
 from security_utils import is_production_mode, is_strong_secret, is_strong_drawer_pass
 import db
 import event_schema
+import ingest_auth
 import sanitize
 from store_utils import (
     load_asset_positions as _store_load_asset_positions,
@@ -114,6 +116,22 @@ if is_production_mode():
         hardening_errors.append("ASSET_DRAWER_PASS is weak (do not use default 1234; recommend >=8 chars)")
     if hardening_errors:
         raise RuntimeError("Security hardening check failed in production mode: " + "; ".join(hardening_errors))
+
+# Per-agent ingest tokens (SOU-219, docs/public-lodge.md §2): sha256(token) ->
+# agent. Configured -> POST /events answers 401/403/429 before touching the
+# body; unset -> today's dev/LAN behaviour with exactly one loud warning, so
+# old untokened reporters keep working on the private box. SOU_MODE=ingest
+# (P13-C) refuses to start without tokens. Tests reassign app.INGEST_STORE;
+# the endpoint reads this global per request.
+INGEST_STORE = ingest_auth.build_from_env()
+if INGEST_STORE is None:
+    print(
+        "WARNING: SOU_INGEST_TOKENS is not set - POST /events accepts unauthenticated writes. "
+        "Fine on the dev/LAN box, never on a public or ingest face: create tokens with "
+        "`python backend/tokens.py new <agent>` and set SOU_INGEST_TOKENS (or SOU_MODE=ingest "
+        "to make this fatal). See docs/public-lodge.md.",
+        file=sys.stderr,
+    )
 
 
 def _is_asset_editor_authed() -> bool:
@@ -1492,7 +1510,29 @@ def events_endpoint():
     success, ``{"ok": false, "error": "<what to fix>"}`` with 400 when the body
     is not a valid v1 event — the message names the offending field, because
     the agent reading it is a machine running a hook, not a person at a form.
+
+    With ``SOU_INGEST_TOKENS`` configured (SOU-219) the door also has a lock,
+    checked before the body: ``Authorization: Bearer <token>`` missing or
+    unknown -> 401; the token's rate bucket empty -> 429 with ``Retry-After``;
+    the token belongs to a different agent than the envelope claims -> 403 and
+    nothing is written. A token can only ever write its own agent's room.
     """
+    store = INGEST_STORE
+    token_agent = None
+    if store is not None:
+        token = ingest_auth.bearer_from_header(request.headers.get("Authorization"))
+        token_agent = store.lookup(token) if token is not None else None
+        if token_agent is None:
+            return (
+                jsonify({"ok": False, "error": "authorization: a valid Bearer ingest token is required"}),
+                401,
+            )
+        if not store.allow_request(token):
+            response = jsonify(
+                {"ok": False, "error": f"rate limit: this token sends more than {store.rate:g} events/s"}
+            )
+            response.headers["Retry-After"] = "1"
+            return response, 429
     if not request.is_json:
         return (
             jsonify({"ok": False, "error": "event: expected Content-Type application/json"}),
@@ -1501,6 +1541,19 @@ def events_endpoint():
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"ok": False, "error": "event: request body is not valid JSON"}), 400
+    if store is not None and isinstance(data, dict):
+        # The token decides identity, exactly: "Hermes" is not "hermes". The
+        # claim is checked before schema validation, so a wrong-agent envelope
+        # is a 403 even if it would also fail validation for another reason.
+        claimed = data.get("agent")
+        if isinstance(claimed, str) and claimed != token_agent:
+            return (
+                jsonify({
+                    "ok": False,
+                    "error": f"agent: this token writes the room of {token_agent!r}, not {claimed!r}",
+                }),
+                403,
+            )
     try:
         ingest_event(data)
     except event_schema.EventValidationError as exc:

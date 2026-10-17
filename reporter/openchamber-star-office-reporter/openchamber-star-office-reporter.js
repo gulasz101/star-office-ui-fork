@@ -23,6 +23,9 @@
 //   SOU_AGENT_NAME         default openchamber (use opencode behind OpenChamber)
 //   SOU_REPORTER_ENABLED   0/false/no/off disables every POST
 //   SOU_TIMEOUT_MS         default 5000, clamped to [200, 30000]
+//   SOU_TOKEN              ingest token -> Authorization: Bearer (SOU-223,
+//                          config key `token`; required once the dashboard
+//                          runs with SOU_INGEST_TOKENS, P13-B)
 //   SOU_REPORTER_CONFIG    path to a JSON file; otherwise standard locations
 //   (see README.md).
 //
@@ -77,6 +80,7 @@ function normalizeLayer(obj) {
     layer.dashboardUrl = obj.dashboardUrl.trim().replace(/\/+$/, "");
   }
   if (typeof obj.agent === "string" && obj.agent.trim()) layer.agent = obj.agent.trim();
+  if (typeof obj.token === "string" && obj.token.trim()) layer.token = obj.token.trim();
   if (obj.enabled !== undefined) {
     layer.enabled = typeof obj.enabled === "boolean" ? obj.enabled : !OFF_WORDS.has(String(obj.enabled).trim().toLowerCase());
   }
@@ -113,6 +117,7 @@ export function loadConfig(env = process.env, opts = {}) {
   const envLayer = normalizeLayer({
     dashboardUrl: env.SOU_DASHBOARD_URL,
     agent: env.SOU_AGENT_NAME,
+    token: env.SOU_TOKEN,
     timeoutMs: env.SOU_TIMEOUT_MS,
     enabled: env.SOU_REPORTER_ENABLED === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_REPORTER_ENABLED).trim().toLowerCase()),
     debug: env.SOU_DEBUG === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_DEBUG).trim().toLowerCase()),
@@ -126,6 +131,7 @@ export function loadConfig(env = process.env, opts = {}) {
     dashboardUrl,
     eventsUrl: `${dashboardUrl}/events`,
     agent: merged.agent || DEFAULTS.agent,
+    token: merged.token || "",
     enabled: merged.enabled !== false,
     debug: merged.debug === true,
     debugLogFile: env.SOU_REPORTER_LOG || path.join(stateHome, "sou-reporter", "reporter.log"),

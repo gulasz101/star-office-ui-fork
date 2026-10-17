@@ -315,6 +315,45 @@ test("createReporter: flush drains inflight within a bound", async () => {
 });
 
 // ---------------------------------------------------------------------------
+// SOU-223 — ingest token: configuration plumbing (AC1)
+// ---------------------------------------------------------------------------
+
+test("loadConfig: token unset by default", () => {
+  const cfg = loadConfig({});
+  assert.ok(!cfg.token, "no SOU_TOKEN, no config token -> no token");
+});
+
+test("loadConfig: SOU_TOKEN env picked up and trimmed", () => {
+  const cfg = loadConfig({ SOU_TOKEN: "  tok-abc123  " });
+  assert.equal(cfg.token, "tok-abc123");
+});
+
+test("loadConfig: config-file token key honoured", () => {
+  const cfg = loadConfig(
+    { HOME: "/nonexistent", XDG_CONFIG_HOME: undefined },
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "file-tok" }) }
+  );
+  assert.equal(cfg.token, "file-tok");
+});
+
+test("loadConfig: env SOU_TOKEN overrides config-file token", () => {
+  const cfg = loadConfig(
+    { SOU_TOKEN: "env-tok" },
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "file-tok" }) }
+  );
+  assert.equal(cfg.token, "env-tok");
+});
+
+test("loadConfig: blank token means unset", () => {
+  assert.ok(!loadConfig({ SOU_TOKEN: "   " }).token);
+  const cfg = loadConfig(
+    {},
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "" }) }
+  );
+  assert.ok(!cfg.token);
+});
+
+// ---------------------------------------------------------------------------
 // package identity
 // ---------------------------------------------------------------------------
 

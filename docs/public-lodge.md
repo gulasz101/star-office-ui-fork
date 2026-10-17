@@ -170,8 +170,61 @@ against an untokened dev instance, or set their tokens once implemented.
   - `sou-ingest`: ClusterIP; exposed on the Netbird/LAN hostname only.
   - `sou-public`: exposed through the existing Cloudflare Tunnel on a public hostname.
 - Both use the same DB; `sou-public` has a read-only DB role.
+- One image, two roles (SOU-270). `sou-ingest` runs the entrypoint's default: `SOU_MIGRATE=1`,
+  i.e. `alembic upgrade head` before gunicorn, exactly as before. `sou-public` sets
+  `SOU_MIGRATE=0`, which skips migrations and says so in its log
+  (`[entrypoint] SOU_MIGRATE=0: skipping migrations`) — the public face is read-only, so it must
+  never be the process that writes a migration. The image's `HEALTHCHECK` probes `/health`, the
+  one path all three faces register (`/events/recent` 404s on public, so the old probe would have
+  kept a public container permanently unhealthy).
 - Owner decides: the public hostname, whether to put Cloudflare Access in front at first
   (private beta), and whether the M1 Max instance stays as the dev/LAN dashboard.
+
+### Flux image automation
+
+`:latest` cannot be ordered, so `docker-image.yml` publishes a sortable tag beside it: a master
+push pushes `:latest` **and** `:master-<sha7>-<epoch>` (e.g. `master-cfec67b-1760668800`, the
+epoch taken once per run), and a `v*` tag push pushes `:vX.Y.Z` **and** `:latest`. The image
+policy below follows the master tags; the `sou-ingest` / `sou-public` Deployments then reference
+the tag the policy selects (an `ImageUpdateAutomation` marker, or `flux get image policy sou`).
+
+```yaml
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: sou
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: sou
+  filterTags:
+    pattern: '^master-[a-f0-9]+-(?P<ts>[0-9]+)$'
+    extract: '$ts'
+  policy:
+    numerical:
+      order: asc
+```
+
+The release alternative — follow the semver tags instead of the master ones:
+
+```yaml
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: sou-release
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: sou
+  policy:
+    semver:
+      range: ">=2.0.0"
+```
+
+Both need the image automation controllers in the cluster (`image-reflector-controller` and
+`image-automation-controller`, plus an `ImageRepository` for the GHCR repo). homelab-2nd
+currently installs source/kustomize/helm/notification only, so that is a step of the SOU-224
+deployment, not something this sketch assumes.
 
 ## Go-live checklist
 

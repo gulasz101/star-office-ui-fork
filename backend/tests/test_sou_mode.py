@@ -177,5 +177,120 @@ MASTER_42 = [
 ]
 
 
+class ReadonlyEngineTest(unittest.TestCase):
+    """AC5: the public face's engine (SOU-251, S2 half).
+
+    ``db.create_db_engine(url, read_only=True)`` must make every
+    connection refuse writes while reading normally: SQLite gets
+    ``PRAGMA query_only=ON``, Postgres gets a session-level
+    ``default_transaction_read_only = on``. The URL can also arrive
+    pointing at a read-only role — that half is the operator's; this is
+    the in-app guard for when it doesn't.
+    """
+
+    def setUp(self) -> None:
+        import tempfile
+        import db
+
+        self.db = db
+        self.workdir = tempfile.mkdtemp(prefix="sou220-ro-")
+        self.url = f"sqlite:///{os.path.join(self.workdir, 'ro.db')}"
+        self.orig_env = os.environ.get("DATABASE_URL")
+        os.environ["DATABASE_URL"] = self.url
+
+    def tearDown(self) -> None:
+        # leave no sticky read-only default behind for other tests
+        self.db.init(self.db.resolve_database_url(), read_only=False)
+        self.db.shutdown()
+        if self.orig_env is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = self.orig_env
+
+    def _sql(self, engine, text):
+        import sqlalchemy as sa
+
+        with engine.connect() as conn:
+            return conn.execute(sa.text(text)).fetchall()
+
+    def _execute(self, engine, text):
+        """Run a statement that returns nothing (DDL/DML), committing it."""
+        import sqlalchemy as sa
+
+        with engine.begin() as conn:
+            conn.execute(sa.text(text))
+
+    def test_sqlite_read_only_refuses_writes_and_still_reads(self) -> None:
+        engine = self.db.create_db_engine(self.url, read_only=True)
+        try:
+            self.assertEqual(self._sql(engine, "SELECT 1"), [(1,)])
+            with self.assertRaises(Exception) as ctx:
+                self._sql(engine, "CREATE TABLE canary (x INTEGER)")
+            self.assertIn("readonly", str(ctx.exception).lower())
+        finally:
+            engine.dispose()
+        # nothing was actually written — not even the failed table
+        import sqlalchemy as sa
+
+        self.assertNotIn("canary", sa.inspect(engine).get_table_names())
+
+    def test_default_engine_still_writable(self) -> None:
+        import sqlalchemy as sa
+
+        engine = self.db.create_db_engine(self.url)
+        try:
+            self._execute(engine, "CREATE TABLE writable_check (x INTEGER)")
+            self.assertIn("writable_check", sa.inspect(engine).get_table_names())
+        finally:
+            engine.dispose()
+
+    def test_init_read_only_is_sticky_for_lazy_reinit(self) -> None:
+        import sqlalchemy as sa
+
+        # real schema so the ORM write path (not "no such table") is what
+        # the read-only guard refuses
+        writable = self.db.create_db_engine(self.url)
+        self.db.Base.metadata.create_all(writable)
+        writable.dispose()
+
+        self.db.init(self.url, read_only=True)
+        try:
+            with self.db.session_scope() as session:
+                self.assertEqual(session.execute(sa.text("SELECT 1")).scalar(), 1)
+            with self.assertRaises(Exception) as ctx:
+                with self.db.session_scope() as session:
+                    self.db.insert_agent(session, name="canary", agent_type="external")
+            self.assertIn("readonly", str(ctx.exception).lower())
+        finally:
+            self.db.shutdown()
+        # shutdown() + lazy get_engine() must reopen the same read-only guard
+        engine = self.db.get_engine()
+        with self.assertRaises(Exception):
+            self._execute(engine, "CREATE TABLE sticky_check (x INTEGER)")
+        # and an explicit read_only=False resets the default (dev face)
+        self.db.init(self.url, read_only=False)
+        self.db.shutdown()
+        engine = self.db.get_engine()
+        self._execute(engine, "CREATE TABLE writable_again (x INTEGER)")
+        self.assertIn("writable_again", sa.inspect(engine).get_table_names())
+
+    @unittest.skipIf(
+        not os.environ.get("TEST_POSTGRES_URL"),
+        "no live Postgres (set TEST_POSTGRES_URL to run)",
+    )
+    def test_postgres_read_only_guard(self) -> None:  # pragma: no cover - needs server
+        import sqlalchemy as sa
+
+        url = os.environ["TEST_POSTGRES_URL"]
+        engine = self.db.create_db_engine(url, read_only=True)
+        try:
+            rows = self._sql(engine, "SELECT current_setting('default_transaction_read_only')")
+            self.assertEqual(rows, [("on",)])
+            with self.assertRaises(sa.exc.InternalError):
+                self._sql(engine, "CREATE TABLE sou220_canary (x INTEGER)")
+        finally:
+            engine.dispose()
+
+
 if __name__ == "__main__":
     unittest.main()

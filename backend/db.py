@@ -119,26 +119,43 @@ def backend_name(url: str) -> str:
     raise ValueError(f"unsupported database backend: {dialect!r} (ADR-034 allows postgres or sqlite)")
 
 
-def create_db_engine(url: Optional[str] = None, **engine_kw: Any) -> Engine:
+def create_db_engine(url: Optional[str] = None, read_only: bool = False, **engine_kw: Any) -> Engine:
     """Build an Engine for either backend, with the per-dialect pragmas.
 
     SQLite gets ``PRAGMA foreign_keys=ON`` (off by default in SQLite, yet the
     schema declares ON DELETE CASCADE and the tests rely on it) and is opened
     across threads because Flask serves the dashboard in parallel. Postgres
     needs neither and keeps SQLAlchemy's pooling defaults.
+
+    ``read_only=True`` adds the in-app write guard (SOU-220, AC5): every
+    connection runs SQLite's ``PRAGMA query_only=ON`` or sets Postgres's
+    session GUC ``default_transaction_read_only`` before use, so a face
+    that only reads (the public viewer) cannot write even if a bug — or a
+    tempting route — asks it to. "when the URL allows it": the durable
+    guarantee is a read-only role granted by the operator; this flag is
+    the defence-in-depth layer that works on any URL.
     """
     resolved = resolve_database_url(url)
     if backend_name(resolved) == "sqlite":
         engine = _create_engine(resolved, connect_args={"check_same_thread": False}, **engine_kw)
 
         @listens_for(engine, "connect")
-        def _enable_foreign_keys(dbapi_conn, _record):  # pragma: no cover - trivial
+        def _sqlite_guards(dbapi_conn, _record):  # pragma: no cover - trivial
             cursor = dbapi_conn.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
+            if read_only:
+                cursor.execute("PRAGMA query_only=ON")
             cursor.close()
 
         return engine
-    return _create_engine(resolved, **engine_kw)
+    engine = _create_engine(resolved, **engine_kw)
+    if read_only:
+        @listens_for(engine, "connect")
+        def _postgres_read_only(dbapi_conn, _record):  # pragma: no cover - needs server
+            cursor = dbapi_conn.cursor()
+            cursor.execute("SET default_transaction_read_only = on")
+            cursor.close()
+    return engine
 
 
 # ---------------------------------------------------------------------------
@@ -259,17 +276,29 @@ class AgentSession(Base):
 
 _engine: Optional[Engine] = None
 _session_factory: Optional[sessionmaker] = None
+_default_read_only: bool = False
 
 
-def init(url: Optional[str] = None, engine: Optional[Engine] = None) -> Engine:
+def init(
+    url: Optional[str] = None,
+    engine: Optional[Engine] = None,
+    read_only: Optional[bool] = None,
+) -> Engine:
     """Point the adapter at ``url`` (or ``DATABASE_URL`` / SQLite fallback).
 
     Pass an ``engine`` to adopt one built elsewhere. Re-init disposes the
     previous engine, so tests can move the whole module between databases.
+
+    ``read_only`` (SOU-220) builds the engine with the write guard; passing
+    ``None`` keeps the module's previous default, so the self-initialising
+    ``get_engine``/``get_session`` path after a ``shutdown()`` reopens the
+    same face the app started with. Explicit ``False`` resets it (dev).
     """
-    global _engine, _session_factory
+    global _engine, _session_factory, _default_read_only
     shutdown()
-    _engine = engine if engine is not None else create_db_engine(url)
+    if read_only is not None:
+        _default_read_only = bool(read_only)
+    _engine = engine if engine is not None else create_db_engine(url, read_only=_default_read_only)
     _session_factory = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
 

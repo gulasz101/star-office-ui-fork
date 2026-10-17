@@ -32,6 +32,8 @@ Run from the repo root::
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import sys
 import unittest
@@ -290,6 +292,385 @@ class ReadonlyEngineTest(unittest.TestCase):
                 self._sql(engine, "CREATE TABLE sou220_canary (x INTEGER)")
         finally:
             engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# S3 (SOU-252): face boots. Real `app` imports in subprocesses, so every
+# face is proved under the same import-time conditions a deploy sees.
+# ---------------------------------------------------------------------------
+
+PROBE_SCRIPT = r"""
+import json, os, sys
+sys.path.insert(0, os.getcwd())
+import app
+
+plan = json.loads(os.environ.get("SOU_PROBE") or "{}")
+rules = []
+for r in app.app.url_map.iter_rules():
+    rules.append({
+        "rule": str(r.rule),
+        "endpoint": r.endpoint,
+        "methods": sorted(m for m in r.methods if m != "OPTIONS"),
+    })
+rules.sort(key=lambda d: (d["rule"], d["endpoint"], d["methods"]))
+client = app.app.test_client()
+out = {"mode": getattr(app, "SOU_MODE", None), "rules": rules, "probes": {}}
+
+def snap(label, resp):
+    out["probes"][label] = {
+        "status": resp.status_code,
+        "cache_control": resp.headers.get("Cache-Control"),
+        "cors_headers": {k: v for k, v in resp.headers.items()
+                         if k.lower().startswith("access-control")},
+        "json": resp.get_json(silent=True),
+    }
+
+for i, path in enumerate(plan.get("get", [])):
+    snap("GET %d %s" % (i, path), client.get(path))
+for i, entry in enumerate(plan.get("post", [])):
+    snap("POST %d %s" % (i, entry["path"]),
+         client.post(entry["path"], json=entry.get("body"), headers=entry.get("headers")))
+print(json.dumps(out))
+"""
+
+FACES_DB = {}  # workdir + url, built once per run
+
+
+def _faces_db_url() -> str:
+    """One throwaway SQLite file shared by the face subprocesses.
+
+    Migrated + seeded by the first dev boot; a deliberately RAW row is
+    written straight through the adapter (bypassing the ingest door) —
+    the way a pre-SOU-218 backend stored it — because the public reads
+    must project it away migration or not.
+    """
+    if "url" in FACES_DB:
+        return FACES_DB["url"]
+    import tempfile
+
+    import sqlalchemy as sa
+    from sqlalchemy.orm import sessionmaker
+
+    import db as db_mod
+
+    workdir = tempfile.mkdtemp(prefix="sou220-faces-")
+    url = f"sqlite:///{os.path.join(workdir, 'faces.db')}"
+    FACES_DB["url"] = url
+    FACES_DB["workdir"] = workdir
+
+    # migrate + seed exactly like a dev boot does
+    proc = _boot(None, {})
+    assert proc.returncode == 0, proc.stderr[-2000:]
+
+    engine = db_mod.create_db_engine(url)
+    maker = sessionmaker(bind=engine)
+    with maker() as session:
+        canary = db_mod.insert_agent(session, name="canary", agent_type="external")
+        db_mod.insert_event(session, canary.id, "tool_call", {
+            "tool": "Read",
+            "detail": "reading /home/operator/notes.md",
+            "url": "https://internal.example/api?key=sk-canary-secret",
+            "session_id": "sess-canary-42",
+            "file": "/home/operator/projects/homelab/private-notes.md",
+            "command": "cat /home/operator/.ssh/id_ed25519",
+        })
+        db_mod.insert_event(session, canary.id, "state_change", {
+            "state": "writing",
+            "detail": "reviewing id_ed25519 for /home/operator",
+            "progress": 3,
+        })
+        session.commit()
+    engine.dispose()
+    return url
+
+
+def _boot(mode, probe, tokens=None):
+    """Import backend/app.py in a subprocess under ``SOU_MODE`` and probe it."""
+    import subprocess
+
+    env = dict(os.environ)
+    env["DATABASE_URL"] = _faces_db_url()
+    env["ALEMBIC_SKIP_FILECONFIG"] = "1"
+    env["SOU_PROBE"] = json.dumps(probe)
+    for drop in ("SOU_MODE", "SOU_INGEST_TOKENS", "OFFICE_NAME"):
+        env.pop(drop, None)
+    if mode is not None:
+        env["SOU_MODE"] = mode
+    if tokens is not None:
+        env["SOU_INGEST_TOKENS"] = tokens
+    return subprocess.run(
+        [sys.executable, "-c", PROBE_SCRIPT],
+        env=env, cwd=BACKEND_DIR, capture_output=True, text=True, timeout=180,
+    )
+
+
+def _boot_ok(mode, probe, tokens=None):
+    proc = _boot(mode, probe, tokens)
+    assert proc.returncode == 0, (
+        f"{mode} boot failed (rc={proc.returncode}):\nstdout tail: "
+        f"{proc.stdout[-1500:]}\nstderr tail: {proc.stderr[-3000:]}"
+    )
+    # the probe prints its report as the final stdout line; startup chatter
+    # (standalone snapshot, resanitise log) rides above it
+    return json.loads(proc.stdout.splitlines()[-1])
+
+
+def valid_envelope() -> dict:
+    """A schema-valid ADR-035 tool_call envelope for the hermes token."""
+    return {
+        "version": 1,
+        "agent": "hermes",
+        "event_type": "tool_call",
+        "timestamp": "2026-10-17T07:00:00Z",
+        "payload": {"tool": "Bash", "status": "ok"},
+    }
+
+
+def _rule_triples(report):
+    return sorted((d["rule"], d["endpoint"], tuple(d["methods"]))
+                  for d in report["rules"])
+
+
+class PublicFaceTest(unittest.TestCase):
+    """AC1 + AC2: the public face is its allow-list and nothing else."""
+
+    GETS = ["/health", "/v3/", "/v3/src/main.js", "/public/feed",
+            "/public/agents", "/", "/status", "/agents", "/events/recent",
+            "/events/agents", "/static/game.js", "/public/feed?limit=1"]
+    POSTS = ["/events", "/set_state", "/agent-push", "/join-agent",
+             "/assets/upload"]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.report = _boot_ok(
+            "public",
+            {"get": cls.GETS, "post": [{"path": p, "body": {}} for p in cls.POSTS]},
+        )
+        cls.probes = cls.report["probes"]
+
+    def get(self, path) -> dict:
+        return self.probes[f"GET {self.GETS.index(path)} {path}"]
+
+    def post(self, path) -> dict:
+        return self.probes[f"POST {self.POSTS.index(path)} {path}"]
+
+    def test_url_map_is_exactly_the_public_allow_list(self) -> None:
+        self.assertEqual(self.report["mode"], "public")
+        self.assertEqual(sorted(d["rule"] for d in self.report["rules"]),
+                         sorted(sou_mode.PUBLIC_RULES))
+        for d in self.report["rules"]:
+            self.assertLessEqual(set(d["methods"]), {"GET", "HEAD"},
+                                 f"{d['rule']} exposes writes on the public face")
+
+    def test_everything_else_is_404_not_forbidden(self) -> None:
+        for path in ("/", "/status", "/agents", "/events/recent",
+                     "/events/agents", "/static/game.js"):
+            self.assertEqual(self.get(path)["status"], 404, path)
+        for path in self.POSTS:
+            self.assertEqual(self.post(path)["status"], 404, path)
+
+    def test_allowed_reads_work(self) -> None:
+        health = self.get("/health")
+        self.assertEqual(health["status"], 200)
+        self.assertEqual(health["json"]["status"], "ok")
+        self.assertEqual(self.get("/v3/")["status"], 200)
+        self.assertEqual(self.get("/v3/src/main.js")["status"], 200)
+
+    def test_feed_projection_has_no_secrets_no_id(self) -> None:
+        feed = self.get("/public/feed")["json"]
+        self.assertIsInstance(feed, list)
+        text = json.dumps(feed)
+        for leak in ("sk-canary-secret", "sess-canary-42", "/home", "id_ed25519",
+                     "internal.example", '"detail"', '"progress"', '"url"', '"id"'):
+            self.assertNotIn(leak, text, f"public feed leaked {leak!r}")
+        canary = [item for item in feed if item["agent"] == "canary"]
+        self.assertTrue(canary, "canary row missing from /public/feed")
+        self.assertGreaterEqual(len(canary), 2)
+        self.assertIn("tool_call", {item["event_type"] for item in canary})
+        for item in canary:
+            self.assertEqual(set(item), {"agent", "event_type", "created_at",
+                                         "payload"})
+            for key in item["payload"]:
+                self.assertIn(key, sanitize_allowed(item["event_type"]),
+                              f"payload key {key!r} outside the P13-A projection")
+        # newest first: paging walks the created_at cursor, no ids needed
+        times = [item["created_at"] for item in feed]
+        self.assertEqual(times, sorted(times, reverse=True))
+        paged = self.get("/public/feed?limit=1")["json"]
+        self.assertEqual(len(paged), 1)
+        self.assertEqual(paged[0], feed[0])
+
+    def test_cache_headers_and_same_origin_cors(self) -> None:
+        feed = self.get("/public/feed")
+        self.assertEqual(feed["status"], 200)
+        self.assertEqual(feed["cache_control"],
+                         "public, max-age=5, must-revalidate")
+        self.assertEqual(self.get("/public/agents")["cache_control"],
+                         "public, max-age=5, must-revalidate")
+        # errors and non-allow-listed paths stay no-store like today
+        self.assertIn("no-store",
+                      (self.get("/events/recent")["cache_control"] or "").lower())
+        for label, probe in self.probes.items():
+            self.assertEqual(probe["cors_headers"], {},
+                             f"{label} emitted CORS headers")
+
+
+class PublicAgentsShapeTest(unittest.TestCase):
+    """AC2, agents half: /public/agents mirrors /events/agents minus ids."""
+
+    GETS = ["/public/agents", "/public/agents?since=not-a-date"]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.report = _boot_ok("public", {"get": cls.GETS})
+        cls.probes = cls.report["probes"]
+
+    def get(self, path) -> dict:
+        return self.probes[f"GET {self.GETS.index(path)} {path}"]
+
+    def test_entries_projected(self) -> None:
+        entries = self.get("/public/agents")["json"]
+        self.assertIsInstance(entries, list)
+        self.assertIn("canary", {e["agent"] for e in entries})
+        for e in entries:
+            self.assertEqual(set(e), {"agent", "first_seen", "last_seen",
+                                      "count", "last_event"})
+            self.assertEqual(set(e["last_event"]), {"agent", "event_type",
+                                                    "created_at", "payload"})
+        text = json.dumps(entries)
+        for leak in ('"id"', "sk-canary-secret", "sess-canary-42", "/home"):
+            self.assertNotIn(leak, text)
+
+    def test_bad_since_is_400(self) -> None:
+        resp = self.get("/public/agents?since=not-a-date")
+        self.assertEqual(resp["status"], 400)
+        self.assertIs(resp["json"]["ok"], False)
+        self.assertIn("since", resp["json"]["error"])
+
+
+def sanitize_allowed(event_type) -> set:
+    """The P13-A key contract, read from its single source (the sanitiser),
+    never a copy in the test."""
+    import sanitize
+
+    return set(sanitize.allowed_keys(event_type))
+
+
+class IngestFaceTest(unittest.TestCase):
+    """AC3: the ingest face registers the door, and tokens are mandatory."""
+
+    def test_untokened_boot_is_refused(self) -> None:
+        proc = _boot("ingest", {})
+        self.assertNotEqual(proc.returncode, 0,
+                            "ingest face started without tokens!")
+        self.assertIn("SOU_INGEST_TOKENS", proc.stderr)
+
+    def test_url_map_and_token_gate(self) -> None:
+        token = "sou220-face-token"
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        gets = ["/health", "/", "/v3/", "/public/feed", "/static/game.js",
+                "/events/recent", "/events/agents"]
+        posts = [
+            {"path": "/events", "body": valid_envelope(), "headers": None},
+            {"path": "/events", "body": valid_envelope(),
+             "headers": {"Authorization": f"Bearer {token}"}},
+            {"path": "/set_state", "body": {}, "headers": None},
+        ]
+        report = _boot_ok("ingest", {"get": gets, "post": posts},
+                          tokens=f"{digest}:hermes")
+        self.assertEqual(report["mode"], "ingest")
+        self.assertEqual(sorted(d["rule"] for d in report["rules"]),
+                         sorted(sou_mode.INGEST_RULES))
+        probes = report["probes"]
+
+        def get(path):
+            return probes[f"GET {gets.index(path)} {path}"]
+
+        self.assertEqual(get("/health")["status"], 200)
+        self.assertEqual(get("/events/recent")["status"], 200)
+        self.assertEqual(get("/events/agents")["status"], 200)
+        for path in ("/", "/v3/", "/public/feed", "/static/game.js"):
+            self.assertEqual(get(path)["status"], 404, path)
+        self.assertEqual(probes["POST 0 /events"]["status"], 401)
+        self.assertIs(probes["POST 0 /events"]["json"]["ok"], False)
+        self.assertEqual(probes["POST 1 /events"]["status"], 201)
+        self.assertEqual(probes["POST 2 /set_state"]["status"], 404)
+
+
+class DevFaceTest(unittest.TestCase):
+    """AC4: dev (unset or explicit) is the 42-rule master app, unchanged."""
+
+    GETS_UNSET = ["/status", "/health", "/public/feed"]
+    GETS_DEV = ["/"]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.unset = _boot_ok(None, {"get": cls.GETS_UNSET})
+        cls.explicit = _boot_ok("dev", {"get": cls.GETS_DEV})
+
+    def test_rules_equal_master_snapshot(self) -> None:
+        expected = sorted((d["rule"], d["endpoint"], tuple(d["methods"]))
+                          for d in MASTER_42)
+        self.assertEqual(_rule_triples(self.unset), expected)
+        self.assertEqual(_rule_triples(self.explicit), expected)
+
+    def test_today_behaviour_kept_and_public_reads_absent(self) -> None:
+        probes = self.unset["probes"]
+        self.assertEqual(self.unset["mode"], "dev")
+        self.assertEqual(probes[f"GET 1 /health"]["status"], 200)
+        self.assertEqual(probes[f"GET 0 /status"]["status"], 200)
+        self.assertEqual(probes[f"GET 2 /public/feed"]["status"], 404)
+        self.assertEqual(
+            self.explicit["probes"]["GET 0 /"]["status"], 200)
+
+
+class UnknownModeTest(unittest.TestCase):
+    """A typo'd face name must never boot a silent dev."""
+
+    def test_unknown_mode_refuses_to_start(self) -> None:
+        proc = _boot("pubic", {})
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("SOU_MODE", proc.stderr)
+
+
+class IngestWritesThenPublicReadsTest(unittest.TestCase):
+    """The Phase 13 story end to end: a tokened write on the ingest door
+    shows up on the public face already projected — raw paths never
+    resurface."""
+
+    def test_round_trip(self) -> None:
+        token = "sou220-e2e-token"
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        wrote = _boot_ok("ingest", {"post": [{
+            "path": "/events",
+            "body": {
+                "version": 1,
+                "agent": "hermes",
+                "event_type": "tool_call",
+                "timestamp": "2026-10-17T08:00:00Z",
+                "payload": {
+                    "tool": "Edit",
+                    "file": "/home/operator/vault/passwords.kdbx",
+                    "detail": "editing the vault file at /home/operator",
+                    "command": "grep -r secret /home/operator/vault",
+                },
+            },
+            "headers": {"Authorization": f"Bearer {token}"},
+        }]}, tokens=f"{digest}:hermes")
+        self.assertEqual(wrote["probes"]["POST 0 /events"]["status"], 201)
+
+        read = _boot_ok("public", {"get": ["/public/feed"]})
+        feed = read["probes"]["GET 0 /public/feed"]["json"]
+        hers = [item for item in feed if item["agent"] == "hermes"]
+        self.assertTrue(hers, "tokened ingest did not reach the public feed")
+        mine = hers[0] if hers[0]["payload"].get("file") else hers[-1]
+        self.assertEqual(
+            mine["payload"],
+            {"tool": "Edit", "file": "passwords.kdbx", "command": "grep"})
+        text = json.dumps(feed)
+        for leak in ("/home", '"detail"', "vault/", '"id"', '"url"',
+                     '"session_id"'):
+            self.assertNotIn(leak, text)
 
 
 if __name__ == "__main__":

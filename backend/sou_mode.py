@@ -58,7 +58,10 @@ def resolve_mode(raw) -> str:
 
 
 # The public face: GET only, and nothing a reporter or the v1 editor uses.
+# "/" is only the redirect to /v3/, so a visitor typing the bare hostname lands
+# on the Lodge instead of a 404 (SOU-271).
 PUBLIC_RULES = frozenset({
+    "/",
     "/health",
     "/v3",
     "/v3/",

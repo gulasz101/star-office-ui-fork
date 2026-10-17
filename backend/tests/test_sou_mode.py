@@ -74,6 +74,7 @@ class AllowListTest(unittest.TestCase):
         self.assertEqual(
             set(sou_mode.PUBLIC_RULES),
             {
+                "/",
                 "/health",
                 "/v3",
                 "/v3/",
@@ -433,7 +434,7 @@ class PublicFaceTest(unittest.TestCase):
                                  f"{d['rule']} exposes writes on the public face")
 
     def test_everything_else_is_404_not_forbidden(self) -> None:
-        for path in ("/", "/status", "/agents", "/events/recent",
+        for path in ("/status", "/agents", "/events/recent",
                      "/events/agents", "/static/game.js"):
             self.assertEqual(self.get(path)["status"], 404, path)
         for path in self.POSTS:
@@ -445,6 +446,8 @@ class PublicFaceTest(unittest.TestCase):
         self.assertEqual(health["json"]["status"], "ok")
         self.assertEqual(self.get("/v3/")["status"], 200)
         self.assertEqual(self.get("/v3/src/main.js")["status"], 200)
+        # the bare hostname redirects to the Lodge (SOU-271)
+        self.assertEqual(self.get("/")["status"], 302)
 
     def test_feed_projection_has_no_secrets_no_id(self) -> None:
         feed = self.get("/public/feed")["json"]

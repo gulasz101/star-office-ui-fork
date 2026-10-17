@@ -109,7 +109,7 @@ against an untokened dev instance, or set their tokens once implemented.
 
 | Face | Its whole `app.url_map` | Notes |
 |---|---|---|
-| `public` | `GET /health`, `GET /v3`, `GET /v3/`, `GET /v3/<path:filename>`, `GET /public/feed`, `GET /public/agents` | everything else simply does not exist in the process: 404 |
+| `public` | `GET /` (302 to `/v3/`), `GET /health`, `GET /v3`, `GET /v3/`, `GET /v3/<path:filename>`, `GET /public/feed`, `GET /public/agents` | everything else simply does not exist in the process: 404 |
 | `ingest` | `GET /health`, `POST /events`, `GET /events/recent`, `GET /events/agents` | refuses to start without `SOU_INGEST_TOKENS` |
 | `dev` (default, unset) | today's 42 routes, unchanged | the LAN box |
 

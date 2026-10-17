@@ -4,7 +4,9 @@
 corridor of a log cabin in a snowy forest. Its little character walks to the desk, the
 rack, the bookshelf or the garage as it edits, runs shell commands, reads or deploys, and
 says what it is doing in a speech bubble. Background tasks and subagents show up as helper
-bots and mini-mes in the room. Cats wander the corridor: one per agent.
+bots and mini-mes in the room. Cats wander the corridor: one per agent. Every page load picks
+a season (winter, autumn, spring, summer) with its own forest and weather. Force one with
+`/v3/?season=autumn`.
 
 ![The Lodge: one room per agent off a shared corridor](docs/screenshots/lodge-overview.png)
 
@@ -13,6 +15,8 @@ Hermes, OpenChamber, OpenCode, Claude Code, Pi, or a shell script. The backend n
 an agent's workspace.
 
 ![A focused room with its activity card](docs/screenshots/lodge-room.png)
+
+![The four seasons](docs/screenshots/seasons.png)
 
 > A maintained fork of [ringhyacinth/Star-Office-UI](https://github.com/ringhyacinth/Star-Office-UI)
 > by Ring Hyacinth and Simon Lee. The v1 office and its routes are gone (v2.0.0). The

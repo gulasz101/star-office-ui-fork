@@ -309,7 +309,7 @@ export function createReporter(config, deps = {}) {
   async function send(envelope) {
     try {
       if (typeof doFetch !== "function") throw new Error("no fetch implementation");
-      const headers = { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.0 (${config.agent})` };
+      const headers = { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.1.0 (${config.agent})` };
       if (config.token) headers.Authorization = `Bearer ${config.token}`; // SOU-223 (P13-F)
       const res = await doFetch(config.eventsUrl, {
         method: "POST",

@@ -122,7 +122,7 @@ curl -s -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json
   -d '{"version":1,"agent":"claude","event_type":"tool_call","timestamp":"2026-10-16T12:00:00Z","payload":{"tool":"Edit","status":"ok"}}'
 ```
 
-Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form fails on Node 22/26). Smoke a running backend: `uv run python scripts/smoke_test.py --base-url http://127.0.0.1:19000`.
+Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form fails on Node 22/26). Smoke a running backend: `uv run python scripts/smoke_test.py --base-url http://127.0.0.1:19000` (read-only; `--write` also posts an event, scratch backends only).
 
 ## History, in brief
 

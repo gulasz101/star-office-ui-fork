@@ -2,7 +2,11 @@
 """Star Office UI smoke test (non-destructive): the Lodge (v3) and its event door.
 
 Usage:
-  python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
+  python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000          # read-only
+  python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000 --write  # also POST one event
+
+Read-only by default: --write posts a "smoke-test" event, which gives that agent a room
+on the dashboard, so never use it against a live dashboard.
 
 Optional env:
   SOU_SMOKE_TOKEN=xxxx   # an ingest token for the agent "smoke-test" when the
@@ -52,7 +56,9 @@ def req(method: str, url: str, body: dict | None = None, token: str = "") -> tup
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://127.0.0.1:19000")
-    base = parser.parse_args().base_url.rstrip("/")
+    parser.add_argument("--write", action="store_true", help="also POST one smoke-test event")
+    args = parser.parse_args()
+    base = args.base_url.rstrip("/")
     token = os.environ.get("SOU_SMOKE_TOKEN", "")
     failures = []
 
@@ -64,11 +70,16 @@ def main() -> int:
     code, _ = req("GET", base + "/")
     (failures.append(f"GET / -> {code}, expected 302 to /v3/") if code != 302 else print("  OK  GET / -> 302 (to /v3/)"))
 
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    event = {"version": 1, "agent": "smoke-test", "event_type": "tool_call", "timestamp": now,
-             "payload": {"tool": "Read", "status": "ok"}}
-    code, body = req("POST", base + "/events", event, token=token)
-    (failures.append(f"POST /events -> {code}, body={body[:200]}") if code != 201 else print("  OK  POST /events -> 201"))
+    if not args.write:
+        print("  --  POST /events skipped (read-only; pass --write on a scratch backend)")
+        now = None
+    else:
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    if now is not None:
+        event = {"version": 1, "agent": "smoke-test", "event_type": "tool_call", "timestamp": now,
+                 "payload": {"tool": "Read", "status": "ok"}}
+        code, body = req("POST", base + "/events", event, token=token)
+        (failures.append(f"POST /events -> {code}, body={body[:200]}") if code != 201 else print("  OK  POST /events -> 201"))
 
     if failures:
         print("\nSMOKE FAILED:")

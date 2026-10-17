@@ -3,15 +3,22 @@
 // /events/agents. One probe decides, and everything that reads the feed goes through here.
 let face = null;
 
+// Only a 404 means "this face has no /public routes". A 5xx is a public face whose database
+// read failed: guessing dev from it sends the page polling /events/* (404 on that face)
+// forever (SOU-288). A network error decides nothing, so the next poll asks again.
+export function faceFromStatus(status) {
+  return status === 404 ? 'dev' : 'public';
+}
+
 export async function detectFace() {
   if (face) return face;
   try {
     const res = await fetch('/public/agents', { cache: 'no-store' });
-    face = res.ok ? 'public' : 'dev';
+    face = faceFromStatus(res.status);
+    return face;
   } catch {
-    face = 'dev';
+    return 'dev';
   }
-  return face;
 }
 
 export const currentFace = () => face || 'dev';

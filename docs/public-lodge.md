@@ -59,6 +59,50 @@ The LAN hides all of this today. None of it may face the internet.
 5. **v1 goes away.** Public mode never loads it. Deleting it (SOU-3/SOU-4 close with it) is the
    cleanup once v3 has parity, which it effectively does now.
 
+## Tokens (P13-B)
+
+`POST /events` learns who may write from `SOU_INGEST_TOKENS`: a mapping of
+`sha256(token) → agent name`. The server only ever stores hashes — a leaked line,
+env dump or JSON file is not a leaked token. Two configuration shapes:
+
+```bash
+# inline pairs, comma / semicolon / newline separated
+SOU_INGEST_TOKENS="<sha256hex>:hermes,<sha256hex>:claude"
+
+# or a path to a JSON file (SOPS-managed, like every other homelab secret)
+SOU_INGEST_TOKENS=/run/secrets/sou-ingest-tokens.json
+# {"<sha256hex>": "hermes", "<sha256hex>": "claude"}
+```
+
+Mint a token for one agent — it prints the plaintext **once** and the line to add:
+
+```bash
+uv run python backend/tokens.py new hermes
+```
+
+Hand the plaintext to that agent's reporter (SOPS, never git, never a ticket);
+paste the `sha256hex:agent` line into the mapping above.
+
+Request contract on `POST /events`, checked before the body (SOU-219):
+
+| Situation | Answer |
+|---|---|
+| No `Authorization` header, or not `Bearer`, or unknown token | `401` |
+| Token's agent ≠ envelope `agent` (case-exact) | `403`, nothing written |
+| Token exceeds its rate limit (`SOU_INGEST_RATE_LIMIT`, default 20 req/s burst per token) | `429` + `Retry-After: 1` |
+| Everything fine | the existing ADR-035 contract: `201` / `400` |
+
+Token lookup is constant-time (`hmac.compare_digest` over every entry).
+
+**Unset `SOU_INGEST_TOKENS`** = today's dev/LAN behaviour: untokened reporters keep
+working and the backend prints a startup warning. That is only acceptable on the
+private box. **`SOU_MODE=ingest` (P13-C) makes tokens mandatory** — the backend
+refuses to start with no tokens on the ingest face.
+
+Tests: `backend/tests/test_ingest_tokens.py` (store, 401/403/429/ok, CLI round-trip).
+Reporter token support arrives in P13-D/E/F; until then run the reporters on LAN
+against an untokened dev instance, or set their tokens once implemented.
+
 ## Why not Prometheus as the source
 
 - **It's the wrong shape.** Agent activity is a stream of discrete, labelled events (a tool

@@ -465,7 +465,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--set", default="office-01",
                     choices=("office-01", "lodge", "serverroom", "factory",
-                             "mystery", "tokenden", "career", "writer", "garage", "polish")
+                             "mystery", "tokenden", "career", "writer", "garage", "polish", "cats")
                     + SEASON_SETS,
                     help="which v3 art set to check (default: office-01)")
     ap.add_argument("--root", default=None,
@@ -479,6 +479,19 @@ def main() -> int:
 
     if args.set == "lodge":
         return main_lodge(args)
+    if args.set == "cats":
+        # SOU-277's cats have their own oracle set (the shipped lodge cat sheet as the byte-exact
+        # copy source, and a per-coat colour signature with a cross-coat negative control), so the
+        # set lives in its own module - same entry point, so nobody has to remember a second
+        # command. `--root`/`--map`/`--shipped-ref` do not apply to it, so it gets a clean argv:
+        # passing "--set cats" through to its own parser would be an unrecognised-argument crash.
+        import check_cats_assets
+        saved = sys.argv
+        sys.argv = [saved[0]]
+        try:
+            return check_cats_assets.main()
+        finally:
+            sys.argv = saved
     if args.set in SEASON_SETS:
         return main_season(args, args.set)
     if args.set == "garage":

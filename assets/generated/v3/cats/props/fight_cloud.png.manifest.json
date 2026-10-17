@@ -1,0 +1,214 @@
+{
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "Limbicnation/pixel-art-lora",
+  "lora_strength": 0.0,
+  "steps": 4,
+  "guidance": 1.0,
+  "prompt": "pixel art game asset: a cartoon dust cloud for a fight between two cats - a round puffy cloud made of overlapping round puffs, pale grey-white on top and dusty grey underneath, with TWO SMALL CAT PAWS and TWO CAT PAW PADS clearly sticking OUT of the cloud's outline, one paw on the lower left and one on the upper right, and TWO four-pointed sparkle stars: each star is a tiny plus-shaped cross of pale gold #ffea99 pixels with a white centre pixel, poking out of the puffs so that half of the cross is outside the cloud, one star on the upper left and one on the upper right, plus a few short motion strokes at the edges. The paws and the stars must break the cloud's outline so they are visible outside it. Single object, centred, nothing else in frame. The object's bounding box must be EXACTLY 48:32 in width:height. The object's bounding box is wider than it is tall, about 1.5:1. Draw the object to fill that rectangle: no empty margin above, below or to the sides, and do not make it taller or narrower than that proportion. Palette limited to exactly these colours: #14161f, #1f232e, #0d1730, #1b2a4a, #2b3f68, #44618a, #6f8cb4, #2a2f3e, #3a4152, #505a70, #9aa4bb, #c3cad9, #ffffff, #eef4ff, #d8e4f2, #c2cede, #a8bcd8, #8ba0c0, #3d2817, #5a3d22, #7a5230, #b98a52, #cf9d5e, #e0b878, #4a3320, #63452a, #7d5836, #7a3b2b, #a3543a, #c2704a, #8b4a35, #4f5560, #6d747f, #929aa6, #7d7a70, #23262e, #363b46, #565d6b, #8a5a12, #e8a33d, #ffea99, #ff8c2b, #b98f3c, #d8b45c, #3d6b73, #4f8790, #88c0d0, #4fd6b0, #ff9a3c, #b06a2a, #d98a3c, #eda95c, #f3d9b0, #8a6136, #b5824a, #d0a068, #16301f, #1f4029, #2f5c38, #437a48, #e2d3b4. Cosy log-cabin lodge at night: honey-brown timber, warm amber lamplight coming from the top-left, deep blue night shadows, teal-green and orange LED accents. drawn in a TOP-DOWN 3/4 view like a Pokemon or Stardew Valley interior sprite: the camera is about 45 degrees above the object looking down and slightly forward, so the TOP surface of the object is visible and foreshortened and the FRONT face is visible directly below it as a rectangle. Vertical edges of the object stay perfectly vertical. The base of the object is an axis-aligned rectangle (screen-parallel edges), NOT a diamond and NOT a rhombus. This is NOT an isometric view and NOT a side view. Do NOT draw the floor, the tile the object stands on, or any ground plane outline for it. Crisp 1-pixel dark outlines, flat cel shading with at most two shades per material, hard-edged pixels, no antialiasing, no blur, no gradients, no dithering, no checkerboard pattern, no drop shadow, light coming from the top-left. The object sits DIRECTLY on a plain flat magenta #FF00FF background that fills the whole frame: the magenta goes right up to the object's silhouette, there is no ground patch, base, platform, pedestal, mat, plinth, rug or contact shadow under it. Absolutely no text, no letters, no numbers, no words, no signage, no label, no logo, no manufacturer badge, no brand mark, no watermark, no user interface, no frame or border. Plain flat magenta #FF00FF background filling the whole frame. 32-bit pixel art, game asset.",
+  "seed": 29945,
+  "source_file": "fight_cloud.raw.png",
+  "output_file": "props/fight_cloud.png",
+  "output_dims": [
+    192,
+    32
+  ],
+  "palette_colors": 61,
+  "palette": [
+    "#14161f",
+    "#1f232e",
+    "#0d1730",
+    "#1b2a4a",
+    "#2b3f68",
+    "#44618a",
+    "#6f8cb4",
+    "#2a2f3e",
+    "#3a4152",
+    "#505a70",
+    "#9aa4bb",
+    "#c3cad9",
+    "#ffffff",
+    "#eef4ff",
+    "#d8e4f2",
+    "#c2cede",
+    "#a8bcd8",
+    "#8ba0c0",
+    "#3d2817",
+    "#5a3d22",
+    "#7a5230",
+    "#b98a52",
+    "#cf9d5e",
+    "#e0b878",
+    "#4a3320",
+    "#63452a",
+    "#7d5836",
+    "#7a3b2b",
+    "#a3543a",
+    "#c2704a",
+    "#8b4a35",
+    "#4f5560",
+    "#6d747f",
+    "#929aa6",
+    "#7d7a70",
+    "#23262e",
+    "#363b46",
+    "#565d6b",
+    "#8a5a12",
+    "#e8a33d",
+    "#ffea99",
+    "#ff8c2b",
+    "#b98f3c",
+    "#d8b45c",
+    "#3d6b73",
+    "#4f8790",
+    "#88c0d0",
+    "#4fd6b0",
+    "#ff9a3c",
+    "#b06a2a",
+    "#d98a3c",
+    "#eda95c",
+    "#f3d9b0",
+    "#8a6136",
+    "#b5824a",
+    "#d0a068",
+    "#16301f",
+    "#1f4029",
+    "#2f5c38",
+    "#437a48",
+    "#e2d3b4"
+  ],
+  "created_at": "2026-10-17T21:08:24.557676+00:00",
+  "asset_key": "fight_cloud",
+  "kind": "sheet",
+  "set": "cats",
+  "view": "side view (profile), facing right",
+  "issue": "SOU-277",
+  "sprite_sheet": {
+    "frames": 4,
+    "frame_px": [
+      48,
+      32
+    ],
+    "canvas_px": [
+      192,
+      32
+    ],
+    "order": [
+      "puff 0",
+      "puff 1",
+      "puff 2",
+      "puff 3"
+    ],
+    "play": "at the midpoint between two fighting cats, both hidden"
+  },
+  "derivation": {
+    "0": "the FLUX base, unchanged, plus the two drawn sparkle stars",
+    "1": "the tl quadrant of the cloud's own bbox shifted -1,-1 outward, source kept as underlay (no vacated pixels), plus the two drawn sparkle stars",
+    "2": "the tr quadrant of the cloud's own bbox shifted +1,-1 outward, source kept as underlay (no vacated pixels), plus the two drawn sparkle stars",
+    "3": "the br quadrant of the cloud's own bbox shifted +1,+1 outward, source kept as underlay (no vacated pixels), plus the two drawn sparkle stars",
+    "4": "the bl quadrant of the cloud's own bbox shifted -1,+1 outward, source kept as underlay (no vacated pixels), plus the two drawn sparkle stars"
+  },
+  "drawn_stars": {
+    "glyph": "4-point sparkle: gold #ffea99 arms with a #ffffff glint at the centre, 9 gold px + 1 white px",
+    "positions_per_frame": {
+      "0": [
+        [
+          7,
+          4
+        ],
+        [
+          39,
+          6
+        ]
+      ],
+      "1": [
+        [
+          6,
+          3
+        ],
+        [
+          39,
+          5
+        ]
+      ],
+      "2": [
+        [
+          7,
+          3
+        ],
+        [
+          40,
+          5
+        ]
+      ],
+      "3": [
+        [
+          7,
+          4
+        ],
+        [
+          40,
+          6
+        ]
+      ],
+      "4": [
+        [
+          6,
+          4
+        ],
+        [
+          39,
+          6
+        ]
+      ]
+    },
+    "why": "Measured: three FLUX rolls of this cloud produced zero 4-pointed star shapes (a plus-shaped scan of every frame for #ffea99 with a white centre found nothing). A star is geometry, so it is drawn from the declared palette at a position derived from each frame's own silhouette - the same rule that draws the material tiles instead of generating them (ADR-064/065)."
+  },
+  "changed_px_vs_frame0": [
+    98,
+    124,
+    107
+  ],
+  "fit": {
+    "content_px": [
+      502,
+      383
+    ],
+    "fitted_px": [
+      37,
+      28
+    ],
+    "canvas_px": [
+      48,
+      32
+    ],
+    "scale": 0.073107,
+    "anchor": "center",
+    "offset": [
+      5,
+      2
+    ]
+  },
+  "key_colour": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "content_canvas_opaque_px": 745,
+  "generation_mode": "text-only generation",
+  "colours": 21,
+  "off_palette": [],
+  "stray_islands_dropped_px": [
+    5,
+    5,
+    3,
+    2,
+    1,
+    1,
+    1
+  ],
+  "keying_speckle_px_ignored": 0,
+  "disconnected_parts_kept_px": [],
+  "despeckled_px": 8,
+  "interior_holes_filled_px": 0
+}

@@ -1,0 +1,159 @@
+{
+  "pack": "season-spring-v1",
+  "set": "spring",
+  "season": "spring",
+  "issue": "SOU-275",
+  "generated_from": "assets/generated/v3/seasons/spring",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01 and the lodge)",
+  "palette": "assets/generated/v3/seasons/spring/palette.json",
+  "palette_family": "lodge",
+  "tileset": {
+    "path": "assets/seasons/spring/tiles.png",
+    "tile_px": 32,
+    "columns": 4,
+    "firstgid": 1,
+    "order": [
+      "ground_a",
+      "ground_b",
+      "path",
+      "edge"
+    ],
+    "order_authority": "the SOU-275 ticket table; seasons.js (SOU-273) consumes the same four keys in the same order",
+    "slot_class": {
+      "ground_a": "material",
+      "ground_b": "material",
+      "path": "material",
+      "edge": "decal"
+    },
+    "slot_seam_axes": {
+      "ground_a": "xy",
+      "ground_b": "xy",
+      "path": "xy",
+      "edge": "x"
+    }
+  },
+  "prop_lift_for_placeholders_js": {
+    "tree_a": 64,
+    "tree_b": 96,
+    "tree_small": 32
+  },
+  "props": [
+    {
+      "key": "tree_a",
+      "served_path": "assets/seasons/spring/props/tree_a.png",
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "texture_px_actual": [
+        64,
+        96
+      ]
+    },
+    {
+      "key": "tree_b",
+      "served_path": "assets/seasons/spring/props/tree_b.png",
+      "texture_px_declared": [
+        64,
+        128
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 96,
+      "texture_px_actual": [
+        64,
+        128
+      ]
+    },
+    {
+      "key": "tree_small",
+      "served_path": "assets/seasons/spring/props/tree_small.png",
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        32,
+        64
+      ]
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/seasons/spring/tiles.png",
+      "source": "assets/generated/v3/seasons/spring/tiles.png",
+      "sha256": "f07863017c1e8f1a5dce670fc85fde9834758435acf5a556780f2f54898d028e",
+      "bytes": 685
+    },
+    {
+      "served_path": "assets/seasons/spring/tiles.png.manifest.json",
+      "source": "assets/generated/v3/seasons/spring/tiles.png.manifest.json",
+      "sha256": "084e6078013fb2cb49a1f888572406516b42a7facbd7555c326f92ea6611c683",
+      "bytes": 2673
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_a.png",
+      "source": "assets/generated/v3/seasons/spring/props/tree_a.png",
+      "sha256": "ad77bfbc174a16c625f320e7ac6e9df504fc2e44d9a70494e75f3445bf7c784a",
+      "bytes": 4062
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_a.png.manifest.json",
+      "source": "assets/generated/v3/seasons/spring/props/tree_a.png.manifest.json",
+      "sha256": "52c429d0ac577222d365c3955c1f86d2f0fc65f33f6c09b89f70c6f28394f040",
+      "bytes": 5781
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_b.png",
+      "source": "assets/generated/v3/seasons/spring/props/tree_b.png",
+      "sha256": "08daf6c233edf30ba5ef1873f31dfdb80134c63dd1f9a0d42ae3085fce7fc6b2",
+      "bytes": 2045
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_b.png.manifest.json",
+      "source": "assets/generated/v3/seasons/spring/props/tree_b.png.manifest.json",
+      "sha256": "af59524dc1ab6118792fa65045edf8a2d37b6f5336a6b607114e2481678f7c54",
+      "bytes": 6342
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_small.png",
+      "source": "assets/generated/v3/seasons/spring/props/tree_small.png",
+      "sha256": "75aa1b3ed3428b2601c00fe04079fbb4b520809ab808f5e54dc5bd8ce04b8cc5",
+      "bytes": 1234
+    },
+    {
+      "served_path": "assets/seasons/spring/props/tree_small.png.manifest.json",
+      "source": "assets/generated/v3/seasons/spring/props/tree_small.png.manifest.json",
+      "sha256": "92b85894b65c62116537e129bb9ce1a9ae4b3445f5ac09f0b2ae3da1e8c75d3d",
+      "bytes": 5527
+    }
+  ],
+  "created_at": "2026-10-17T18:10:56.107034+00:00",
+  "note": "the season lookup itself lives in frontend/v3/src/seasons.js (SOU-273); this index.json is the published record of what the season's art set contains."
+}

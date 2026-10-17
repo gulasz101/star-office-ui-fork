@@ -1,0 +1,31 @@
+{
+  "set": "spring",
+  "issue": "SOU-275",
+  "note": "Two FLUX passes were superseded before the shipped set. The raws and their recorded seeds are kept on disk as the record of what was rejected and why - the autumn set (SOU-274) keeps its rejected pass the same way, and both are what makes a later review able to tell a re-roll from a first pass.",
+  "superseded": [
+    {
+      "id": "r1-seedcollision",
+      "files": [
+        "tree_a.r1-seedcollision.raw.png",
+        "tree_b.r1-seedcollision.raw.png",
+        "tree_small.r1-seedcollision.raw.png",
+        "tree_a.r1-seedcollision.seed.txt",
+        "tree_b.r1-seedcollision.seed.txt",
+        "tree_small.r1-seedcollision.seed.txt"
+      ],
+      "seeds": [27528, 27535, 27542],
+      "discarded_before": "assemble (nothing derived from it ever reached the served tree)",
+      "why": "Those three seeds are exactly the seeds the AUTUMN set shipped: autumn's base is 27400 and its accepted pass used --seed-shift 100, so autumn's recorded seeds are 27528/27535/27542. A spring pass on the same numbers is a re-used generation for a different season, which is a defect a reviewer should not have to catch. Regenerated with --seed-shift 1000 (base 27500 per the ticket-number convention, matching summer's 27600).",
+      "replaced_by": [28528, 28535, 28542]
+    },
+    {
+      "id": "r2-straynoise",
+      "files": ["tree_small.r2-straynoise.raw.png", "tree_small.r2-straynoise.seed.txt"],
+      "seeds": [28542],
+      "discarded_after": "assemble + gate",
+      "why": "The gate failed the ticket's 'dark trunks' clause: only 66% of the sapling's trunk band was below the luminance floor (99%+ on the other two trees). Measured cause: stray light grey/blue pixels (stone_light, stone_warm, steel_100) beside the trunk where the FLUX pass drew noise; a magnified look confirmed the trunk itself is correctly dark brown and the light pixels are not attached to it. Re-rolled rather than explained away, because a stray light pixel cluster in a 32x64 sprite is a visible speck at 1x.",
+      "replaced_by": [28592]
+    }
+  ],
+  "shipped_seeds": {"tree_a": 28528, "tree_b": 28535, "tree_small": 28592}
+}

@@ -103,6 +103,50 @@ Tests: `backend/tests/test_ingest_tokens.py` (store, 401/403/429/ok, CLI round-t
 Reporter token support arrives in P13-D/E/F; until then run the reporters on LAN
 against an untokened dev instance, or set their tokens once implemented.
 
+## Modes (P13-C)
+
+`SOU_MODE` picks the face a process serves — one image, three faces:
+
+| Face | Its whole `app.url_map` | Notes |
+|---|---|---|
+| `public` | `GET /health`, `GET /v3`, `GET /v3/`, `GET /v3/<path:filename>`, `GET /public/feed`, `GET /public/agents` | everything else simply does not exist in the process: 404 |
+| `ingest` | `GET /health`, `POST /events`, `GET /events/recent`, `GET /events/agents` | refuses to start without `SOU_INGEST_TOKENS` |
+| `dev` (default, unset) | today's 42 routes, unchanged | the LAN box |
+
+- An unknown value aborts the boot (`resolve_mode` raises): a typo'd
+  `pubic` must never quietly become an open dev face.
+- Gating happens at `add_url_rule` (`app.py`'s `FaceFlask`), so a
+  disallowed surface is an **enumerable absence**, not a request-time 403 —
+  `app.url_map` per face is exactly its allow-list
+  (`backend/sou_mode.py` holds the lists; `backend/tests/test_sou_mode.py`
+  boots real processes and enumerates them). Even `/static` is absent on
+  public: the v1 bundle never crosses the tunnel.
+- **Public never writes.** It does not run Alembic, does not seed the main
+  agent, and opens the DB with the write guard (`db.init(read_only=True)`):
+  SQLite `PRAGMA query_only=ON`, Postgres session
+  `default_transaction_read_only=on`. "When the URL allows it" — the
+  durable guarantee is a read-only role (the deploy's half, SOU-224); the
+  in-app guard holds on any URL. Migrate the DB with a dev/ingest process
+  before first public boot; reads fail loudly on an unmigrated DB while
+  `/health` stays honest.
+- **Public reads** (`GET /public/feed?since=&limit=`,
+  `GET /public/agents?since=`): the P13-A projection at the door —
+  `{agent, event_type, created_at, payload}` and, for agents, the
+  discovery shape `{agent, first_seen, last_seen, count, last_event}` with
+  the same projected `last_event`.
+  - no `id` field anywhere: paging walks the `created_at` cursor via
+    `since` (the inclusive ISO floor), the only cursor that exists;
+  - payloads pass through `sanitize.sanitize_payload` **again on read**,
+    so rows an older backend stored raw still come back projected;
+  - 2xx carries `Cache-Control: public, max-age=5, must-revalidate`
+    (the viewer polls; Cloudflare absorbs it; errors stay no-store);
+  - CORS: the app sends no `Access-Control-*` header on any face — the
+    page is only ever read same-origin under `/v3/*`;
+  - only `since` and `limit` exist as knobs: no `agent`/`event_type`
+    filter, fewer probes to bang on; the renderer filters client-side.
+- v3 switching its reads to `/public/*` when served publicly is SOU-221
+  (P13-D); until then the public face simply 404s what v1 used.
+
 ## Why not Prometheus as the source
 
 - **It's the wrong shape.** Agent activity is a stream of discrete, labelled events (a tool
@@ -131,7 +175,7 @@ against an untokened dev instance, or set their tokens once implemented.
 
 ## Go-live checklist
 
-- [ ] Public mode serves only the allow-listed routes (test enumerates the URL map).
+- [x] Public mode serves only the allow-listed routes (test enumerates the URL map) — `backend/tests/test_sou_mode.py`, SOU-220.
 - [ ] `POST /events` without/with a wrong token → 401; agent mismatch → 403.
 - [ ] A canary sweep: events posted with secrets/paths in every field never appear in the DB
       or in `/public/*`.

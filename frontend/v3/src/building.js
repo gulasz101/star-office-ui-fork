@@ -1,30 +1,38 @@
 // Building: the Lodge (SOU-195). Rooms sit in slots along one corridor, slot 0 in the middle;
-// the front wall has one entrance under slot 0 and a snow path runs from it to the bottom of
-// the world, where arriving agents appear. Layout maths lives in world.js (pure, tested).
+// the front wall has one entrance under slot 0 and a path runs from it to the bottom of the
+// world, where arriving agents appear. Layout maths lives in world.js (pure, tested).
+// The outside — ground, path, edge, trees and their night tint — is the season's (SOU-273).
 import { TILE } from './config.js';
 import { OfficeModule } from './office.js';
 import { buildGrid } from './grid.js';
 import { roomTypeFor } from './rooms.js';
 import { ensureLodgeTextures, tileKey, lodgePropKey, rng } from './lodge.js';
-import { ensureAmbienceTextures, glow, NIGHT_TINT } from './ambience.js';
+import { ensureAmbienceTextures, glow } from './ambience.js';
+import { SEASONS } from './seasons.js';
 import { World, slotForIndex, ROOM_W, ROOM_H, CORRIDOR_Y, CORRIDOR_H, FRONT_Y, SPAWN_Y, DOOR_COLS } from './world.js';
 
 const AGENT_COLORS = [0x4f7cc9, 0xc94f6d, 0x4fc98a, 0xc9a24f, 0x8a4fc9, 0x4fbfc9];
-const FOREST_MARGIN = 26; // tiles of snowy forest drawn around the building
+const FOREST_MARGIN = 26; // tiles of forest drawn around the building
 
 // A long building's overview is zoomed far out, so on a tall screen the field above and
 // below must grow with the building's width or the void shows (SOU-226 review).
 const vMargin = (spanTiles) => Math.max(FOREST_MARGIN, Math.ceil(spanTiles * 0.4));
 
 export class Building {
-  constructor(scene) {
+  constructor(scene, season = 'winter') {
     this.scene = scene;
+    this.season = season;
     this.offices = new Map();
     this.world = new World();
     this.shell = [];
     ensureLodgeTextures(scene);
     ensureAmbienceTextures(scene);
     this.drawShell();
+  }
+
+  // the season this building is drawn in: its tiles, trees, tint and weather
+  get spec() {
+    return SEASONS[this.season] || SEASONS.winter;
   }
 
   addOffice(agentId, { arrive = true } = {}) {
@@ -73,13 +81,16 @@ export class Building {
     const x1 = w.x1;
     const span = x1 - x0 + 1;
 
-    // snow everywhere around the building, then the trodden path up to the entrance;
-    // everything outside is tinted for the night, the inside stays warm
-    const night = (o, tint = NIGHT_TINT) => o.setTint(tint);
+    // the season's ground everywhere around the building, then the trodden path up to the
+    // entrance; everything outside is tinted for the night, the inside stays warm.
+    // ground[1] is the strip's alternate ground slot (winter's snow_b): the field is painted
+    // with ground[0], exactly as it was before the seasons landed.
+    const spec = this.spec;
+    const night = (o, tint = spec.tint) => o.setTint(tint);
     const vm = vMargin(span);
-    night(strip('snow_a', x0 - FOREST_MARGIN, -vm, span + FOREST_MARGIN * 2, SPAWN_Y + vm * 2, -3000));
-    night(strip('snow_path', DOOR_COLS[0], FRONT_Y + 1, 2, SPAWN_Y - FRONT_Y + 12, -2990));
-    night(strip('snow_edge', x0, FRONT_Y + 1, span, 1, -2995));
+    night(strip(spec.ground[0], x0 - FOREST_MARGIN, -vm, span + FOREST_MARGIN * 2, SPAWN_Y + vm * 2, -3000));
+    night(strip(spec.path, DOOR_COLS[0], FRONT_Y + 1, 2, SPAWN_Y - FRONT_Y + 12, -2990));
+    night(strip(spec.edge, x0, FRONT_Y + 1, span, 1, -2995));
 
     // corridor: floor, runner, end walls, front wall with the entrance gap
     strip('corridor_floor', x0 + 1, CORRIDOR_Y, span - 2, CORRIDOR_H, -1000);
@@ -130,7 +141,10 @@ export class Building {
         if (Math.abs(jx - (DOOR_COLS[0] + 1)) < 4 && jy >= FRONT_Y) continue; // the path
         const nearBuilding = Math.abs(jy - FRONT_Y / 2) < FRONT_Y && (Math.abs(jx - bx0) < 6 || Math.abs(jx - bx1) < 6);
         if (roll > (nearBuilding ? 0.55 : 0.42)) continue;
-        const kind = r() < 0.35 ? 'pine_b' : r() < 0.7 ? 'pine_a' : 'pine_small';
+        // the season's trees in the pines' three roles: tall, big, small. The r() sequence is
+        // untouched — one draw, and a second only off the first branch — so the scatter never
+        // moves; only the sprite changes.
+        const kind = r() < 0.35 ? spec.trees[1] : r() < 0.7 ? spec.trees[0] : spec.trees[2];
         const img = night(prop(kind, jx, jy + 1));
         if (jy + 1 <= 0) img.setDepth(-1500 + jy); // behind the rooms' back walls
       }

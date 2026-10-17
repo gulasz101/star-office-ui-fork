@@ -2,6 +2,12 @@
 // The generated set (SOU-198) is a 16-slot strip at assets/lodge/tiles.png plus props; any
 // piece that isn't there yet is drawn here in the same warm-night palette, so the Lodge
 // renders before, during and after the art drop.
+// SOU-273 adds the three non-winter seasons' tiles and trees, drawn here until SOU-274..276
+// deliver assets/seasons/<season>/. They are deliberately NOT part of LODGE_TILES: that list is
+// the rooms' tileset (office.js addTilesetImage('lodge', 'lodge-strip')) and its slot order is a
+// published contract mirrored in scripts/v3/build_rooms.py.
+
+import { SEASONS, TREE_SIZE } from './seasons.js';
 
 export const LODGE_TILES = [
   'snow_a', 'snow_b', 'snow_path', 'corridor_floor', 'corridor_runner', 'wall_cap', 'wall_face',
@@ -73,6 +79,29 @@ export function ensureLodgeTextures(scene) {
   for (const [name, [w, h]] of Object.entries(LODGE_PROPS)) {
     const key = lodgePropKey(name);
     if (!scene.textures.exists(key)) drawProp(scene, key, name, w, h);
+  }
+  // the three non-winter seasons (SOU-273): a 4-slot strip at assets/seasons/<season>/tiles.png
+  // and three tree props. Sliced when SOU-274..276 have delivered them, drawn here otherwise.
+  for (const [season, spec] of Object.entries(SEASONS)) {
+    if (season === 'winter') continue; // winter is the lodge's own tiles and pines
+    const sheet = scene.textures.exists(`season-tiles-${season}`)
+      ? scene.textures.get(`season-tiles-${season}`).getSourceImage() : null;
+    [...spec.ground, spec.path, spec.edge].forEach((name, i) => {
+      const key = tileKey(name);
+      if (scene.textures.exists(key)) return;
+      if (sheet && sheet.width >= (i + 1) * 32) {
+        const tex = scene.textures.createCanvas(key, 32, 32);
+        tex.context.imageSmoothingEnabled = false;
+        tex.context.drawImage(sheet, i * 32, 0, 32, 32, 0, 0, 32, 32);
+        tex.refresh();
+      } else {
+        drawTile(scene, key, name, i);
+      }
+    });
+    spec.trees.forEach((name, i) => {
+      const key = lodgePropKey(name);
+      if (!scene.textures.exists(key)) drawProp(scene, key, name, ...TREE_SIZE[i]);
+    });
   }
   if (!scene.textures.exists('ph-belt')) drawBelt(scene);
   if (!scene.textures.exists('ph-item')) {
@@ -166,16 +195,97 @@ function drawTile(scene, key, name, seed) {
       g.fillStyle(0xeef3f9).fillRect(0, 0, 32, 6);
       speckle([0xc5d1e1], 16);
       break;
-    default:
-      g.fillStyle(0xff00ff).fillRect(0, 0, 32, 32);
+    default: {
+      // SOU-273 season tiles: ochre/green ground, an earth path, the lip the ground meets
+      const m = /^(autumn|spring|summer)_(ground_[ab]|path|edge)$/.exec(name);
+      if (m) drawSeasonTile(g, r, m[1], m[2]);
+      else g.fillStyle(0xff00ff).fillRect(0, 0, 32, 32);
+    }
   }
   g.generateTexture(key, 32, 32);
   g.destroy();
 }
 
+// SOU-273: the procedural look of each non-winter season. ground is [base, alternate]; speck is
+// what is scattered over the ground; the trees share a crown pair plus a shadow tone.
+const SEASON_ART = {
+  autumn: {
+    ground: [0x8a6a34, 0x7d5c2b],
+    speck: [0xa8802f, 0xb5651d, 0x6e4a22], // fallen leaves
+    path: 0x8a6440, pathDark: 0x6e4c2e, edge: 0x7a5636,
+    crown: [0xb5651d, 0xb8392e], crownDark: 0x7e3a18, blossom: null,
+  },
+  spring: {
+    ground: [0x5a8a3a, 0x518034],
+    speck: [0xf2a6c0, 0xf6f2f7], // flower dots
+    path: 0x8a6440, pathDark: 0x6e4c2e, edge: 0x7a5636,
+    crown: [0x4e8a3a, 0x62a04c], crownDark: 0x35682a, blossom: 0xf2a6c0,
+  },
+  summer: {
+    ground: [0x3f6b2f, 0x38612a],
+    speck: [0x4a7a36, 0x35592a], // deeper blades
+    path: 0x8a6440, pathDark: 0x6e4c2e, edge: 0x7a5636,
+    crown: [0x2f5d2a, 0x24471f], crownDark: 0x1b3717, blossom: null,
+  },
+};
+
+function drawSeasonTile(g, r, season, slot) {
+  const art = SEASON_ART[season];
+  const dots = (cols, n, size = 1) => {
+    for (let k = 0; k < n; k++) {
+      g.fillStyle(cols[Math.floor(r() * cols.length)]);
+      g.fillRect(Math.floor(r() * 32), Math.floor(r() * 32), size, size);
+    }
+  };
+  if (slot === 'path') {
+    g.fillStyle(art.path).fillRect(0, 0, 32, 32);
+    dots([art.pathDark, art.path], 26);
+    g.fillStyle(art.pathDark).fillRect(9, 5, 3, 5).fillRect(19, 18, 3, 5); // two stones
+    return;
+  }
+  if (slot === 'edge') {
+    g.fillStyle(art.edge).fillRect(0, 0, 32, 32);
+    g.fillStyle(art.pathDark).fillRect(0, 0, 32, 6); // the lip the ground meets
+    dots([art.path, art.pathDark], 16);
+    return;
+  }
+  g.fillStyle(art.ground[slot === 'ground_b' ? 1 : 0]).fillRect(0, 0, 32, 32);
+  dots(art.speck, season === 'autumn' ? 22 : 12);
+  if (season === 'spring') {
+    // a handful of flowers big enough to read, not just single pixels
+    g.fillStyle(art.speck[0]).fillRect(6, 9, 2, 2).fillRect(23, 24, 2, 2);
+    g.fillStyle(art.speck[1]).fillRect(17, 4, 2, 2).fillRect(11, 26, 2, 2);
+  }
+}
+
+// a round deciduous crown on a short trunk in the season's crown colours; spring's larger trees
+// carry blossom. The crown always overlaps the trunk, so the tree never floats.
+function drawTree(g, r, season, size, w, h) {
+  const art = SEASON_ART[season];
+  const cx = w / 2;
+  const trunkH = Math.max(8, Math.round(h * 0.16));
+  const trunkW = Math.max(4, Math.round(w * 0.11));
+  g.fillStyle(0x5a3a22).fillRect(cx - trunkW / 2, h - trunkH, trunkW, trunkH);
+  g.fillStyle(0x6e4a2a).fillRect(cx - trunkW / 2, h - trunkH, Math.max(1, Math.round(trunkW / 3)), trunkH);
+  const bottom = h - trunkH + trunkH * 0.35; // the crown overlaps the trunk
+  const rad = Math.min(w / 2 - 1, (bottom - 1) * 0.36);
+  g.fillStyle(art.crownDark).fillCircle(cx, bottom - rad, rad);
+  g.fillStyle(art.crown[0]);
+  g.fillCircle(cx - rad * 0.55, bottom - rad * 1.35, rad * 0.72);
+  g.fillCircle(cx + rad * 0.55, bottom - rad * 1.35, rad * 0.7);
+  g.fillStyle(art.crown[1]).fillCircle(cx, bottom - rad * 1.85, rad * 0.6);
+  if (art.blossom && size !== 'a') {
+    for (let k = 0; k < 12; k++) {
+      g.fillStyle(r() > 0.5 ? art.blossom : 0xf6f2f7);
+      g.fillRect(Math.round(cx - rad + r() * rad * 2), Math.round(bottom - rad * 2.6 + r() * rad * 1.6), 2, 2);
+    }
+  }
+}
+
 function drawProp(scene, key, name, w, h) {
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const r = rng(name.length * 991);
+  const tree = /^(autumn|spring|summer)_tree_(a|b|small)$/.exec(name);
   if (name.startsWith('pine')) {
     const cx = w / 2;
     g.fillStyle(0x4a2e1a).fillRect(cx - 3, h - 12, 6, 12);
@@ -192,6 +302,8 @@ function drawProp(scene, key, name, w, h) {
       g.fillStyle(0xe6edf6).fillTriangle(cx, y0, cx - half * 0.45, y0 + (y1 - y0) * 0.45, cx + half * 0.3, y0 + (y1 - y0) * 0.38);
       g.fillStyle(0xdfe7f2).fillRect(cx - half + 2, y1 - 2, half * 0.7, 2).fillRect(cx + half * 0.2, y1 - 2, half * 0.6, 2);
     }
+  } else if (tree) {
+    drawTree(g, r, tree[1], tree[2], w, h);
   } else if (name === 'lantern_post') {
     g.fillStyle(0x24262c).fillRect(14, 14, 4, h - 14).fillRect(10, h - 3, 12, 3);
     g.fillStyle(0x1a1b20).fillRect(9, 4, 14, 3);

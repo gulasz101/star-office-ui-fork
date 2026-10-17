@@ -536,7 +536,12 @@ def build_walk_sheet(base):
     return lodge.build_walk_sheet(base)
 
 
-CLOUD_QUADRANTS = ["tl", "tr", "br", "bl"]
+# Four phases, one quadrant per frame: a 4-frame loop where every frame moves. The first cut had
+# frame 0 as the untouched base and three nudged frames, and it composited `bl` at x=192 of a
+# 192-wide strip - i.e. OFF-CANVAS. The four quadrants therefore became three in the animation
+# while the manifest went on describing (and recording star positions for) a fifth frame that does
+# not exist. Measured 2026-10-17, caught by reading the recorded `drawn_stars` keys back.
+CLOUD_PHASE = ["tl", "tr", "br", "bl"]
 CLOUD_DIRS = {"tl": (-1, -1), "tr": (1, -1), "bl": (-1, 1), "br": (1, 1)}
 
 # --------------------------------------------------------------------------------------
@@ -593,12 +598,13 @@ def stamp_stars(frame):
 def build_cloud_strip(base):
     """4 frames of the same cloud, boiling: each frame nudges ONE quadrant a pixel outward.
 
-    A fight cloud has no limbs to move, so the animation is the puff itself. Frame 0 is the
-    FLUX base; frames 1-3 displace one quadrant of the cloud's own bbox by 1px away from the
-    centre, with the pre-shift content kept as an underlay (`_region_shift`), so no frame can
-    lose a pixel - the SOU-187 invariant. Declared as a derivation in the manifest; the gate
-    measures the per-frame changed-pixel count rather than trusting the description. The two
-    sparkle stars are then stamped on each frame (see STAR_GLYPH).
+    A fight cloud has no limbs to move, so the animation is the puff itself. Every frame is the
+    FLUX base with one quadrant of the cloud's own bbox displaced 1px away from the centre, with the
+    pre-shift content kept as an underlay (`_region_shift`), so no frame can lose a pixel - the
+    SOU-187 invariant. Four frames, four quadrants, no static frame; the two sparkle stars are
+    stamped on each frame afterwards (see STAR_GLYPH). Returns the strip, the per-frame derivation,
+    the star positions AND the changed-pixel count of each frame against the un-nudged base, so the
+    manifest records what was measured rather than what was intended.
     """
     bbox = base.getchannel("A").getbbox()
     if bbox is None:
@@ -607,22 +613,25 @@ def build_cloud_strip(base):
     cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
     quads = {"tl": (x0, y0, cx, cy), "tr": (cx, y0, x1, cy),
              "bl": (x0, cy, cx, y1), "br": (cx, cy, x1, y1)}
+    if len(CLOUD_PHASE) != CLOUD_FRAMES:
+        raise AssemblyError(f"CLOUD_PHASE has {len(CLOUD_PHASE)} entries but the strip is "
+                            f"{CLOUD_FRAMES} frames")
     sheet = Image.new("RGBA", (CLOUD_FRAME * CLOUD_FRAMES, FRAME), (0, 0, 0, 0))
-    derivation = {"0": "the FLUX base, unchanged, plus the two drawn sparkle stars"}
-    stars = {}
-    f0, spots0 = stamp_stars(base.copy())
-    sheet.alpha_composite(f0, (0, 0))
-    stars["0"] = spots0
-    for k, name in enumerate(CLOUD_QUADRANTS, start=1):
+    derivation, stars, changed = {}, {}, []
+    base_px = base.load()
+    for k, name in enumerate(CLOUD_PHASE):
         dx, dy = CLOUD_DIRS[name]
         frame = _region_shift(base.copy(), quads[name], dx, dy)
         frame, spots = stamp_stars(frame)
+        px = frame.load()
+        changed.append(sum(1 for y in range(FRAME) for x in range(CLOUD_FRAME)
+                           if px[x, y] != base_px[x, y]))
         sheet.alpha_composite(frame, (k * CLOUD_FRAME, 0))
         stars[str(k)] = spots
         derivation[str(k)] = (f"the {name} quadrant of the cloud's own bbox shifted {dx:+d},{dy:+d} "
                               f"outward, source kept as underlay (no vacated pixels), plus the two "
                               f"drawn sparkle stars")
-    return sheet, derivation, stars
+    return sheet, derivation, stars, changed
 
 
 def _manifest(asset_key, *, kind, seed, prompt, source_file, output_file, output_dims, extra):
@@ -859,21 +868,10 @@ def cmd_assemble(args) -> int:
         cscale = min((CLOUD_FRAME - 4) / cw, (FRAME - 4) / ch)
         canvas, fit = fit_scaled(keyed, bbox, cscale, size=(CLOUD_FRAME, FRAME), anchor="center")
         frame, clean = clean_frame(canvas)
-        strip, derivation, star_spots = build_cloud_strip(frame)
+        strip, derivation, star_spots, changed = build_cloud_strip(frame)
         path = OUT / "props" / "fight_cloud.png"
         path.parent.mkdir(parents=True, exist_ok=True)
         strip.save(path)
-        frames = [strip.crop((i * CLOUD_FRAME, 0, (i + 1) * CLOUD_FRAME, FRAME))
-                  for i in range(CLOUD_FRAMES)]
-        changed = []
-        for f in frames[1:]:
-            n = 0
-            a, b = frames[0].convert("RGBA").load(), f.convert("RGBA").load()
-            for y in range(FRAME):
-                for x in range(CLOUD_FRAME):
-                    if a[x, y] != b[x, y]:
-                        n += 1
-            changed.append(n)
         meta = {
             "sprite_sheet": {"frames": CLOUD_FRAMES, "frame_px": [CLOUD_FRAME, FRAME],
                              "canvas_px": list(strip.size), "order": [f"puff {i}"
@@ -890,7 +888,10 @@ def cmd_assemble(args) -> int:
                        "palette at a position derived from each frame's own silhouette - the same "
                        "rule that draws the material tiles instead of generating them (ADR-064/065).",
             },
-            "changed_px_vs_frame0": changed,
+            "changed_px_vs_base": changed,
+            "changed_px_note": "per frame, against the keyed+quantised cloud BEFORE the quadrant "
+                               "nudge - the animation evidence. Every frame is nudged, so there is "
+                               "no static frame and the key is not `vs_frame0`.",
             "fit": fit, "key_colour": list(key),
             "content_canvas_opaque_px": sum(
                 1 for px in frame.convert("RGBA").get_flattened_data() if px[3]),

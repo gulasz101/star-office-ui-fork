@@ -282,7 +282,7 @@
     {
       "served_path": "assets/cats/tabby_orange.png.manifest.json",
       "source": "assets/generated/v3/cats/props/tabby_orange.png.manifest.json",
-      "sha256": "7396da6f7d2408aa541ca73b0f2d4834e28275eb6b38839568c279ff9605ff40",
+      "sha256": "ef0fbc3bfcf9d4bf22e5d3401ff800fbd32d1379235126ddc187691dbe09b61a",
       "bytes": 23855
     },
     {
@@ -294,7 +294,7 @@
     {
       "served_path": "assets/cats/black.png.manifest.json",
       "source": "assets/generated/v3/cats/props/black.png.manifest.json",
-      "sha256": "c0d4c268bfbbc885689ff6abc2db24ee1af45f88a7ee80b17402bf9bbfac1c4d",
+      "sha256": "cf96479229f4c347315aa216be9b31c95b68a2f3c9de4f52bdca84793a5df647",
       "bytes": 25024
     },
     {
@@ -306,7 +306,7 @@
     {
       "served_path": "assets/cats/white.png.manifest.json",
       "source": "assets/generated/v3/cats/props/white.png.manifest.json",
-      "sha256": "76c65d705dc1f1b201b83e384bc9b7739a3bcbec35c681e6af435844e29cfe8e",
+      "sha256": "4b335dfcaa40145c2e5c0450bf75a98c0b72cae5b33debeaaa33589a4b329a6b",
       "bytes": 25013
     },
     {
@@ -318,7 +318,7 @@
     {
       "served_path": "assets/cats/grey.png.manifest.json",
       "source": "assets/generated/v3/cats/props/grey.png.manifest.json",
-      "sha256": "245ad4e98e611e34fa86befe433ccb40987e4647744387390b56649e454b0d1e",
+      "sha256": "d4c0a0f2f9757a57e1f43aba313eb5cd2ae5f0f4742d4209c1fb78173b06caec",
       "bytes": 24838
     },
     {
@@ -330,7 +330,7 @@
     {
       "served_path": "assets/cats/calico.png.manifest.json",
       "source": "assets/generated/v3/cats/props/calico.png.manifest.json",
-      "sha256": "1dbb9b7fdbcbee032f7369da52a19fccc4d4f42d20d4b109938761f735aa2cf8",
+      "sha256": "45da05b2d2204c78bec1d45bc2efa424b3cffd5ed9d1f32421ec5ea1bb0ab226",
       "bytes": 25173
     },
     {
@@ -342,7 +342,7 @@
     {
       "served_path": "assets/cats/tuxedo.png.manifest.json",
       "source": "assets/generated/v3/cats/props/tuxedo.png.manifest.json",
-      "sha256": "006f34dffb066715704e2585fe9a72fecf95dd412e9fcef777b94ae79f9c06b3",
+      "sha256": "0b9c8a724486daafbfd33c1b012b6a15dfea8a23cf8fe2bb0cfbad857e74914a",
       "bytes": 25154
     },
     {
@@ -354,21 +354,21 @@
     {
       "served_path": "assets/cats/siamese.png.manifest.json",
       "source": "assets/generated/v3/cats/props/siamese.png.manifest.json",
-      "sha256": "df714c66601e0ae98c966c9875eebe11d8732753dbef12d5ce895fcff85c6c3a",
+      "sha256": "1b2b90998aeda4061db7cc1f1173c1a2b54af6d7e6fa5aa097feb07675ebdd5b",
       "bytes": 27307
     },
     {
       "served_path": "assets/cats/fight_cloud.png",
       "source": "assets/generated/v3/cats/props/fight_cloud.png",
-      "sha256": "cdc58e5e26da4a99f9bf86b83898ccd86189bca41a25ebaa3cd8204996e32523",
-      "bytes": 1457
+      "sha256": "624f27bc2f4a1d686f75aedea2fa30fef238f5494c85ca6ca8aa8384305d9225",
+      "bytes": 1578
     },
     {
       "served_path": "assets/cats/fight_cloud.png.manifest.json",
       "source": "assets/generated/v3/cats/props/fight_cloud.png.manifest.json",
-      "sha256": "bc23bf7dd5cd4af100016d345c31babfaabc33fc580de6e950cf308b2bf244b9",
-      "bytes": 7359
+      "sha256": "0a41b82385be48b938f20a73700e626f9034415340949dadf1d3722deda7f883",
+      "bytes": 7257
     }
   ],
-  "created_at": "2026-10-17T21:08:24.800627+00:00"
+  "created_at": "2026-10-17T21:16:30.325551+00:00"
 }

@@ -207,7 +207,7 @@ CASES = [
     ("AC3: a coat with no manifest", m_no_manifest, "no manifest beside it"),
     ("ALIGNMENT: sit/sleep swapped in one coat", m_swap_poses, "different shape from the others"),
     ("COPY: one pixel changed in the shipped walk", m_walk_pixel, "differ from the shipped lodge"),
-    ("CLOUD: a frozen (duplicated) cloud frame", m_freeze_cloud, "no change against frame 0"),
+    ("CLOUD: a frozen (duplicated) cloud frame", m_freeze_cloud, "not all distinct"),
     ("PALETTE: an off-palette pixel", m_off_palette, "not lodge palette colours"),
     ("FRAMES: hiss replaced by a copy of sit", m_duplicate_pose, "byte-identical"),
     ("AC1: a coat file missing entirely", m_missing_file, "not in the served tree"),

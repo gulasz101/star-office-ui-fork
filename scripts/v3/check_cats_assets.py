@@ -444,7 +444,7 @@ def main() -> int:
             rep.ok(f"{coat}'s signature is unique among the seven coats")
 
     # ---- the cloud ------------------------------------------------------------------
-    rep.section("CLOUD  4 distinct frames with a measured change against frame 0")
+    rep.section("CLOUD  4 mutually distinct frames, every one of them nudged, stars declared")
     if cloud is None:
         rep.fail("no fight cloud to check")
     else:
@@ -453,16 +453,27 @@ def main() -> int:
         if len(cfr) != TICKET["cloud_frames"]:
             rep.fail(f"the cloud has {len(cfr)} frames, the ticket says {TICKET['cloud_frames']}")
         else:
-            changed = []
-            for f in cfr[1:]:
-                a, b = cfr[0].load(), f.load()
-                changed.append(sum(1 for y in range(cfh) for x in range(cfw)
-                                   if a[x, y] != b[x, y]))
-            if all(n > 0 for n in changed):
-                rep.ok(f"{len(cfr)} frames, changed px vs frame 0: {changed}")
+            # Every frame is nudged (there is no static frame), so the honest check is that all
+            # four frames differ FROM EACH OTHER - a duplicated frame is a stutter in a 4-frame
+            # loop, and measuring only against frame 0 would also pass a strip whose last two
+            # frames were identical copies.
+            dupes = [(i, j) for i in range(len(cfr)) for j in range(i + 1, len(cfr))
+                     if cfr[i].tobytes() == cfr[j].tobytes()]
+            if dupes:
+                rep.fail(f"the cloud's frames are not all distinct: {dupes}")
             else:
-                rep.fail(f"frames with no change against frame 0: "
-                         f"{[i + 1 for i, n in enumerate(changed) if n == 0]}")
+                rep.ok(f"{len(cfr)} cloud frames, all mutually distinct")
+            cman_changed = None
+            cm_path = served / f"{TICKET['cloud_name']}.png.manifest.json"
+            if cm_path.exists():
+                cman_changed = json.loads(cm_path.read_text()).get("changed_px_vs_base")
+            if isinstance(cman_changed, list) and len(cman_changed) == len(cfr) \
+                    and all(n and n > 0 for n in cman_changed):
+                rep.ok(f"the manifest's own animation evidence: changed_px_vs_base={cman_changed}")
+            else:
+                rep.fail(f"the manifest records no per-frame animation evidence "
+                         f"(changed_px_vs_base={cman_changed!r}, expected {len(cfr)} positive "
+                         f"counts)")
             content = sum(1 for f in cfr
                           for y in range(cfh) for x in range(cfw) if f.load()[x, y][3])
             if content > 0:
@@ -520,7 +531,7 @@ def main() -> int:
         pp = ["fit", "despeckled_px", "interior_holes_filled_px", "stray_islands_dropped_px",
               "derivation", "key_colour"]
         if name == TICKET["cloud_name"]:
-            pp.append("changed_px_vs_frame0")
+            pp.append("changed_px_vs_base")
             missing_pp = [k for k in pp if k not in m]
         else:
             poses = m.get("poses", {})

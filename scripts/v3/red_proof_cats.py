@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -49,9 +50,23 @@ def _copy_trees(root: Path):
 
 
 def run_gate(served: Path, generated: Path, lodge: Path, script: Path | None = None):
+    """Run the real gate against a case's copy.
+
+    PYTHONDONTWRITEBYTECODE + a purged `__pycache__` are LOAD-BEARING, not hygiene: a case that
+    edits a MODULE (not a file the gate opens, but a file the gate IMPORTS) is defeated by Python's
+    bytecode cache. Measured 2026-10-17: the DECLARATION case edited `gen_cats_art.py` from
+    `(256, 32)` to `(260, 32)` - SAME byte length - within the same wall-clock second as the
+    per-case restore, so (mtime, size) both still matched the cached `.pyc` from an earlier case and
+    the gate imported the UNMUTATED generator, stayed green and the case reported a HOLE. It was
+    non-deterministic: one run proved the case, the next reported a hole. Never let a mutation case
+    depend on cache invalidation.
+    """
     cmd = [PY, str(script or (HERE / "check_cats_assets.py")), "--served", str(served),
            "--generated", str(generated), "--lodge-served", str(lodge)]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    cache = (script or (HERE / "check_cats_assets.py")).parent / "__pycache__"
+    shutil.rmtree(cache, ignore_errors=True)
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
     return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -168,13 +183,20 @@ def m_drop_manifest_field(m):
 
 
 def m_ticket_declaration(m):
-    """Widen a declared size in the GENERATOR, not in the artifact (SOU-200's class)."""
+    """Widen a declared size in the GENERATOR, not in the artifact (SOU-200's class).
+
+    The replacement also changes the file's LENGTH: a same-length edit plus the per-case restore
+    landed in one wall-clock second and left the bytecode cache valid (see `run_gate`), so the
+    mutation never reached the imported module. It must NOT append a comment - the anchor sits
+    mid-dict and a `#` swallows the next key (which turned this case into a SyntaxError crash that
+    the battery correctly refused to read as a proof).
+    """
     src = m["scripts"] / "gen_cats_art.py"
     text = src.read_text()
     old = '"coat_strip_px": (256, 32)'
     if old not in text:
         raise AssertionError("declaration anchor not found")
-    src.write_text(text.replace(old, '"coat_strip_px": (260, 32)'))
+    src.write_text(text.replace(old, '"coat_strip_px": (2600, 32)'))
 
 
 CASES = [
@@ -207,7 +229,9 @@ def main() -> int:
     root = Path(tempfile.mkdtemp(prefix="red-proof-cats-"))
     served, generated, lodge = _copy_trees(root)
     scripts = root / "scripts" / "v3"
-    shutil.copytree(HERE, scripts)
+    # no __pycache__ in the copy: a stale .pyc for a module a case MUTATES is how the DECLARATION
+    # case turns into a silent no-op (see `run_gate`).
+    shutil.copytree(HERE, scripts, ignore=shutil.ignore_patterns("__pycache__"))
 
     print(f"scratch root: {root}\n")
 

@@ -1,0 +1,92 @@
+{
+  "ground_a|ground_a": {
+    "step_x": 0.0,
+    "worst_inner_x": 7.16,
+    "ratio_x": 0.0,
+    "step_y": 0.0,
+    "worst_inner_y": 7.9,
+    "ratio_y": 0.0,
+    "kind": "self",
+    "asserted_axes": "xy"
+  },
+  "ground_a|ground_b": {
+    "step_x": 0.0,
+    "worst_inner_x": 18.46,
+    "ratio_x": 0.0,
+    "step_y": 0.0,
+    "worst_inner_y": 18.68,
+    "ratio_y": 0.0,
+    "kind": "interleave",
+    "asserted_axes": "xy"
+  },
+  "ground_a|path": {
+    "step_x": 22.14,
+    "worst_inner_x": 13.01,
+    "ratio_x": 1.7,
+    "step_y": 0.0,
+    "worst_inner_y": 83.78,
+    "ratio_y": 0.0,
+    "kind": "path-edge",
+    "asserted_axes": "y"
+  },
+  "ground_b|ground_a": {
+    "step_x": 0.0,
+    "worst_inner_x": 18.46,
+    "ratio_x": 0.0,
+    "step_y": 0.0,
+    "worst_inner_y": 18.68,
+    "ratio_y": 0.0,
+    "kind": "interleave",
+    "asserted_axes": "xy"
+  },
+  "ground_b|ground_b": {
+    "step_x": 0.0,
+    "worst_inner_x": 18.46,
+    "ratio_x": 0.0,
+    "step_y": 0.0,
+    "worst_inner_y": 18.68,
+    "ratio_y": 0.0,
+    "kind": "self",
+    "asserted_axes": "xy"
+  },
+  "ground_b|path": {
+    "step_x": 22.14,
+    "worst_inner_x": 18.46,
+    "ratio_x": 1.2,
+    "step_y": 0.0,
+    "worst_inner_y": 83.78,
+    "ratio_y": 0.0,
+    "kind": "path-edge",
+    "asserted_axes": "y"
+  },
+  "path|ground_a": {
+    "step_x": 22.14,
+    "worst_inner_x": 13.01,
+    "ratio_x": 1.7,
+    "step_y": 0.0,
+    "worst_inner_y": 83.78,
+    "ratio_y": 0.0,
+    "kind": "path-edge",
+    "asserted_axes": "y"
+  },
+  "path|ground_b": {
+    "step_x": 22.14,
+    "worst_inner_x": 18.46,
+    "ratio_x": 1.2,
+    "step_y": 0.0,
+    "worst_inner_y": 83.78,
+    "ratio_y": 0.0,
+    "kind": "path-edge",
+    "asserted_axes": "y"
+  },
+  "path|path": {
+    "step_x": 0.0,
+    "worst_inner_x": 13.01,
+    "ratio_x": 0.0,
+    "step_y": 0.0,
+    "worst_inner_y": 83.78,
+    "ratio_y": 0.0,
+    "kind": "self",
+    "asserted_axes": "xy"
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "pack": "season-summer-v1",
+  "set": "summer",
+  "season": "summer",
+  "issue": "SOU-274",
+  "generated_from": "assets/generated/v3/seasons/summer",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01 and the lodge)",
+  "palette": "assets/generated/v3/seasons/summer/palette.json",
+  "palette_family": "lodge",
+  "tileset": {
+    "path": "assets/seasons/summer/tiles.png",
+    "tile_px": 32,
+    "columns": 4,
+    "firstgid": 1,
+    "order": [
+      "ground_a",
+      "ground_b",
+      "path",
+      "edge"
+    ],
+    "order_authority": "the SOU-274 ticket table; seasons.js (SOU-273) consumes the same four keys in the same order",
+    "slot_class": {
+      "ground_a": "material",
+      "ground_b": "material",
+      "path": "material",
+      "edge": "decal"
+    },
+    "slot_seam_axes": {
+      "ground_a": "xy",
+      "ground_b": "xy",
+      "path": "xy",
+      "edge": "x"
+    }
+  },
+  "prop_lift_for_placeholders_js": {
+    "tree_a": 64,
+    "tree_b": 96,
+    "tree_small": 32
+  },
+  "props": [
+    {
+      "key": "tree_a",
+      "served_path": "assets/seasons/summer/props/tree_a.png",
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "texture_px_actual": [
+        64,
+        96
+      ]
+    },
+    {
+      "key": "tree_b",
+      "served_path": "assets/seasons/summer/props/tree_b.png",
+      "texture_px_declared": [
+        64,
+        128
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 96,
+      "texture_px_actual": [
+        64,
+        128
+      ]
+    },
+    {
+      "key": "tree_small",
+      "served_path": "assets/seasons/summer/props/tree_small.png",
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        32,
+        64
+      ]
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/seasons/summer/tiles.png",
+      "source": "assets/generated/v3/seasons/summer/tiles.png",
+      "sha256": "dda7979893cd4b1b190c2e3437cea1c670e0d2ca70239dfa639f45c1692026d9",
+      "bytes": 778
+    },
+    {
+      "served_path": "assets/seasons/summer/tiles.png.manifest.json",
+      "source": "assets/generated/v3/seasons/summer/tiles.png.manifest.json",
+      "sha256": "509ea683eefdb4143ecbed60047330ba20657a560f0e054a204fd3965c93c31a",
+      "bytes": 2613
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_a.png",
+      "source": "assets/generated/v3/seasons/summer/props/tree_a.png",
+      "sha256": "26c52a831dd4ff940c8dacf51cc520eb8c08f71e1e469c1d3f07bf06584dd961",
+      "bytes": 1838
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_a.png.manifest.json",
+      "source": "assets/generated/v3/seasons/summer/props/tree_a.png.manifest.json",
+      "sha256": "bc17e63ec7b7395d755c6d32d800c65179c81d05ba3f1805dfa60f7f56dd4bb4",
+      "bytes": 5592
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_b.png",
+      "source": "assets/generated/v3/seasons/summer/props/tree_b.png",
+      "sha256": "cd3b18a9142e3f69348af38309222849a45c046f2c62bcbb7c6854bd2824f511",
+      "bytes": 2374
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_b.png.manifest.json",
+      "source": "assets/generated/v3/seasons/summer/props/tree_b.png.manifest.json",
+      "sha256": "f11947048935033ade85c99c536caaffc5b7ccba1871878e82ee544ebc23d9f1",
+      "bytes": 5581
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_small.png",
+      "source": "assets/generated/v3/seasons/summer/props/tree_small.png",
+      "sha256": "021e9a45fb2a3afb3a3acf1f9d6e91358039f04987b2d87b0a304cd6d99b0077",
+      "bytes": 734
+    },
+    {
+      "served_path": "assets/seasons/summer/props/tree_small.png.manifest.json",
+      "source": "assets/generated/v3/seasons/summer/props/tree_small.png.manifest.json",
+      "sha256": "ee4a42462748a0e05462e9ca8bb39d237713ae4b31fd56a14727a2511bdf07e7",
+      "bytes": 5427
+    }
+  ],
+  "created_at": "2026-10-17T18:04:19.204151+00:00",
+  "note": "the season lookup itself lives in frontend/v3/src/seasons.js (SOU-273); this index.json is the published record of what the season's art set contains."
+}

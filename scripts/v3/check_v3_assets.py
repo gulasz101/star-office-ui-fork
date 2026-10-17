@@ -70,7 +70,7 @@ EXIT_ERROR = 2
 # The v2.1.0 seasonal OUTDOOR sets (SOU-274 autumn, SOU-275 spring, SOU-276 summer).  One entry
 # here is all a new season needs to get its own gate branch: `main_season` reads the set's own
 # tables from `gen_season_art` and asserts them against the hand-typed TICKET_E table.
-SEASON_SETS = ("autumn",)
+SEASON_SETS = ("autumn", "summer")
 
 
 class Report:
@@ -2416,6 +2416,15 @@ def main_polish(args) -> int:
 #     trunk band must be measurably darker than the crown, the bottom row must carry content at
 #     the canvas centre column, and the bottom row must be a TRUNK (a narrow run) rather than a
 #     crown sitting on the ground.
+#
+# WHAT IS SHARED AND WHAT IS PER SEASON (SOU-276).  `TICKET_E` below is deliberately ONE table,
+# not one per season: SOU-276 asks for the same four slots in the same order in a 128x32 strip and
+# the same three trees at 64x96 / 64x128 / 32x64, replacing pine_a/pine_b/pine_small one for one -
+# so the structure is a shared contract, and a per-season copy of it would let one season's sizes
+# drift under a ticket that does not permit it.  What DOES differ is the COLOUR contract, and that
+# is keyed by season (`SEASON_CROWN_HUES`, `SEASON_CROWN_REQUIRED`, `SEASON_CROWN_MIN_SHARE`,
+# `SEASON_CROWN_MAX_LUMINANCE`): autumn asks for a three-colour crown, summer for a single dark
+# green one, and those are different assertions rather than one assertion with two thresholds.
 # ---------------------------------------------------------------------------------------
 TICKET_E = {
     "tile_px": 32,
@@ -2429,9 +2438,18 @@ TICKET_E = {
 }
 
 SEASON_LEAF_FAMILIES = {
-    "orange": ("leaf_orange", "leaf_orange_deep", "leaf_orange_light", "leaf_russet"),
-    "red": ("leaf_scarlet", "leaf_red", "leaf_red_deep", "leaf_red_light"),
-    "ochre": ("leaf_ochre", "leaf_ochre_deep", "leaf_ochre_light", "leaf_gold"),
+    "autumn": {
+        "orange": ("leaf_orange", "leaf_orange_deep", "leaf_orange_light", "leaf_russet"),
+        "red": ("leaf_scarlet", "leaf_red", "leaf_red_deep", "leaf_red_light"),
+        "ochre": ("leaf_ochre", "leaf_ochre_deep", "leaf_ochre_light", "leaf_gold"),
+    },
+    "summer": {
+        # ONE family, not three: the SOU-276 ticket says "full dark-green summer deciduous trees"
+        # - a single colour.  These eight names are the whole of the green the palette can offer:
+        # the lawn ramp plus the lodge's own pine ramp, which is what the crowns are drawn from.
+        "green": ("grass_deep", "grass_dark", "grass", "grass_light",
+                  "pine_deep", "pine_dark", "pine", "pine_light"),
+    },
 }
 SEASON_TRUNK_FAMILY = ("wood_deep", "wood_dark", "wood", "plank_dark", "earth")
 # The 1px outline the STYLE string MANDATES is not a material, so it is excluded from the
@@ -2469,8 +2487,48 @@ SEASON_DARK_MIN_SHARE = 0.9
 # the SET rather than per tree, and that weaker form would have PASSED the rejected pass on the
 # strength of the sapling alone; it was tightened to per-tree on that measurement.)  A boundary
 # that only failed to fire on the bad pass would have been a check wired to pass.
-SEASON_CROWN_HUES = (("red", 0.0, 20.0), ("orange", 20.0, 34.0), ("ochre", 34.0, 65.0))
-SEASON_CROWN_MIN_SHARE = 0.05
+SEASON_CROWN_HUES = {
+    "autumn": (("red", 0.0, 20.0), ("orange", 20.0, 34.0), ("ochre", 34.0, 65.0)),
+    # Summer: ONE band, 75-170 deg, wide on purpose.  Measured rather than eyeballed: the four
+    # lodge pine tones the crowns are drawn from sit at 125.5-140.8 deg and the lawn ramp at
+    # 88.5-103.4, while the pale clover flower head (`clover_bloom`) measures 66.0 and is therefore
+    # correctly NOT counted as foliage.  The autumn ochre band ends at 65 deg, so the two seasons
+    # cannot collide.
+    "summer": (("green", 75.0, 170.0),),
+}
+# The share of crown pixels a family needs before it counts as present.  Autumn's 5% is a presence
+# test for three families inside a mixed crown; summer's 50% is a different kind of claim - the
+# whole crown is meant to be green, so a majority is the assertion, not a trace.
+SEASON_CROWN_MIN_SHARE = {"autumn": 0.05, "summer": 0.5}
+# The families a season's crowns must carry, and the sentence a failure quotes.
+SEASON_CROWN_REQUIRED = {"autumn": ("ochre", "orange", "red"), "summer": ("green",)}
+SEASON_CROWN_WORDING = {
+    "autumn": "each tree to have an orange, red AND ochre crown",
+    "summer": "every tree to have a full dark-green crown",
+}
+# "Dark green" (the SOU-276 ticket) as a MEASUREMENT - neither the hue check nor any numeric AC can
+# see a bright spring-green crown, because bright and dark green share a hue.  The threshold is
+# anchored to the DECLARED palette rather than to taste: the lightest green the palette offers for a
+# crown is the lodge's pine_light at luminance 99.9 (0.299R+0.587G+0.114B), so a crown whose mean
+# sits at or above 95 is built from the ramp's lightest tone only.  Autumn has no such clause - its
+# ticket asks for orange/red/ochre crowns, not for a dark one - and `None` means "not asserted".
+SEASON_CROWN_MAX_LUMINANCE = {"autumn": None, "summer": 95.0}
+# The issue this branch is the gate for.  Report text only.
+SEASON_ISSUE = {"autumn": "SOU-274", "summer": "SOU-276"}
+# "dark trunks" (the SOU-274 ticket) as a RELATIVE measurement: the trunk band must be darker than
+# the crown.  That discriminates fine on an autumn tree, whose crown is orange/red/ochre at
+# luminance 105-134 against a brown trunk at 46-48.  It is NOT meaningful on a summer tree, and
+# asserting it there is a false failure produced by the check rather than by the art: the SOU-276
+# crown is DARK GREEN BY DESIGN, and the palette's dark brown trunk (wood_deep, luminance 44.3) is
+# the same brightness as that crown.  Measured on the first summer pass: tree_b read trunk 41 vs
+# crown 40 and tree_small 47 vs 45 - equal within noise - while 99% and 92% of those trunk bands
+# were already below the dark threshold, 99% and 90% of their non-outline pixels a declared dark
+# brown, and the bottom row carried a 13px and a 4px trunk run at the centre column.  Re-rolling to
+# darken the trunk until the inequality held would be chasing a number that the summer ticket never
+# states (its trunk clause is positional: "the trunk base at the bottom centre").  So the relative
+# clause is asserted only where its ticket states it, and summer's trunk instead has to prove it
+# EXISTS as a declared dark-brown material at the bottom centre - which the other three clauses do.
+SEASON_TRUNK_DARKER_THAN_CROWN = {"autumn": True, "summer": False}
 SEASON_SEAM_LIMIT = 1.05
 # The bottom row of a tree is its trunk.  A run wider than this share of the canvas is a crown
 # touching the ground, not a trunk: the ticket says the trees have "dark trunks ... the trunk
@@ -2523,7 +2581,7 @@ def main_season(args, season_name: str) -> int:
         return EXIT_ERROR
 
     print("=" * 96)
-    print(f"{season_name} v3 outdoor art set check (SOU-274)   root={root}")
+    print(f"{season_name} v3 outdoor art set check ({SEASON_ISSUE[season_name]})   root={root}")
     print(f"palette: {len(pal_hex)} declared colours ({len(L.PALETTE)} lodge family + "
           f"{len(S.SEASONS[season_name]['extra'])} {season_name})")
     print("=" * 96)
@@ -2532,8 +2590,8 @@ def main_season(args, season_name: str) -> int:
     declared_order = [n for n, _c, _s, _spec in S.SEASONS[season_name]["tiles"]]
     ticket_order = [n for n, _ax in TICKET_E["slots"]]
     if declared_order != ticket_order:
-        report.fail(f"the generator's slot order {declared_order} != the SOU-274 ticket table "
-                    f"{ticket_order}")
+        report.fail(f"the generator's slot order {declared_order} != the "
+                    f"{SEASON_ISSUE[season_name]} ticket table {ticket_order}")
     else:
         report.ok(f"the generator declares the ticket's four slots in order: "
                   f"{', '.join(declared_order)}")
@@ -2585,7 +2643,7 @@ def main_season(args, season_name: str) -> int:
         if missing:
             report.fail(f"the declared palette is not the lodge family plus an extension: "
                         f"{len(missing)} of the lodge's {len(lodge_hex)} colours are absent, "
-                        f"e.g. {missing[:3]} - SOU-274 requires starting from the Lodge palette")
+                        f"e.g. {missing[:3]} - the ticket requires starting from the Lodge palette")
         else:
             report.ok(f"the declared palette is a SUPERSET of the lodge's {len(lodge_hex)} "
                       f"colours: same family, plus {len(hexes) - len(lodge_hex)} "
@@ -2723,8 +2781,12 @@ def main_season(args, season_name: str) -> int:
     print("\nPROPS (exact declared size; crown hue families; dark trunk, base at the bottom centre)")
     print(f"{'asset':12s} {'shipped':>9s} {'declared':>9s} {'crown hue shares':>34s} "
           f"{'lum t/c':>8s} {'dark':>5s} {'brown':>6s} {'base run':>9s}  result")
-    fam_rgb = {fam: {S._hex_to_rgb(by_name[n]) for n in names}
-               for fam, names in SEASON_LEAF_FAMILIES.items()}
+    # Per-season colour contract.  `fam_rgb` (the palette names behind each family) is deliberately
+    # not computed: the assertion is by HUE, and it was dead code that merely looked like a check.
+    season_hues = SEASON_CROWN_HUES[season_name]
+    want_families = set(SEASON_CROWN_REQUIRED[season_name])
+    min_share = SEASON_CROWN_MIN_SHARE[season_name]
+    max_crown_lum = SEASON_CROWN_MAX_LUMINANCE[season_name]
     trunk_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_TRUNK_FAMILY}
     outline_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_OUTLINE_FAMILY}
     crown_families_seen: set[str] = set()
@@ -2760,24 +2822,28 @@ def main_season(args, season_name: str) -> int:
         trunk = [px[x, y] for y in range(int(h * 0.75), h) for x in range(w) if px[x, y][3]]
         hues = [_hue(p) for p in crown]
         fam_hits = {name: sum(1 for hv in hues if lo <= hv < hi)
-                    for name, lo, hi in SEASON_CROWN_HUES}
+                    for name, lo, hi in season_hues}
         fam_share = {k: v / max(len(crown), 1) for k, v in fam_hits.items()}
-        present = sorted(k for k, v in fam_share.items() if v >= SEASON_CROWN_MIN_SHARE)
+        present = sorted(k for k, v in fam_share.items() if v >= min_share)
         crown_families_seen.update(present)
-        crown_txt = "/".join(f"{k}:{fam_share[k]:.0%}" for k, _lo, _hi in SEASON_CROWN_HUES)
-        if set(present) != {"red", "orange", "ochre"}:
+        crown_txt = "/".join(f"{k}:{fam_share[k]:.0%}" for k, _lo, _hi in season_hues)
+        if set(present) != want_families:
             problems.append(f"the crown carries only {present or 'no'} hue family at >= "
-                            f"{SEASON_CROWN_MIN_SHARE:.0%} ({crown_txt}) - the ticket says each "
-                            f"tree has an orange, red AND ochre crown")
+                            f"{min_share:.0%} ({crown_txt}) - the ticket asks for "
+                            f"{SEASON_CROWN_WORDING[season_name]}")
 
         crown_l = _mean([_lum(p) for p in crown])
+        if max_crown_lum is not None and crown_l >= max_crown_lum:
+            problems.append(f"the crown's mean luminance is {crown_l:.0f}, at or above "
+                            f"{max_crown_lum:.0f} - the ticket asks for DARK green, and at that "
+                            f"brightness the crown is built from the palette's lightest green only")
         trunk_l = _mean([_lum(p) for p in trunk])
         lum_txt = f"{trunk_l:.0f}/{crown_l:.0f}"
         if not trunk:
             problems.append("no opaque pixel in the trunk band (the bottom quarter)")
             dark_share, brown_share = 0.0, 0.0
         else:
-            if trunk_l >= crown_l:
+            if trunk_l >= crown_l and SEASON_TRUNK_DARKER_THAN_CROWN[season_name]:
                 problems.append(f"the trunk band is not darker than the crown ({trunk_l:.0f} vs "
                                 f"{crown_l:.0f}) - the ticket says dark trunks")
             dark_share = sum(1 for p in trunk if _lum(p) < SEASON_DARK_LUMINANCE) / len(trunk)
@@ -2811,13 +2877,13 @@ def main_season(args, season_name: str) -> int:
                       f"({trunk_l:.0f} vs {crown_l:.0f}), {dark_share:.0%} of it dark and "
                       f"{brown_share:.0%} of its non-outline pixels a declared dark brown; bottom "
                       f"row is a {run}px trunk run with content at the centre column")
-    if crown_families_seen != {"red", "orange", "ochre"}:
+    if crown_families_seen != want_families:
         report.fail(f"across the three trees the crowns carry only {sorted(crown_families_seen)} "
-                    f"of the ticket's orange/red/ochre - the ticket describes the set as "
-                    f"deciduous trees with orange, red AND ochre crowns")
+                    f"of the ticket's {sorted(want_families)} - the ticket asks for "
+                    f"{SEASON_CROWN_WORDING[season_name]}")
     else:
-        report.ok("across the three trees the crowns carry all three of the ticket's hue "
-                  "families: red, orange and ochre")
+        report.ok("across the three trees the crowns carry every hue family the ticket names: "
+                  + ", ".join(sorted(want_families)))
 
     # ---- manifests, in BOTH trees, and the served copy being byte-identical -----------
     print("\nMANIFESTS + SERVED COPY (a manifest next to every PNG; the served file is the "
@@ -2875,13 +2941,20 @@ def main_season(args, season_name: str) -> int:
         for f in report.failures:
             print(f"  - {f}")
         return EXIT_FAIL
+    fam_clause = (f"every crown carrying the colours the ticket names "
+                  f"({('/'.join(sorted(want_families)))} by hue)")
+    dark_clause = (f", every crown measurably dark (mean luminance below "
+                   f"{max_crown_lum:.0f})" if max_crown_lum is not None else "")
+    trunk_clause = ("trunk bands measurably darker than their crowns with the base at the bottom "
+                    "centre" if SEASON_TRUNK_DARKER_THAN_CROWN[season_name] else
+                    "trunk bands carrying a declared dark-brown material with the base at the "
+                    "bottom centre")
     print(f"RESULT: PASS - the {season_name} set is the ticket's four 32px slots in order in a "
           f"128x32 strip plus the three trees at exactly 64x96 / 64x128 / 32x64, on a palette "
           f"that is a superset of the lodge's, with every declared seam axis measured (self AND "
-          f"cross-tile, the path's own edge reported rather than asserted), every crown carrying "
-          f"all three of the orange/red/ochre hue families, trunk bands measurably darker than "
-          f"their crowns with the base at the bottom centre, a manifest next to every PNG, and "
-          f"every served file byte-identical to the generated one.")
+          f"cross-tile, the path's own edge reported rather than asserted), {fam_clause}"
+          f"{dark_clause}, {trunk_clause}, a manifest next to every PNG, and every served file "
+          f"byte-identical to the generated one.")
     return 0
 
 

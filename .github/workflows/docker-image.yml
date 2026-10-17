@@ -106,11 +106,13 @@ jobs:
           echo "--- runs as the unprivileged uid, not root ---"
           docker exec sou-sqlite id
 
-          echo "--- dashboard is served from the copied frontend/ ---"
-          code=$(curl -s -o /tmp/index.html -w '%{http_code}' http://127.0.0.1:19000/)
-          test "$code" = "200" || { echo "GET / -> $code"; exit 1; }
-          grep -qiE 'phaser|canvas|office' /tmp/index.html
-          echo "GET / -> 200, dashboard markup present ($(wc -c < /tmp/index.html) bytes)"
+          echo "--- the Lodge (v3) is served from the copied frontend/ ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19000/)
+          test "$code" = "302" || { echo "GET / -> $code (expected the redirect to /v3/)"; exit 1; }
+          code=$(curl -s -o /tmp/index.html -w '%{http_code}' http://127.0.0.1:19000/v3/)
+          test "$code" = "200" || { echo "GET /v3/ -> $code"; exit 1; }
+          grep -qiE 'phaser|canvas' /tmp/index.html
+          echo "GET / -> 302, GET /v3/ -> 200, renderer markup present ($(wc -c < /tmp/index.html) bytes)"
 
           echo "--- the healthcheck path answers from the database ---"
           code=$(curl -s -o /tmp/feed.json -w '%{http_code}' 'http://127.0.0.1:19000/events/recent?limit=1')

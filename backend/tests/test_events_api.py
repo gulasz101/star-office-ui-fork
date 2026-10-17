@@ -16,7 +16,7 @@ Run from ``backend/``::
 The harness is the one ``tests/test_app_db.py`` uses: ``app`` is imported once
 against a throwaway ``DATABASE_URL`` and ``setUp`` re-points the adapter at a
 brand-new SQLite file and re-runs ``init_database()``, so every test starts
-from the same seeded state (one main ``Star`` agent, one seed event). When the
+from the same empty state (SOU-226 removed the v1 ``Star`` seed). When the
 runtime extras (flask / sqlalchemy / alembic / jsonschema) are missing the
 module skips, same convention as the rest of the suite.
 """
@@ -268,7 +268,7 @@ class EventsIngestTest(_AppTestCase):
         self.assert_rejected(self.post_event(body))
         self.assertEqual(len(self.raw_event_rows()), before, "a 400 must leave the feed untouched")
         self.assertEqual(
-            [a.name for a in self.agents()], ["Star"], "a 400 must not create an agent row"
+            [a.name for a in self.agents()], [], "a 400 must not create an agent row"
         )
 
     def test_unknown_version_is_rejected(self) -> None:
@@ -348,7 +348,7 @@ class EventsIngestTest(_AppTestCase):
         big = self._payload_of_exact_size(PAYLOAD_MAX_BYTES + 1)
         msg = self.assert_rejected(self.post_event(valid_event(payload=big)))
         self.assertIn("payload", msg.lower())
-        self.assertEqual(len(self.raw_event_rows()), 1, "only the seed event may remain")
+        self.assertEqual(len(self.raw_event_rows()), 0, "nothing may be written")
 
     def test_payload_at_the_size_limit_is_accepted(self) -> None:
         body = valid_event(payload=self._payload_of_exact_size(PAYLOAD_MAX_BYTES))
@@ -383,11 +383,11 @@ class EventsIngestTest(_AppTestCase):
 
     def test_unknown_agent_creates_one_row_and_reuses_it(self) -> None:
         """AC 3: create the agent row when it is missing, then reuse it."""
-        self.assertEqual([a.name for a in self.agents()], ["Star"], "only the seeded main row")
+        self.assertEqual([a.name for a in self.agents()], [], "a fresh database has no agents (SOU-226: no v1 seed)")
         for _ in range(3):
             self.assertEqual(self.post_event(valid_event(agent="opencode")).status_code, 201)
         rows = self.agents()
-        self.assertEqual(sorted(a.name for a in rows), ["Star", "opencode"])
+        self.assertEqual(sorted(a.name for a in rows), ["opencode"])
         created = next(a for a in rows if a.name == "opencode")
         self.assertEqual(created.agent_type, "guest", "ingest-created rows are guests")
         self.assertEqual(len(self.events(agent_id=created.id)), 3)
@@ -397,18 +397,9 @@ class EventsIngestTest(_AppTestCase):
         self.assertEqual(self.post_event(valid_event(agent="opencode")).status_code, 201)
         self.assertEqual(self.post_event(valid_event(agent="  OpenCode  ")).status_code, 201)
         self.assertEqual(
-            {a.name for a in self.agents()}, {"Star", "OpenCode"},
+            {a.name for a in self.agents()}, {"OpenCode"},
             "the first spelling registered is the canonical one",
         )
-
-    def test_main_agent_is_never_duplicated_by_ingest(self) -> None:
-        """The seeded Star row must be matched, not re-created, by /events."""
-        self.assertEqual(
-            self.post_event(valid_event(agent="Star", event_type="state_change",
-                                        payload={"state": "writing", "detail": "x"})).status_code,
-            201,
-        )
-        self.assertEqual([a.name for a in self.agents()], ["Star"])
 
 
 @unittest.skipIf(sa is None, f"runtime extras not installed: {_IMPORT_ERROR}")
@@ -471,88 +462,6 @@ class EventSchemaDocumentTest(_AppTestCase):
             '"required": ["version"', src,
             "AC 2 wants one schema, not a second inlined copy that can drift",
         )
-
-
-@unittest.skipIf(sa is None, f"runtime extras not installed: {_IMPORT_ERROR}")
-class SetStateBackwardCompatTest(_AppTestCase):
-    """AC 5: ``/set_state`` keeps working, and works as an ingest of ``state_change``."""
-
-    def test_set_state_still_answers_200_ok(self) -> None:
-        resp = self.client.post("/set_state", json={"state": "writing", "detail": "Organizing documents"})
-        self.assertEqual(resp.status_code, 200, resp.get_data(as_text=True))
-        self.assertEqual(resp.get_json(), {"status": "ok"}, "the old response shape is the contract")
-
-    def test_set_state_lands_a_state_change_event_on_the_main_row(self) -> None:
-        self.client.post("/set_state", json={"state": "executing", "detail": "running tests"})
-        main = self.main_agent()
-        events = self.events(agent_id=main.id, event_type="state_change")
-        self.assertEqual(len(events), 2, "seed + the set_state event")
-        newest = events[0].payload
-        self.assertEqual(newest["state"], "executing")
-        self.assertEqual(newest["detail"], "running tests")
-        self.assertIn("updated_at", newest)
-        status = self.client.get("/status").get_json()
-        self.assertEqual(status["state"], "executing")
-
-    def test_set_state_and_post_events_write_the_same_row_shape(self) -> None:
-        """One write path, two projections (SOU-218): both doors land a
-        state_change row on the main agent row, but only /set_state keeps
-        v1's own dict — the reporter door stores the safe projection, so
-        free text posted there is never stored and never served."""
-        self.client.post("/set_state", json={"state": "syncing", "detail": "via set_state"})
-        self.assertEqual(
-            self.post_event(
-                valid_event(
-                    agent="Star",
-                    event_type="state_change",
-                    timestamp=now_iso(),
-                    payload={"state": "syncing", "detail": "via events", "progress": 0},
-                )
-            ).status_code,
-            201,
-        )
-        main = self.main_agent()
-        rows = self.raw_event_rows()
-        from_set_state = next(r for r in rows if r["payload"].get("detail") == "via set_state")
-        from_events = next(r for r in rows if r["payload"] == {"state": "syncing"})
-        for r in (from_set_state, from_events):
-            self.assertEqual(r["agent_id"], main.id)
-            self.assertEqual(r["event_type"], "state_change")
-        status = self.client.get("/status").get_json()
-        self.assertEqual(status["state"], "syncing")
-        self.assertNotEqual(
-            status["detail"], "via events",
-            "SOU-218: the reporter door cannot put free text into /status",
-        )
-
-    def test_both_routes_converge_on_one_ingest_function(self) -> None:
-        """Structural half of AC 5: no second write path may come back."""
-        self.assertTrue(
-            hasattr(app_mod, "ingest_event"), "app.py must expose one ingest_event() service"
-        )
-        for func in (app_mod.events_endpoint, app_mod.save_state):
-            src = inspect.getsource(func)
-            self.assertIn(
-                "ingest_event", src, f"{func.__name__} must go through ingest_event(), not db directly"
-            )
-        self.assertNotIn(
-            "db.insert_event", inspect.getsource(app_mod.save_state),
-            "the main state must stop owning its own write",
-        )
-
-    def test_events_state_change_for_star_is_visible_in_the_roster(self) -> None:
-        resp = self.post_event(
-            valid_event(agent="Star", event_type="state_change", timestamp=now_iso(),
-                        payload={"state": "researching", "detail": "reading", "progress": 1})
-        )
-        self.assertEqual(resp.status_code, 201)
-        roster = self.client.get("/agents").get_json()
-        star = next(a for a in roster if a["agentId"] == "star")
-        self.assertEqual(star["state"], "researching")
-
-    def test_invalid_set_state_state_is_still_ignored(self) -> None:
-        self.client.post("/set_state", json={"state": "bogus", "detail": "x"})
-        self.assertNotEqual(self.client.get("/status").get_json()["state"], "bogus")
 
 
 if __name__ == "__main__":

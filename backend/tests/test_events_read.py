@@ -294,39 +294,6 @@ class EventsRecentTest(unittest.TestCase):
         data = self.body(self.get_recent(agent="hermes"))
         self.assertEqual(len(data), 1)
 
-    def test_main_seed_event_is_readable_through_the_feed(self) -> None:
-        """init_database seeds Star's state_change; /status reads it, so
-        must /events/recent (same table)."""
-        seeds = self.body(self.get_recent(agent="Star"))
-        self.assertGreaterEqual(len(seeds), 1)
-        self.assertEqual(seeds[0]["event_type"], "state_change")
-        self.assertIn("state", seeds[0]["payload"])
-
-    def test_seed_then_push_matches_the_status_read_path(self) -> None:
-        """The renderer's contract (AC 3's proof), under SOU-218: a
-        state_change pushed via POST /events is what GET /status acts on and
-        what the feed serves — as the safe projection. v1's free-text
-        detail/progress are /set_state's own round-trip now. The event must
-        carry a NOW timestamp: created_at is the agent's event time and the
-        feed is ordered by it (see test_events_api's now_iso) - a past-pinned
-        stamp sorts behind the seed on purpose."""
-        now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
-        state = {
-            "state": "writing",
-            "detail": "phase3 smoke",
-            "progress": 42,
-            "ttl_seconds": 300,
-            "updated_at": now,
-        }
-        self.push({"version": 1, "agent": "Star", "event_type": "state_change",
-                   "timestamp": now, "payload": state})
-        served = self.client.get("/status")
-        self.assertEqual(served.status_code, 200)
-        self.assertEqual(served.get_json()["state"], "writing")
-        self.assertNotEqual(served.get_json()["detail"], "phase3 smoke")
-        feed = self.body(self.get_recent(agent="Star", event_type="state_change"))
-        self.assertEqual(feed[0]["payload"], {"state": "writing"})
-
 
 # The exact key set SOU-201 spells for one /events/agents entry.
 AGENTS_ENTRY_KEYS = {"agent", "first_seen", "last_seen", "count", "last_event"}
@@ -517,12 +484,16 @@ class EventsAgentsTest(unittest.TestCase):
         self.assertEqual(entries["quiet-two"]["count"], 1)
 
     # -- nothing excluded server-side (AC 1) ------------------------------------
-    def test_star_is_listed_like_every_other_agent(self) -> None:
-        """The server excludes nothing: the frontend owns the ignore list."""
+    def test_an_agent_called_star_is_listed_like_every_other_agent(self) -> None:
+        """The server excludes nothing on this face: the renderer owns its ignore list.
+        (SOU-226 removed the v1 Star seed; a reporter may still use the name.)"""
+        now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        res = self.client.post("/events", json={"version": 1, "agent": "Star", "event_type": "tool_call",
+                                                "timestamp": now, "payload": {"tool": "Read"}})
+        self.assertEqual(res.status_code, 201)
         entries = self.by_name(self.body(self.get_agents()))
-        self.assertIn("Star", entries, "the seeded main agent is listed like any other")
+        self.assertIn("Star", entries)
         self.assertEqual(entries["Star"]["last_event"]["agent"], "Star")
-        self.assertGreaterEqual(entries["Star"]["count"], 1)
 
     # -- validation (AC 1) -------------------------------------------------------
     def test_bad_since_is_400(self) -> None:

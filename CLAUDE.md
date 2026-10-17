@@ -41,7 +41,6 @@ next to each other) comes after M1 is accepted by the owner.
 | Event ingest | `POST /events`, schema `backend/schemas/event_v1.json` (ADR-035) | Keep. Extra fields allowed. |
 | Event feed | `GET /events/recent?agent=&event_type=&since=&limit=` | Keep. Newest first. |
 | **v3 renderer** | `frontend/v3/` — Phaser **4.2.1**, served by Flask | **New, all new frontend work goes here.** |
-| v1 renderer | `frontend/index.html`, `frontend/game.js`, `layout.js`, `nav.js` | Legacy upstream code. Do not extend. Deleted once v3 reaches parity. |
 | Reporters | `reporter/` (OpenChamber/OpenCode), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`) | Keep, add more. |
 | Art pipeline | FLUX.2-klein-4B on the M1 Max (MPS), pixelize post-process | Keep. Mac-side only. |
 
@@ -112,7 +111,7 @@ Rules for everyone:
 ## Running it
 
 ```bash
-# backend + v1 (port 19000, STAR_BACKEND_PORT overrides), SQLite by default.
+# backend (port 19000, STAR_BACKEND_PORT overrides), SQLite by default; / redirects to /v3/.
 # uv is the single dependency source: pyproject.toml + uv.lock, no requirements.txt.
 uv sync                       # creates/prunes .venv from uv.lock — that's the whole setup
 backend/run.sh            # = uv run python backend/app.py, loads .env if present
@@ -123,7 +122,7 @@ curl -s -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json
   -d '{"version":1,"agent":"claude","event_type":"tool_call","timestamp":"2026-10-16T12:00:00Z","payload":{"tool":"Edit","status":"ok"}}'
 ```
 
-Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/tests/*.test.js" "frontend/v3/tests/*.test.mjs"` (JS; quote the globs — the bare directory form fails on Node 22/26).
+Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form fails on Node 22/26). Smoke a running backend: `uv run python scripts/smoke_test.py --base-url http://127.0.0.1:19000`.
 
 ## History, in brief
 
@@ -131,5 +130,7 @@ The fork started from `ringhyacinth/Star-Office-UI` (Flask + Phaser 3, OpenClaw-
 Phases 0–7 made the backend agent-agnostic (DB layer, `/events`, reporters, OpenClaw
 decoupling, Docker, English-only). Phases 8–10 tried to get good visuals by patching the
 v1 renderer, then by a Python-generated isometric pipeline. Both were dropped on
-2026-10-16 in favour of the v3 top-down renderer. That work stays in git history and on
-the `sou-*` branches; the FLUX pipeline and the generated assets carry over.
+2026-10-16 in favour of the v3 top-down renderer (Phase 11 M1, Phase 12 M2 "the Lodge").
+Phase 13 made it safe to publish (sanitised ingest, per-agent tokens, `SOU_MODE` faces)
+and deleted the v1 renderer and its routes (SOU-226, 2026-10-17). That work stays in git
+history and on the `sou-*` branches; the FLUX pipeline and the generated assets carry over.

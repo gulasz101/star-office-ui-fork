@@ -106,73 +106,33 @@ class AllowListTest(unittest.TestCase):
         self.assertTrue(sou_mode.rule_allowed("ingest", "/events"))
         self.assertFalse(sou_mode.rule_allowed("ingest", "/public/feed"))
         self.assertFalse(sou_mode.rule_allowed("ingest", "/"))
-        # dev registers today's surface and nothing newer (AC4)
-        self.assertTrue(sou_mode.rule_allowed("dev", "/status"))
-        self.assertTrue(sou_mode.rule_allowed("dev", "/static/<path:filename>"))
+        # dev is the v3 surface (SOU-226 deleted v1)
+        self.assertTrue(sou_mode.rule_allowed("dev", "/v3/<path:filename>"))
+        self.assertTrue(sou_mode.rule_allowed("dev", "/"))
+        self.assertFalse(sou_mode.rule_allowed("dev", "/status"))
+        self.assertFalse(sou_mode.rule_allowed("dev", "/static/<path:filename>"))
         self.assertFalse(sou_mode.rule_allowed("dev", "/public/feed"))
         self.assertFalse(sou_mode.rule_allowed("dev", "/public/agents"))
 
-    def test_dev_rules_are_the_master_snapshot(self) -> None:
-        # AC4 proof part 1: sou_mode's dev list equals the url_map snapshot
-        # captured from master@9ea4163 (SOU-220 S3 proves the running app
-        # equals this list rule-for-rule, method-for-method).
-        self.assertEqual(
-            [d["rule"] for d in sou_mode.DEV_ROUTES],
-            [d["rule"] for d in MASTER_42],
-        )
+    def test_dev_rules_are_the_v3_surface(self) -> None:
+        # SOU-226: the dev list equals the url_map snapshot below; S3-style proof
+        # that the running app equals it is DevFaceTest.
         self.assertEqual(
             {(d["rule"], d["endpoint"], tuple(d["methods"])) for d in sou_mode.DEV_ROUTES},
-            {(d["rule"], d["endpoint"], tuple(d["methods"])) for d in MASTER_42},
+            {(d["rule"], d["endpoint"], tuple(d["methods"])) for d in DEV_SNAPSHOT},
         )
-        self.assertEqual(len(sou_mode.DEV_ROUTES), 42)
 
 
-# The url_map of master@9ea4163 (b4d40f8 audit said 40 routes; v3/agents
-# work grew it to 42 rule+endpoint pairs over 39 distinct rules). Captured
-# with `app.url_map.iter_rules()`, methods excluding the automatic OPTIONS.
-# This literal is the AC4 contract: SOU_MODE=dev must still produce exactly
-# this map. If a ticket deliberately adds a route, it updates this list in
-# the same commit — that friction is the point.
-MASTER_42 = [
+# The dev url_map after SOU-226 deleted v1 (until then: the 42-rule master@9ea4163
+# app with every v1 route). Captured with `app.url_map.iter_rules()`, methods
+# excluding the automatic OPTIONS. If a ticket deliberately adds a route, it updates
+# this list in the same commit; that friction is the point.
+DEV_SNAPSHOT = [
     {"rule": '/', "endpoint": 'index', "methods": ['GET', 'HEAD']},
-    {"rule": '/agent-approve', "endpoint": 'agent_approve', "methods": ['POST']},
-    {"rule": '/agent-push', "endpoint": 'agent_push', "methods": ['POST']},
-    {"rule": '/agent-reject', "endpoint": 'agent_reject', "methods": ['POST']},
-    {"rule": '/agents', "endpoint": 'get_agents', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/auth', "endpoint": 'assets_auth', "methods": ['POST']},
-    {"rule": '/assets/auth/status', "endpoint": 'assets_auth_status', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/defaults', "endpoint": 'assets_defaults_get', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/defaults', "endpoint": 'assets_defaults_set', "methods": ['POST']},
-    {"rule": '/assets/generate-rpg-background', "endpoint": 'assets_generate_rpg_background', "methods": ['POST']},
-    {"rule": '/assets/generate-rpg-background/poll', "endpoint": 'assets_generate_rpg_background_poll', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/home-favorites/apply', "endpoint": 'assets_home_favorites_apply', "methods": ['POST']},
-    {"rule": '/assets/home-favorites/delete', "endpoint": 'assets_home_favorites_delete', "methods": ['POST']},
-    {"rule": '/assets/home-favorites/file/<path:filename>', "endpoint": 'assets_home_favorites_file', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/home-favorites/list', "endpoint": 'assets_home_favorites_list', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/home-favorites/save-current', "endpoint": 'assets_home_favorites_save_current', "methods": ['POST']},
-    {"rule": '/assets/list', "endpoint": 'assets_list', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/positions', "endpoint": 'assets_positions_get', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/positions', "endpoint": 'assets_positions_set', "methods": ['POST']},
-    {"rule": '/assets/restore-default', "endpoint": 'assets_restore_default', "methods": ['POST']},
-    {"rule": '/assets/restore-last-generated-background', "endpoint": 'assets_restore_last_generated_background', "methods": ['POST']},
-    {"rule": '/assets/restore-prev', "endpoint": 'assets_restore_prev', "methods": ['POST']},
-    {"rule": '/assets/restore-reference-background', "endpoint": 'assets_restore_reference_background', "methods": ['POST']},
-    {"rule": '/assets/template.zip', "endpoint": 'assets_template_download', "methods": ['GET', 'HEAD']},
-    {"rule": '/assets/upload', "endpoint": 'assets_upload', "methods": ['POST']},
-    {"rule": '/config/gemini', "endpoint": 'gemini_config_get', "methods": ['GET', 'HEAD']},
-    {"rule": '/config/gemini', "endpoint": 'gemini_config_set', "methods": ['POST']},
-    {"rule": '/electron-standalone', "endpoint": 'electron_standalone_page', "methods": ['GET', 'HEAD']},
     {"rule": '/events', "endpoint": 'events_endpoint', "methods": ['POST']},
     {"rule": '/events/agents', "endpoint": 'events_agents_endpoint', "methods": ['GET', 'HEAD']},
     {"rule": '/events/recent', "endpoint": 'events_recent_endpoint', "methods": ['GET', 'HEAD']},
     {"rule": '/health', "endpoint": 'health', "methods": ['GET', 'HEAD']},
-    {"rule": '/invite', "endpoint": 'invite_page', "methods": ['GET', 'HEAD']},
-    {"rule": '/join', "endpoint": 'join_page', "methods": ['GET', 'HEAD']},
-    {"rule": '/join-agent', "endpoint": 'join_agent', "methods": ['POST']},
-    {"rule": '/leave-agent', "endpoint": 'leave_agent', "methods": ['POST']},
-    {"rule": '/set_state', "endpoint": 'set_state_endpoint', "methods": ['POST']},
-    {"rule": '/static/<path:filename>', "endpoint": 'static', "methods": ['GET', 'HEAD']},
-    {"rule": '/status', "endpoint": 'get_status', "methods": ['GET', 'HEAD']},
     {"rule": '/v3', "endpoint": 'v3_renderer', "methods": ['GET', 'HEAD']},
     {"rule": '/v3/', "endpoint": 'v3_renderer', "methods": ['GET', 'HEAD']},
     {"rule": '/v3/<path:filename>', "endpoint": 'v3_renderer', "methods": ['GET', 'HEAD']},
@@ -624,7 +584,7 @@ class IngestFaceTest(unittest.TestCase):
 
 
 class DevFaceTest(unittest.TestCase):
-    """AC4: dev (unset or explicit) is the 42-rule master app, unchanged."""
+    """dev (unset or explicit) is the v3 surface (SOU-226): no v1 route left."""
 
     GETS_UNSET = ["/status", "/health", "/public/feed"]
     GETS_DEV = ["/"]
@@ -634,20 +594,19 @@ class DevFaceTest(unittest.TestCase):
         cls.unset = _boot_ok(None, {"get": cls.GETS_UNSET})
         cls.explicit = _boot_ok("dev", {"get": cls.GETS_DEV})
 
-    def test_rules_equal_master_snapshot(self) -> None:
+    def test_rules_equal_the_dev_snapshot(self) -> None:
         expected = sorted((d["rule"], d["endpoint"], tuple(d["methods"]))
-                          for d in MASTER_42)
+                          for d in DEV_SNAPSHOT)
         self.assertEqual(_rule_triples(self.unset), expected)
         self.assertEqual(_rule_triples(self.explicit), expected)
 
-    def test_today_behaviour_kept_and_public_reads_absent(self) -> None:
+    def test_v1_is_gone_root_redirects_and_public_reads_absent(self) -> None:
         probes = self.unset["probes"]
         self.assertEqual(self.unset["mode"], "dev")
         self.assertEqual(probes[f"GET 1 /health"]["status"], 200)
-        self.assertEqual(probes[f"GET 0 /status"]["status"], 200)
+        self.assertEqual(probes[f"GET 0 /status"]["status"], 404)
         self.assertEqual(probes[f"GET 2 /public/feed"]["status"], 404)
-        self.assertEqual(
-            self.explicit["probes"]["GET 0 /"]["status"], 200)
+        self.assertEqual(self.explicit["probes"]["GET 0 /"]["status"], 302)
 
 
 class UnknownModeTest(unittest.TestCase):

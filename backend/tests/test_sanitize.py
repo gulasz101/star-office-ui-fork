@@ -488,15 +488,5 @@ class CanarySweepTest(unittest.TestCase):
             text = resp.get_data(as_text=True).lower()
             self.assertNotIn(CANARY.lower(), text, f"{CANARY} served by GET {path}")
 
-    def test_v1_state_paths_keep_their_own_round_trip(self) -> None:
-        """Ruling on the ticket: /set_state stores v1's own state dict
-        unsanitised (its /status read-back needs detail); POST /events does not."""
-        resp = self.client.post("/set_state", json={"state": "writing", "detail": "phase13 v1"})
-        self.assertEqual(resp.status_code, 200)
-        served = self.client.get("/status").get_json()
-        self.assertEqual(served["state"], "writing")
-        self.assertEqual(served["detail"], "phase13 v1")
-
-
 if __name__ == "__main__":
     unittest.main()

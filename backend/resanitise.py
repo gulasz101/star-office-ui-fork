@@ -340,7 +340,8 @@ def main(argv=None) -> int:
         config.set_main_option("sqlalchemy.url", url)
         with engine.connect() as conn:
             current = MigrationContext.configure(conn).get_current_revision()
-        if current == REVISION:
+        # 003 (SOU-226) and later sit on top of this revision: "applied" means at or past it
+        if current is not None and current != "001_initial_schema":
             print(f"resanitise: revision {REVISION} is already applied; "
                   f"use --re-scan to walk the table again")
             return 0
@@ -348,7 +349,7 @@ def main(argv=None) -> int:
             print("resanitise: this database has no SOU schema (nothing to migrate) — "
                   "start the backend once, or run `alembic upgrade head`", file=sys.stderr)
             return 2
-        command.upgrade(config, "head")
+        command.upgrade(config, REVISION)  # this tool's own revision, not whatever is head
         summary = LAST_SUMMARY or {}
         print(f"resanitise: revision {REVISION} applied; "
               f"{summary.get('written', 0)} payload(s) rewritten")

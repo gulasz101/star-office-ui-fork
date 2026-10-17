@@ -12,6 +12,10 @@ import { World, slotForIndex, ROOM_W, ROOM_H, CORRIDOR_Y, CORRIDOR_H, FRONT_Y, S
 const AGENT_COLORS = [0x4f7cc9, 0xc94f6d, 0x4fc98a, 0xc9a24f, 0x8a4fc9, 0x4fbfc9];
 const FOREST_MARGIN = 26; // tiles of snowy forest drawn around the building
 
+// A long building's overview is zoomed far out, so on a tall screen the field above and
+// below must grow with the building's width or the void shows (SOU-226 review).
+const vMargin = (spanTiles) => Math.max(FOREST_MARGIN, Math.ceil(spanTiles * 0.4));
+
 export class Building {
   constructor(scene) {
     this.scene = scene;
@@ -52,7 +56,8 @@ export class Building {
   get worldBounds() {
     const x0 = (this.world.x0 - FOREST_MARGIN) * TILE;
     const x1 = (this.world.x1 + 1 + FOREST_MARGIN) * TILE;
-    return new Phaser.Geom.Rectangle(x0, -FOREST_MARGIN * TILE, x1 - x0, (SPAWN_Y + FOREST_MARGIN * 2) * TILE);
+    const vm = vMargin(this.world.x1 - this.world.x0 + 1);
+    return new Phaser.Geom.Rectangle(x0, -vm * TILE, x1 - x0, (SPAWN_Y + vm * 2) * TILE);
   }
 
   drawShell() {
@@ -71,7 +76,8 @@ export class Building {
     // snow everywhere around the building, then the trodden path up to the entrance;
     // everything outside is tinted for the night, the inside stays warm
     const night = (o, tint = NIGHT_TINT) => o.setTint(tint);
-    night(strip('snow_a', x0 - FOREST_MARGIN, -FOREST_MARGIN, span + FOREST_MARGIN * 2, SPAWN_Y + FOREST_MARGIN * 2, -3000));
+    const vm = vMargin(span);
+    night(strip('snow_a', x0 - FOREST_MARGIN, -vm, span + FOREST_MARGIN * 2, SPAWN_Y + vm * 2, -3000));
     night(strip('snow_path', DOOR_COLS[0], FRONT_Y + 1, 2, SPAWN_Y - FRONT_Y + 12, -2990));
     night(strip('snow_edge', x0, FRONT_Y + 1, span, 1, -2995));
 
@@ -114,7 +120,7 @@ export class Building {
     const r = rng(4242);
     const bx0 = x0 - 1;
     const bx1 = x1 + 1;
-    for (let ty = -FOREST_MARGIN + 2; ty < SPAWN_Y + FOREST_MARGIN; ty += 2) {
+    for (let ty = -vm + 2; ty < SPAWN_Y + vm; ty += 2) {
       for (let tx = x0 - FOREST_MARGIN; tx < x1 + FOREST_MARGIN; tx += 2) {
         const jx = tx + r() * 1.6;
         const jy = ty + r() * 1.6;

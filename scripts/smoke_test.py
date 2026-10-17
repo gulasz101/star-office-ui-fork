@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Star Office UI smoke test (non-destructive).
+"""Star Office UI smoke test (non-destructive): the Lodge (v3) and its event door.
 
 Usage:
   python3 scripts/smoke_test.py --base-url http://127.0.0.1:19000
 
 Optional env:
-  SMOKE_AUTH_BEARER=xxxx   # if your gateway/proxy requires bearer auth
+  SOU_SMOKE_TOKEN=xxxx   # an ingest token for the agent "smoke-test" when the
+                         # backend sets SOU_INGEST_TOKENS (POST /events is then gated)
 """
 
 from __future__ import annotations
@@ -16,69 +17,65 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 
-
-REQUIRED_ENDPOINTS = [
-    ("GET", "/", 200),
+REQUIRED = [
     ("GET", "/health", 200),
-    ("GET", "/status", 200),
-    ("GET", "/agents", 200),
+    ("GET", "/v3/", 200),
+    ("GET", "/events/recent?limit=1", 200),
+    ("GET", "/events/agents", 200),
 ]
 
 
-def req(method: str, url: str, body: dict | None = None, token: str = "") -> tuple[int, str]:
-    data = None
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):  # report the 302 instead of following it
+        return None
 
-    r = urllib.request.Request(url=url, method=method, data=data, headers=headers)
+
+def req(method: str, url: str, body: dict | None = None, token: str = "") -> tuple[int, str]:
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(url, data=data, method=method)
+    if body is not None:
+        request.add_header("Content-Type", "application/json")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    opener = urllib.request.build_opener(NoRedirect)
     try:
-        with urllib.request.urlopen(r, timeout=8) as resp:
-            raw = resp.read().decode("utf-8", errors="ignore")
-            return resp.status, raw
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else str(e)
-        return e.code, raw
-    except Exception as e:
-        return 0, str(e)
+        with opener.open(request, timeout=10) as resp:
+            return resp.status, resp.read(2000).decode("utf-8", "replace")
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read(2000).decode("utf-8", "replace")
+    except Exception as exc:  # connection refused etc.
+        return 0, str(exc)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--base-url", default="http://127.0.0.1:19000", help="Base URL of Star Office UI service")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-url", default="http://127.0.0.1:19000")
+    base = parser.parse_args().base_url.rstrip("/")
+    token = os.environ.get("SOU_SMOKE_TOKEN", "")
+    failures = []
 
-    base = args.base_url.rstrip("/")
-    token = os.getenv("SMOKE_AUTH_BEARER", "").strip()
+    for method, path, expected in REQUIRED:
+        code, body = req(method, base + path)
+        (failures.append(f"{method} {path} -> {code}, expected {expected}") if code != expected
+         else print(f"  OK  {method} {path} -> {code}"))
 
-    failures: list[str] = []
-    print(f"[smoke] base={base}")
+    code, _ = req("GET", base + "/")
+    (failures.append(f"GET / -> {code}, expected 302 to /v3/") if code != 302 else print("  OK  GET / -> 302 (to /v3/)"))
 
-    for method, path, expected in REQUIRED_ENDPOINTS:
-        code, body = req(method, base + path, token=token)
-        if code != expected:
-            failures.append(f"{method} {path}: expected {expected}, got {code}, body={body[:200]}")
-        else:
-            print(f"  OK  {method} {path} -> {code}")
-
-    # non-destructive state update probe
-    code, body = req("POST", base + "/set_state", {"state": "idle", "detail": "smoke-check"}, token=token)
-    if code != 200:
-        failures.append(f"POST /set_state failed: {code}, body={body[:200]}")
-    else:
-        print("  OK  POST /set_state -> 200")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    event = {"version": 1, "agent": "smoke-test", "event_type": "tool_call", "timestamp": now,
+             "payload": {"tool": "Read", "status": "ok"}}
+    code, body = req("POST", base + "/events", event, token=token)
+    (failures.append(f"POST /events -> {code}, body={body[:200]}") if code != 201 else print("  OK  POST /events -> 201"))
 
     if failures:
-        print("\n[smoke] FAIL")
-        for f in failures:
-            print(" -", f)
+        print("\nSMOKE FAILED:")
+        for line in failures:
+            print(f"  - {line}")
         return 1
-
-    print("\n[smoke] PASS")
+    print("\nsmoke ok")
     return 0
 
 

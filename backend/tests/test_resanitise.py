@@ -396,7 +396,8 @@ class _Harness:
                 return MigrationContext.configure(conn).get_current_revision()
 
     def upgrade_head(self, **kw) -> None:
-        _upgrade(self.url, "head", **kw)
+        # SOU-226 put 003 (drop the v1 roster) on top: the 002 contract is tested at 002
+        _upgrade(self.url, REVISION_002, **kw)
 
 
 class _WalkContract(_Harness):

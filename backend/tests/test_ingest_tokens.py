@@ -25,6 +25,7 @@ import hashlib
 import inspect
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -486,6 +487,71 @@ class OpenBehaviourTest(_HttpAuthTestCase):
             self.assertIn("SOU_INGEST_TOKENS", proc.stderr)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
+
+
+class CliTest(unittest.TestCase):
+    """AC 9: `uv run python backend/tokens.py new <agent>` prints the token
+    once plus the copy-pasteable SOU_INGEST_TOKENS line, and nothing else
+    durable (manager note on SOU-219: never write a plaintext token to disk
+    or a log)."""
+
+    TOKENS_PY = os.path.join(BACKEND_DIR, "tokens.py")
+
+    def run_cli(self, *args, cwd=None):
+        workdir = cwd or tempfile.mkdtemp(prefix="sou219-cli-")
+        proc = subprocess.run(
+            [sys.executable, self.TOKENS_PY, *args],
+            cwd=workdir, capture_output=True, text=True, timeout=60,
+        )
+        return proc, workdir
+
+    def test_cli_new_prints_token_once_and_line(self) -> None:
+        proc, _ = self.run_cli("new", "hermes")
+        self.assertEqual(proc.returncode, 0, proc.stderr[-300:])
+        out = proc.stdout
+        line_match = re.search(r"\b([0-9a-f]{64}):(\S+)", out)
+        self.assertIsNotNone(line_match, f"no 'sha256hex:agent' line in:\n{out}")
+        digest, agent = line_match.group(1), line_match.group(2)
+        self.assertEqual(agent, "hermes")
+        # The plaintext token is exactly the one the printed digest hashes to,
+        # and it appears exactly once in the output.
+        token_match = re.search(r"\b([A-Za-z0-9_-]{32,})\b", out.replace(digest, ""))
+        self.assertIsNotNone(token_match, f"no token visible in:\n{out}")
+        token = token_match.group(1)
+        self.assertEqual(sha(token), digest, "printed line must hash to the printed token")
+        self.assertEqual(out.count(token), 1, "plaintext token must be printed exactly once")
+        self.assertNotIn(digest, token)
+
+    def test_cli_generated_token_accepted_by_store(self) -> None:
+        # End-to-end: feed the emitted line straight into parse_source and
+        # the emitted token must unlock it.
+        proc, _ = self.run_cli("new", "claude")
+        out = proc.stdout
+        digest, agent = re.search(r"\b([0-9a-f]{64}):(\S+)", out).groups()
+        token = re.search(r"\b([A-Za-z0-9_-]{32,})\b", out.replace(digest, "")).group(1)
+        store = ingest_auth.parse_source(f"{digest}:{agent}")
+        self.assertEqual(store.lookup(token), agent)
+        self.assertEqual(store.lookup("wrong" + token[5:]), None)
+
+    def test_cli_new_tokens_are_fresh(self) -> None:
+        a, _ = self.run_cli("new", "hermes")
+        b, _ = self.run_cli("new", "hermes")
+        self.assertNotEqual(a.stdout, b.stdout)
+
+    def test_cli_writes_no_files(self) -> None:
+        _proc, workdir = self.run_cli("new", "hermes")
+        self.assertEqual(os.listdir(workdir), [], "the CLI must not write anything to disk")
+
+    def test_cli_bad_args_exit_nonzero(self) -> None:
+        for args in ((), ("new",), ("new", "agent:name"), ("drop", "hermes")):
+            with self.subTest(args=args):
+                proc, _ = self.run_cli(*args)
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertTrue((proc.stderr + proc.stdout).strip())
+
+    def test_cli_success_writes_nothing_to_stderr(self) -> None:
+        proc, _ = self.run_cli("new", "hermes")
+        self.assertEqual(proc.stderr, "")
 
 
 if __name__ == "__main__":

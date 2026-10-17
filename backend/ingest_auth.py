@@ -65,6 +65,25 @@ def bearer_from_header(value):
     return match.group(1) if match else None
 
 
+def normalize_digest(digest):
+    """Validate/normalise one stored sha256 hex digest."""
+    digest = str(digest).strip().lower()
+    if not _HEX64.match(digest):
+        raise ValueError(
+            f"token hash: expected a 64-char sha256 hex digest, got "
+            f"{digest[:3] + '...' + digest[-3:] if len(digest) > 6 else digest!r}"
+        )
+    return digest
+
+
+def normalize_agent(agent):
+    """Validate/normalise one agent name (non-empty, no ':')."""
+    agent = str(agent).strip()
+    if not agent or ":" in agent:
+        raise ValueError(f"agent: expected a non-empty name without ':', got {agent!r}")
+    return agent
+
+
 class TokenStore:
     """Hashes-only ``sha256(token) -> agent`` map with a per-token limiter."""
 
@@ -72,7 +91,7 @@ class TokenStore:
                  clock=time.monotonic):
         clean = {}
         for digest, agent in dict(agents_by_hash).items():
-            clean[self._check_digest(digest)] = self._check_agent(agent)
+            clean[normalize_digest(digest)] = normalize_agent(agent)
         self._agents = clean
         self.rate = float(rate)
         self.burst = float(burst) if burst is not None else self.rate
@@ -85,25 +104,6 @@ class TokenStore:
     def mapping(self):
         """A copy of the hashes-only mapping."""
         return dict(self._agents)
-
-    @staticmethod
-    def _check_digest(digest):
-        digest = str(digest).strip().lower()
-        if not _HEX64.match(digest):
-            raise ValueError(
-                f"token hash: expected a 64-char sha256 hex digest, got "
-                f"{digest[:3] + '...' + digest[-3:] if len(digest) > 6 else digest!r}"
-            )
-        return digest
-
-    @staticmethod
-    def _check_agent(agent):
-        agent = str(agent).strip()
-        if not agent or ":" in agent:
-            raise ValueError(
-                f"agent: expected a non-empty name without ':', got {agent!r}"
-            )
-        return agent
 
     def lookup(self, token):
         """The agent owning ``token``, or None. Constant time in entry count.

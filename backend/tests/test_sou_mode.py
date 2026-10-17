@@ -379,6 +379,16 @@ def _faces_db_url() -> str:
             "detail": "reviewing id_ed25519 for /home/operator",
             "progress": 3,
         })
+        # SOU-221: the public face hides project names and raw task ids
+        db_mod.insert_event(session, canary.id, "command_run", {
+            "tool": "Bash", "command": "git push", "cwd": "/home/operator/secret-project-x",
+        })
+        db_mod.insert_event(session, canary.id, "background_start", {
+            "task_id": "bg-canary-task-77", "kind": "shell", "label": "sleep",
+        })
+        db_mod.insert_event(session, canary.id, "background_end", {
+            "task_id": "bg-canary-task-77", "kind": "shell", "label": "sleep", "status": "ok",
+        })
         session.commit()
     engine.dispose()
     return url
@@ -499,6 +509,22 @@ class PublicFaceTest(unittest.TestCase):
         paged = self.get("/public/feed?limit=1")["json"]
         self.assertEqual(len(paged), 1)
         self.assertEqual(paged[0], feed[0])
+
+    def test_public_hides_cwd_raw_task_ids_and_the_v1_roster(self) -> None:
+        """SOU-221: stricter than the ingest projection."""
+        feed = self.get("/public/feed")["json"]
+        text = json.dumps(feed)
+        self.assertNotIn('"cwd"', text)
+        self.assertNotIn("secret-project-x", text)
+        self.assertNotIn("bg-canary-task-77", text)
+        self.assertNotIn("Star", {item["agent"] for item in feed})
+        bg = [item["payload"] for item in feed if item["event_type"].startswith("background_")]
+        self.assertEqual(len(bg), 2)
+        start, end = bg[0]["task_id"], bg[1]["task_id"]
+        self.assertEqual(start, end, "start and end still pair up through the digest")
+        self.assertRegex(start, r"^[0-9a-f]{12}$")
+        agents = self.get("/public/agents")["json"]
+        self.assertNotIn("Star", {entry["agent"] for entry in agents})
 
     def test_cache_headers_and_same_origin_cors(self) -> None:
         feed = self.get("/public/feed")

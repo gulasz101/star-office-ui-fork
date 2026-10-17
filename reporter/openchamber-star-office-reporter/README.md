@@ -1,8 +1,9 @@
 # openchamber-star-office-reporter
 
 An [OpenCode](https://opencode.ai) / OpenChamber **plugin** that reports your coding
-agent's activity to a [Star Office UI](https://github.com/ringhyacinth/Star-Office-UI)
-dashboard as it happens. One file, zero dependencies, standard-library only. Your
+agent's activity to a [Star Office UI](https://github.com/gulasz101/star-office-ui-fork)
+dashboard ("the Lodge") as it happens: the agent gets its own room and a pixel character that
+works in it. One file, zero dependencies, standard-library only. Your
 agent keeps working — the office feed lights up with tool calls, file edits, commands
 run, and sessions started/ended.
 
@@ -13,7 +14,7 @@ sessions.
 ## What it reports
 
 Every event is one
-[ADR-035 schema-v1 envelope](https://github.com/gulasz101/star-office-ui-fork/blob/master/README.en.md#the-event-envelope-schema-v1)
+[schema-v1 envelope](https://github.com/gulasz101/star-office-ui-fork/blob/master/backend/schemas/event_v1.json)
 `POST`ed to the dashboard's `/events` endpoint:
 
 | `event_type`     | when                                        | `payload` fields                                                      |
@@ -25,8 +26,13 @@ Every event is one
 | `code_completion`| a session goes idle after editing files     | `session_id`, `files_touched`, `edits`                                |
 | `session_end`    | session deleted, plugin unloaded, SIGINT/TERM | `session_id`, `reason`, `duration_seconds`, `events_logged`         |
 
-The dashboard is what decides pixel positions and toasts — this reporter just keeps
-the event stream honest.
+The dashboard decides what the character does with each event. **It also sanitises every
+payload at its door** (command lines reduced to the program, paths and `cwd` to basenames, `output`,
+`error` and `directory` dropped; the public page hides `cwd` too), so fields this reporter sends are never stored in full or
+shown on a public page.
+
+Siblings: [`claude-code-star-office-reporter`](https://github.com/gulasz101/claude-code-star-office-reporter)
+and [`hermes-star-office-reporter`](https://github.com/gulasz101/hermes-star-office-reporter).
 
 ## Install
 
@@ -88,7 +94,7 @@ Config-file candidates (first one found wins, `{"dashboardUrl": …}` JSON):
 Point one machine's agents at the office dashboard on your LAN:
 
 ```bash
-SOU_DASHBOARD_URL=http://192.168.1.119:19000 \
+SOU_DASHBOARD_URL=http://dashboard.lan:19000 \
   opencode run "fix the flaky test"
 ```
 
@@ -97,7 +103,7 @@ Permanently, without env spam — write the file:
 ```bash
 cat > ~/.config/opencode/star-office-reporter.json <<'EOF'
 {
-  "dashboardUrl": "http://192.168.1.119:19000",
+  "dashboardUrl": "http://dashboard.lan:19000",
   "agent": "openchamber",
   "timeoutMs": 5000,
   "enabled": true
@@ -192,7 +198,6 @@ Star-Office-UI checkout; point `SOU_REPO_ROOT` at one if it isn't the default pa
 
 ## Provenance
 
-Built for the Star-Office-UI fork's Phase 6 (issue `SOU-71`); lives in
-`reporter/openchamber-star-office-reporter/` in that repo and is published as a
-standalone repository under the same MIT licence. Qwen-Image assets are not used
-anywhere in this component; it ships no artwork.
+Built for the Star-Office-UI fork. The source of truth is
+`reporter/openchamber-star-office-reporter/` in that repo; this repository is its
+standalone mirror under the same MIT licence. It ships no artwork.

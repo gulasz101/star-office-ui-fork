@@ -315,6 +315,119 @@ test("createReporter: flush drains inflight within a bound", async () => {
 });
 
 // ---------------------------------------------------------------------------
+// SOU-223 — ingest token: configuration plumbing (AC1)
+// ---------------------------------------------------------------------------
+
+test("loadConfig: token unset by default", () => {
+  const cfg = loadConfig({});
+  assert.ok(!cfg.token, "no SOU_TOKEN, no config token -> no token");
+});
+
+test("loadConfig: SOU_TOKEN env picked up and trimmed", () => {
+  const cfg = loadConfig({ SOU_TOKEN: "  tok-abc123  " });
+  assert.equal(cfg.token, "tok-abc123");
+});
+
+test("loadConfig: config-file token key honoured", () => {
+  const cfg = loadConfig(
+    { HOME: "/nonexistent", XDG_CONFIG_HOME: undefined },
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "file-tok" }) }
+  );
+  assert.equal(cfg.token, "file-tok");
+});
+
+test("loadConfig: env SOU_TOKEN overrides config-file token", () => {
+  const cfg = loadConfig(
+    { SOU_TOKEN: "env-tok" },
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "file-tok" }) }
+  );
+  assert.equal(cfg.token, "env-tok");
+});
+
+test("loadConfig: blank token means unset", () => {
+  assert.ok(!loadConfig({ SOU_TOKEN: "   " }).token);
+  const cfg = loadConfig(
+    {},
+    { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "" }) }
+  );
+  assert.ok(!cfg.token);
+});
+
+// ---------------------------------------------------------------------------
+// SOU-223 — ingest token: transport + redaction (AC2, AC3)
+// ---------------------------------------------------------------------------
+
+const TOK = "soutok-Unit4TestToken-abcdefghij0123456789";
+
+test("createReporter: sends Authorization Bearer header when a token is configured", async () => {
+  const seen = [];
+  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const rep = createReporter(cfg, {
+    fetch: async (url, init) => {
+      seen.push(init.headers);
+      return { ok: true, status: 201 };
+    },
+    logger: () => {},
+  });
+  await rep.report("tool_call", { tool: "bash" });
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].Authorization, `Bearer ${TOK}`);
+});
+
+test("createReporter: no Authorization header when no token is configured", async () => {
+  const seen = [];
+  const rep = createReporter(loadConfig({}), {
+    fetch: async (url, init) => {
+      seen.push(init.headers);
+      return { ok: true, status: 201 };
+    },
+    logger: () => {},
+  });
+  await rep.report("tool_call", { tool: "bash" });
+  assert.equal("Authorization" in seen[0], false);
+});
+
+test("createReporter: failure lines handed to the logger never carry the plaintext token", async () => {
+  const logs = [];
+  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const rep = createReporter(cfg, {
+    fetch: async () => {
+      throw new Error(`connect failed with header Authorization: Bearer ${TOK} in diagnostic`);
+    },
+    logger: (m) => logs.push(m),
+  });
+  await rep.report("tool_call", { tool: "bash" });
+  const all = logs.join("\n");
+  assert.ok(!all.includes(TOK), `token leaked into a log line: ${all}`);
+  assert.match(all, /\[redacted\]/);
+});
+
+test("createReporter: 401 without a token hints at SOU_TOKEN", async () => {
+  const logs = [];
+  const rep = createReporter(loadConfig({}), {
+    fetch: async () => ({ ok: false, status: 401 }),
+    logger: (m) => logs.push(m),
+  });
+  await rep.report("tool_call", { tool: "bash" });
+  assert.match(logs.join("\n"), /401/);
+  assert.match(logs.join("\n"), /SOU_TOKEN/);
+});
+
+test("redactPayload: the configured ingest token is scrubbed from payload strings", () => {
+  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const out = redactPayload({ output: `echo ok; token is ${TOK}`, nested: { note: `${TOK} seen in output` } }, cfg);
+  const s = JSON.stringify(out);
+  assert.ok(!s.includes(TOK), "plaintext token must not survive the privacy pass");
+  assert.match(s, /\[redacted\]/g);
+});
+
+test("redactPayload: unrelated payloads are untouched when a token is set", () => {
+  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const out = redactPayload({ command: "ls", status: "ok" }, cfg);
+  assert.deepEqual(out, { command: "ls", status: "ok" });
+});
+
+// ---------------------------------------------------------------------------
 // package identity
 // ---------------------------------------------------------------------------
 

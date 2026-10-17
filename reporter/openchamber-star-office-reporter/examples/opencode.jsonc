@@ -18,6 +18,7 @@
   // {
   //   "dashboardUrl": "http://192.168.1.119:19000",
   //   "agent": "openchamber",
+  //   "token": "<one-time ingest token from backend/tokens.py — keep it out of git>",
   //   "timeoutMs": 5000,
   //   "enabled": true
   // }

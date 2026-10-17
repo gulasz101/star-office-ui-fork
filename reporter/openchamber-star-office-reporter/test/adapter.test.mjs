@@ -5,6 +5,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import { createPlugin, loadConfig } from "../openchamber-star-office-reporter.js";
 
@@ -183,4 +186,52 @@ test("namespaced tools classify correctly through the adapter", async () => {
   await ctx._hooks["execute.after"][0]({ tool: "acme_bash", status: "completed", callID: "n1", result: { output: "/tmp" } });
   assert.ok(h.types().includes("command_run"));
   await cleanup();
+});
+
+// ---------------------------------------------------------------------------
+// SOU-223 — token wiring through the real plugin path (AC2, AC3)
+// ---------------------------------------------------------------------------
+
+const TOK223 = "soutok-Adapter4TestToken-ABCDEFGHIJ0123456789";
+
+test("plugin: SOU_TOKEN reaches every POST the adapter fires", async () => {
+  const seen = [];
+  const plugin = createPlugin({
+    config: loadConfig({ SOU_DASHBOARD_URL: "http://capture.test:19000", SOU_TOKEN: TOK223 }),
+    fetch: async (url, init) => {
+      seen.push(init.headers);
+      return { ok: true, status: 201 };
+    },
+    logger: () => {},
+  });
+  const ctx = mockCtx();
+  const cleanup = await plugin.setup(ctx);
+  ctx._hooks["execute.after"][0]({ tool: "bash", callID: "t1", status: "completed", sessionID: "s1", input: { command: "ls" }, result: { output: "ok" } });
+  await cleanup();
+  assert.ok(seen.length >= 2, "session_start and later events all POST");
+  for (const headers of seen) assert.equal(headers.Authorization, `Bearer ${TOK223}`);
+});
+
+test("plugin: the SOU_DEBUG log file never carries the plaintext token", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "sou223-"));
+  const logFile = path.join(dir, "reporter.log");
+  const plugin = createPlugin({
+    config: loadConfig({
+      SOU_DASHBOARD_URL: "http://capture.test:19000",
+      SOU_TOKEN: TOK223,
+      SOU_DEBUG: "1",
+      SOU_REPORTER_LOG: logFile,
+    }),
+    fetch: async () => {
+      throw new Error(`connect failed with header Authorization: Bearer ${TOK223} in diagnostic`);
+    },
+    // no inject.logger on purpose: exercise the real sink (console + app.log mirror + debug file)
+  });
+  const cleanup = await plugin.setup(mockCtx());
+  await cleanup();
+  const text = readFileSync(logFile, "utf8");
+  rmSync(dir, { recursive: true, force: true });
+  assert.ok(text.length > 0, "sink failures were logged");
+  assert.ok(!text.includes(TOK223), "plaintext token must not reach the debug file");
+  assert.match(text, /\[redacted\]/);
 });

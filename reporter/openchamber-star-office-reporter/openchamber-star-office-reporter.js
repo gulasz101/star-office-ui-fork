@@ -23,13 +23,18 @@
 //   SOU_AGENT_NAME         default openchamber (use opencode behind OpenChamber)
 //   SOU_REPORTER_ENABLED   0/false/no/off disables every POST
 //   SOU_TIMEOUT_MS         default 5000, clamped to [200, 30000]
+//   SOU_TOKEN              ingest token -> Authorization: Bearer (SOU-223,
+//                          config key `token`; required once the dashboard
+//                          runs with SOU_INGEST_TOKENS, P13-B)
 //   SOU_REPORTER_CONFIG    path to a JSON file; otherwise standard locations
 //   (see README.md).
 //
 // Privacy (AC5): secret-shaped values and secret-named keys are redacted,
 // long strings truncated, and the whole payload kept under the dashboard's
 // 65536-byte cap. Non-blocking (AC2): hooks never await the network; send
-// failures are one stderr line and a counter.
+// failures are one stderr line and a counter. SOU-223: with SOU_TOKEN set
+// every POST carries `Authorization: Bearer` (P13-B door), and the plaintext
+// token is scrubbed from log lines and payloads alike.
 
 import { readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -77,6 +82,7 @@ function normalizeLayer(obj) {
     layer.dashboardUrl = obj.dashboardUrl.trim().replace(/\/+$/, "");
   }
   if (typeof obj.agent === "string" && obj.agent.trim()) layer.agent = obj.agent.trim();
+  if (typeof obj.token === "string" && obj.token.trim()) layer.token = obj.token.trim();
   if (obj.enabled !== undefined) {
     layer.enabled = typeof obj.enabled === "boolean" ? obj.enabled : !OFF_WORDS.has(String(obj.enabled).trim().toLowerCase());
   }
@@ -113,6 +119,7 @@ export function loadConfig(env = process.env, opts = {}) {
   const envLayer = normalizeLayer({
     dashboardUrl: env.SOU_DASHBOARD_URL,
     agent: env.SOU_AGENT_NAME,
+    token: env.SOU_TOKEN,
     timeoutMs: env.SOU_TIMEOUT_MS,
     enabled: env.SOU_REPORTER_ENABLED === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_REPORTER_ENABLED).trim().toLowerCase()),
     debug: env.SOU_DEBUG === undefined ? undefined : !OFF_WORDS.has(String(env.SOU_DEBUG).trim().toLowerCase()),
@@ -126,6 +133,7 @@ export function loadConfig(env = process.env, opts = {}) {
     dashboardUrl,
     eventsUrl: `${dashboardUrl}/events`,
     agent: merged.agent || DEFAULTS.agent,
+    token: merged.token || "",
     enabled: merged.enabled !== false,
     debug: merged.debug === true,
     debugLogFile: env.SOU_REPORTER_LOG || path.join(stateHome, "sou-reporter", "reporter.log"),
@@ -207,7 +215,7 @@ export function redactPayload(payload, config = loadConfig(process.env)) {
   if (Buffer.byteLength(JSON.stringify(out), "utf8") > cap) {
     out = { truncated: true, note: "payload exceeded reporter size cap" };
   }
-  return out;
+  return scrubTokenDeep(out, config.token);
 }
 
 function shrinkStrings(node, limit) {
@@ -222,6 +230,32 @@ function shrinkStrings(node, limit) {
 }
 
 // --- classification -----------------------------------------------------------
+
+/** Token → "[redacted]" scrubber for log lines (SOU-223); identity when unset. */
+function makeTokenRedactor(token) {
+  const t = typeof token === "string" ? token.trim() : "";
+  if (!t) return (value) => String(value);
+  return (value) => String(value).split(t).join("[redacted]");
+}
+
+/**
+ * Remove every occurrence of the configured ingest token from a JSON-safe
+ * tree (SOU-223 ruling: an agent echoing $SOU_TOKEN in command output must
+ * not land it in the feed). Tokens are URL-safe base64, so they survive
+ * JSON.stringify unescaped and a substring replace cannot corrupt the JSON.
+ */
+function scrubTokenDeep(value, token) {
+  const t = typeof token === "string" ? token.trim() : "";
+  if (!t) return value;
+  try {
+    const s = JSON.stringify(value);
+    return s.includes(t) ? JSON.parse(s.split(t).join("[redacted]")) : value;
+  } catch {
+    return value;
+  }
+}
+
+// --- classification (tool names) ----------------------------------------------
 
 const FILE_EDIT_TOOL = /^(?:[\w.-]+_)?(write|edit|patch|apply_patch|multi[_-]?edit|create[_-]?file|str[_-]?replace|search[_-]?replace|replace[_-]?in[_-]?file)$/i;
 const COMMAND_TOOL = /^(?:[\w.-]+_)?(bash|shell|terminal|exec|execute|run[_-]?command|command|cmd)$/i;
@@ -264,6 +298,10 @@ export function buildEnvelope(config, eventType, payload, now = new Date()) {
 export function createReporter(config, deps = {}) {
   const doFetch = deps.fetch ?? globalThis.fetch;
   const logger = deps.logger ?? ((msg) => { try { console.error(`[sou-reporter] ${msg}`); } catch { /* ignore */ } });
+  // SOU-223: no log line may carry the plaintext ingest token, wherever it
+  // comes from (fetch diagnostics, future lines). Redact at the one funnel.
+  const redactToken = makeTokenRedactor(config.token);
+  const log = (msg) => logger(redactToken(msg));
   const stats = { sent: 0, failed: 0, dropped: 0 };
   const enabled = config.enabled !== false;
   const inflight = new Set();
@@ -271,9 +309,11 @@ export function createReporter(config, deps = {}) {
   async function send(envelope) {
     try {
       if (typeof doFetch !== "function") throw new Error("no fetch implementation");
+      const headers = { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.1.0 (${config.agent})` };
+      if (config.token) headers.Authorization = `Bearer ${config.token}`; // SOU-223 (P13-F)
       const res = await doFetch(config.eventsUrl, {
         method: "POST",
-        headers: { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.0 (${config.agent})` },
+        headers,
         body: JSON.stringify(envelope),
         signal: AbortSignal.timeout(config.timeoutMs),
       });
@@ -282,11 +322,15 @@ export function createReporter(config, deps = {}) {
         return true;
       }
       stats.failed += 1;
-      logger(`dashboard rejected ${envelope.event_type}: HTTP ${res ? res.status : "?"}`);
+      if (res && res.status === 401) {
+        log(`dashboard rejected ${envelope.event_type}: HTTP 401 ${config.token ? "(ingest token unknown to this dashboard)" : "(set SOU_TOKEN - this dashboard requires a Bearer ingest token)"}`);
+      } else {
+        log(`dashboard rejected ${envelope.event_type}: HTTP ${res ? res.status : "?"}`);
+      }
       return false;
     } catch (err) {
       stats.failed += 1;
-      logger(`dashboard unreachable, dropped ${envelope.event_type}: ${(err && err.message) || err}`);
+      log(`dashboard unreachable, dropped ${envelope.event_type}: ${(err && err.message) || err}`);
       return false;
     }
   }
@@ -298,7 +342,7 @@ export function createReporter(config, deps = {}) {
       envelope = buildEnvelope(config, eventType, payload ?? {});
     } catch (err) {
       stats.dropped += 1;
-      logger(`invalid event ${eventType}: ${err.message}`);
+      log(`invalid event ${eventType}: ${err.message}`);
       return Promise.resolve(false);
     }
     const p = send(envelope).finally(() => inflight.delete(p));
@@ -395,10 +439,11 @@ export function createPlugin(inject = {}) {
 
 async function setupInner(ctx, inject) {
   const config = inject.config ?? loadConfig();
+  const redactToken = makeTokenRedactor(config.token);
   const loggerSink =
     inject.logger ??
     ((msg, level = "warn") => {
-      const line = `[sou-reporter] ${msg}`;
+      const line = redactToken(`[sou-reporter] ${msg}`);
       try {
         console.error(line);
       } catch {

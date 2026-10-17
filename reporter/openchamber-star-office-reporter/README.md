@@ -69,6 +69,7 @@ All configuration is optional; defaults point at a local dashboard and the
 |------------------|-------------------------|------------------|--------------------------------|---------------------------------------------|
 | Dashboard URL    | `SOU_DASHBOARD_URL`     | `dashboardUrl`   | `http://127.0.0.1:19000`       | Base URL of the Star Office UI backend      |
 | Agent name       | `SOU_AGENT_NAME`        | `agent`          | `openchamber`                  | Feed identity; register/name your agents to match your office UI setup (`opencode` also works if that is your registered name) |
+| Ingest token     | `SOU_TOKEN`             | `token`          | —                              | Sent as `Authorization: Bearer …` on every `POST /events`; required once the dashboard runs with `SOU_INGEST_TOKENS` (SOU-219). Mint with `python backend/tokens.py new <agent>` — the **same name as `SOU_AGENT_NAME`**, or the door answers 403. Never printed to logs, never in the event body. |
 | Enable/disable   | `SOU_REPORTER_ENABLED`  | `enabled`        | `true`                         | `0`/`false`/`no`/`off` to silence the reporter |
 | Timeout          | `SOU_TIMEOUT_MS`        | `timeoutMs`      | `5000`                         | Per-event HTTP timeout, clamped to 200–30000 |
 | Debug mirror     | `SOU_DEBUG`             | `debug`          | `false`                        | Also append warn lines to a log file        |
@@ -104,6 +105,11 @@ cat > ~/.config/opencode/star-office-reporter.json <<'EOF'
 EOF
 ```
 
+On a token-gated dashboard add `"token": "<your one-time ingest token>"` to that file (or
+`SOU_TOKEN=…` in the environment) — `chmod 600` it: the config file is where a plaintext
+secret lives on your machine, the way every other homelab reporter secret does. It never
+belongs in git, a ticket or a log.
+
 Take a demo / offline day silently (reporter stays installed, sends nothing):
 
 ```bash
@@ -130,8 +136,11 @@ applies. Because OpenChamber runs the engine inside a server process, the plugin
 - **Credentials never leave.** Payloads are scanned before sending: `sk-…`/`rk-…`/`ghp_…`/
   `github_pat_…`/AWS `AKIA…`/Slack `xox…`/JWTs/`Bearer …`, plus any value stored under a
   secret-looking key (`token`, `api_key`, `password`, `secret`, …) are replaced with
-  `[redacted]`. The reporter itself sends no authentication to the dashboard —
-  `POST /events` is the unauthenticated ingest endpoint of the office protocol.
+  `[redacted]`. Your ingest token is scrubbed even when it appears verbatim in command
+  output. When `SOU_TOKEN`/`token` is configured (SOU-223), the reporter sends exactly one
+  authenticated header — `Authorization: Bearer <token>` on `POST /events`, the door
+  contract from SOU-219 — and the plaintext token is redacted from every reporter log line
+  and debug-file entry. It is never part of the event body or URL.
 - **Long output is truncated.** Every string field is capped (4 KB) and the whole
   payload stays under the dashboard's 64 KB limit (the schema validator would drop it
   otherwise); overlong values keep a visible `…[truncated N chars]` tail.
@@ -153,6 +162,12 @@ curl -s "http://127.0.0.1:19000/events/recent?agent=openchamber&limit=20" | json
 You should see `session_start`, `tool_call`, … rows. If the feed is empty:
 
 - `dashboardUrl` typo / wrong port → the debug log says `dashboard unreachable, dropped <type>`
+- `HTTP 401` in the debug log → the dashboard was started with `SOU_INGEST_TOKENS`
+  (token-gated door, SOU-219) but no `SOU_TOKEN` is configured; set the token, or run the
+  reporter against an untokened dev instance.
+- `HTTP 403` → your `SOU_TOKEN` was minted for a different agent than `SOU_AGENT_NAME`
+  claims; a token only ever writes its own agent's room. Re-mint with
+  `python backend/tokens.py new <agent>` using the reporter's exact agent name.
 - agent name not registered in the office → `POST /events` accepts it (agents
   auto-register), but double-check `GET /events/recent?agent=<name>` uses the same
   spelling (case-insensitive).
@@ -164,7 +179,7 @@ You should see `session_start`, `tool_call`, … rows. If the feed is empty:
 Plain Node ≥ 18, no dependencies to install:
 
 ```bash
-node --test test/reporter.test.mjs test/adapter.test.mjs   # unit suites (24)
+node --test test/reporter.test.mjs test/adapter.test.mjs   # unit suites (37)
 E2E=1 node --test test/e2e-live-run.mjs                    # real headless opencode run
                                                           # vs a local capture server
 E2E=1 E2E_LIVE=1 node --test test/e2e-live-run.mjs         # against the live dashboard

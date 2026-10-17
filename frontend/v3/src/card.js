@@ -3,6 +3,7 @@
 // textContent, never raw payloads or innerHTML.
 import { mapEvent } from '../activity.js';
 import { ROOM_NAMES } from './rooms.js';
+import { agentEvents } from './api.js';
 
 const REFRESH_MS = 3000;
 
@@ -64,8 +65,8 @@ export class RoomCard {
     const o = this.office;
     if (!o) return;
     try {
-      const res = await fetch(`/events/recent?agent=${encodeURIComponent(o.agentId)}&limit=8`, { cache: 'no-store' });
-      if (res.ok && this.office === o) this.events = await res.json();
+      const events = await agentEvents(o.agentId, 8);
+      if (this.office === o) this.events = events;
     } catch {
       // keep the last list; the card still shows the live activity
     }

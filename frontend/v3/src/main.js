@@ -5,6 +5,7 @@ import { CameraRig } from './camera.js';
 import { snowfall, CorridorCat } from './ambience.js';
 import { RoomCard } from './card.js';
 import { Roster } from './roster.js';
+import { detectFace, agentsUrl, feedUrl, normalise } from './api.js';
 import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 
@@ -162,22 +163,23 @@ class OfficeScene extends Phaser.Scene {
         // fall through to plain /events/recent discovery, as before.
         if (first) {
           try {
-            const seed = await fetch('/events/agents', { cache: 'no-store' });
+            await detectFace();
+            const seed = await fetch(agentsUrl(), { cache: 'no-store' });
             if (seed.ok) {
               const agents = await seed.json();
               if (Array.isArray(agents)) {
-                this.apply(this.feed.ingest(agents.map((r) => r && r.last_event), { initial: true }));
+                this.apply(this.feed.ingest(agents.map((r) => r && normalise(r.last_event)), { initial: true }));
               }
             }
           } catch { /* no /events/agents yet; the recent poll below still discovers everyone */ }
         }
         const q = new URLSearchParams({ limit: '200' });
         if (this.feed.cursor) q.set('since', this.feed.cursor);
-        const res = await fetch(`/events/recent?${q}`, { cache: 'no-store' });
+        const res = await fetch(feedUrl(q), { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         // ingest is idempotent per event id, so rows the seed already applied
         // here change nothing; initial stays true until this poll succeeds
-        this.apply(this.feed.ingest(await res.json(), { initial: first }));
+        this.apply(this.feed.ingest((await res.json()).map(normalise), { initial: first }));
         this.applyBackground(this.feed.takeBackground());
         first = false;
         const n = this.building.offices.size;

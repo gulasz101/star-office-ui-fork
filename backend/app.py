@@ -1775,6 +1775,25 @@ def events_agents_endpoint():
     return jsonify(entries)
 
 
+# The public face hides a little more than the ingest projection (SOU-221, docs §4): no
+# project names (``cwd``), task ids only as a per-process salted digest (enough for the
+# renderer to pair a background start with its end, useless to anyone else), and none of
+# the v1 roster rows (``Star``), which the renderer ignores anyway.
+PUBLIC_HIDDEN_KEYS = frozenset({"cwd"})
+PUBLIC_HIDDEN_AGENTS = frozenset({"Star"})
+_PUBLIC_TASK_SALT = __import__("secrets").token_bytes(16)
+
+
+def _public_payload(event_type, payload):
+    out = sanitize.sanitize_payload(event_type, payload)
+    for key in PUBLIC_HIDDEN_KEYS:
+        out.pop(key, None)
+    task = out.get("task_id")
+    if isinstance(task, str) and task:
+        out["task_id"] = __import__("hashlib").sha256(_PUBLIC_TASK_SALT + task.encode()).hexdigest()[:12]
+    return out
+
+
 def public_feed_item(row, name):
     """One Event row in the **public projection shape** (SOU-220,
     docs/public-lodge.md §4): the SOU-45 feed item minus its ``id``, with
@@ -1793,7 +1812,7 @@ def public_feed_item(row, name):
     return {
         "agent": name,
         "event_type": row.event_type,
-        "payload": sanitize.sanitize_payload(row.event_type, row.payload),
+        "payload": _public_payload(row.event_type, row.payload),
         "created_at": _iso_instant(row.created_at),
     }
 
@@ -1823,7 +1842,8 @@ def public_feed_endpoint():
     with db.session_scope() as session:
         rows = db.list_events(session, limit=limit, since=since)
         names = {a.id: a.name for a in db.list_agents(session)}
-        feed = [public_feed_item(row, names.get(row.agent_id)) for row in rows]
+        feed = [public_feed_item(row, names.get(row.agent_id)) for row in rows
+                if names.get(row.agent_id) not in PUBLIC_HIDDEN_AGENTS]
     return jsonify(feed)
 
 
@@ -1854,7 +1874,7 @@ def public_agents_endpoint():
             session, since
         ):
             name = names.get(agent_id)
-            if name is None:  # pragma: no cover - FK cascade makes this unreachable
+            if name is None or name in PUBLIC_HIDDEN_AGENTS:
                 continue
             entries.append({
                 "agent": name,

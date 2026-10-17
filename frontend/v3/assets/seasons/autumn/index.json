@@ -1,0 +1,159 @@
+{
+  "pack": "season-autumn-v1",
+  "set": "autumn",
+  "season": "autumn",
+  "issue": "SOU-274",
+  "generated_from": "assets/generated/v3/seasons/autumn",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "camera": "top-down 3/4, light from the top-left (same projection vocabulary as office-01 and the lodge)",
+  "palette": "assets/generated/v3/seasons/autumn/palette.json",
+  "palette_family": "lodge",
+  "tileset": {
+    "path": "assets/seasons/autumn/tiles.png",
+    "tile_px": 32,
+    "columns": 4,
+    "firstgid": 1,
+    "order": [
+      "ground_a",
+      "ground_b",
+      "path",
+      "edge"
+    ],
+    "order_authority": "the SOU-274 ticket table; seasons.js (SOU-273) consumes the same four keys in the same order",
+    "slot_class": {
+      "ground_a": "material",
+      "ground_b": "material",
+      "path": "material",
+      "edge": "decal"
+    },
+    "slot_seam_axes": {
+      "ground_a": "xy",
+      "ground_b": "xy",
+      "path": "xy",
+      "edge": "x"
+    }
+  },
+  "prop_lift_for_placeholders_js": {
+    "tree_a": 64,
+    "tree_b": 96,
+    "tree_small": 32
+  },
+  "props": [
+    {
+      "key": "tree_a",
+      "served_path": "assets/seasons/autumn/props/tree_a.png",
+      "texture_px_declared": [
+        64,
+        96
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 64,
+      "texture_px_actual": [
+        64,
+        96
+      ]
+    },
+    {
+      "key": "tree_b",
+      "served_path": "assets/seasons/autumn/props/tree_b.png",
+      "texture_px_declared": [
+        64,
+        128
+      ],
+      "footprint_px": [
+        64,
+        32
+      ],
+      "footprint_tiles": [
+        2.0,
+        1.0
+      ],
+      "lift_px": 96,
+      "texture_px_actual": [
+        64,
+        128
+      ]
+    },
+    {
+      "key": "tree_small",
+      "served_path": "assets/seasons/autumn/props/tree_small.png",
+      "texture_px_declared": [
+        32,
+        64
+      ],
+      "footprint_px": [
+        32,
+        32
+      ],
+      "footprint_tiles": [
+        1.0,
+        1.0
+      ],
+      "lift_px": 32,
+      "texture_px_actual": [
+        32,
+        64
+      ]
+    }
+  ],
+  "files": [
+    {
+      "served_path": "assets/seasons/autumn/tiles.png",
+      "source": "assets/generated/v3/seasons/autumn/tiles.png",
+      "sha256": "819f180341a4fcf0c0b0894d9561207c4ade3aba7bb840660759a74f4c3ecd67",
+      "bytes": 811
+    },
+    {
+      "served_path": "assets/seasons/autumn/tiles.png.manifest.json",
+      "source": "assets/generated/v3/seasons/autumn/tiles.png.manifest.json",
+      "sha256": "71066a4d37c61c376db4af7ad3ec6def65ec3d92e8b1a6c338da4f3ae46996d7",
+      "bytes": 2688
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_a.png",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_a.png",
+      "sha256": "1c5fccefe62837590d07406992105653d07794d05001d57749cce4f0099c2233",
+      "bytes": 2183
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_a.png.manifest.json",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_a.png.manifest.json",
+      "sha256": "c3d1f4403e6427aa5bc330d3c7d952eeefd587634bcf4d2970ff1bb7328123b5",
+      "bytes": 5889
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_b.png",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_b.png",
+      "sha256": "97b85ffed119ef4fb591890a404081b98f0e45aff506eeb0614af177dd7cb426",
+      "bytes": 3063
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_b.png.manifest.json",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_b.png.manifest.json",
+      "sha256": "8e93ddf78d86e22e4dbebf19efcade6a784a541383848ec7972609443c69d047",
+      "bytes": 5982
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_small.png",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_small.png",
+      "sha256": "ac8bd773d012b42cc1029a0a5af33eb89b27748daf2fabd7e810ed7022d2dd9c",
+      "bytes": 1228
+    },
+    {
+      "served_path": "assets/seasons/autumn/props/tree_small.png.manifest.json",
+      "source": "assets/generated/v3/seasons/autumn/props/tree_small.png.manifest.json",
+      "sha256": "5eda1bf0ff1de6182f76a914007ee9a144679214fd1a6770751200ba713a68ac",
+      "bytes": 5693
+    }
+  ],
+  "created_at": "2026-10-17T17:32:14.844024+00:00",
+  "note": "the season lookup itself lives in frontend/v3/src/seasons.js (SOU-273); this index.json is the published record of what the season's art set contains."
+}

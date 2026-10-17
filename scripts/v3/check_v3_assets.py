@@ -67,6 +67,11 @@ from gen_office01_art import (  # noqa: E402  (same directory)
 EXIT_FAIL = 1
 EXIT_ERROR = 2
 
+# The v2.1.0 seasonal OUTDOOR sets (SOU-274 autumn, SOU-275 spring, SOU-276 summer).  One entry
+# here is all a new season needs to get its own gate branch: `main_season` reads the set's own
+# tables from `gen_season_art` and asserts them against the hand-typed TICKET_E table.
+SEASON_SETS = ("autumn",)
+
 
 class Report:
     def __init__(self) -> None:
@@ -449,7 +454,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--set", default="office-01",
                     choices=("office-01", "lodge", "serverroom", "factory",
-                             "mystery", "tokenden", "career", "writer", "garage", "polish"),
+                             "mystery", "tokenden", "career", "writer", "garage", "polish")
+                    + SEASON_SETS,
                     help="which v3 art set to check (default: office-01)")
     ap.add_argument("--root", default=None,
                     help="art set root (default: the set's own generated directory)")
@@ -462,6 +468,8 @@ def main() -> int:
 
     if args.set == "lodge":
         return main_lodge(args)
+    if args.set in SEASON_SETS:
+        return main_season(args, args.set)
     if args.set == "garage":
         return main_garage(args)
     if args.set == "polish":
@@ -2381,6 +2389,499 @@ def main_polish(args) -> int:
           "each inside one contiguous page band, with no dark pixel outside a line run; a manifest "
           "next to every file recording the replaced file's sha256 and the comparison metrics; the "
           "strip in declared slot order; and a before/after contact sheet per home set.")
+    return 0
+
+
+# ---------------------------------------------------------------------------------------
+# SOU-274: the v2.1.0 SEASONAL OUTDOOR sets (autumn first; SOU-275/276 add spring/summer).
+#
+# The oracle is the TICKET's table, typed out again below (TICKET_E), never the generator's own
+# declarations - a gate that only compares an asset to the module that produced it agrees with
+# itself by construction (the SOU-199 lesson).  Three claims in the SOU-274 ticket are not
+# covered by any earlier branch and are asserted here:
+#
+#   * the palette FAMILY.  The ticket says "same palette family and pixel scale as the Lodge
+#     set. Start from the Lodge palette and add autumn oranges and ochres", so the declared
+#     palette must be a SUPERSET of the lodge's - asserted as a set relation against
+#     `gen_lodge_art.PALETTE`, imported rather than restated.
+#   * the CROSS-tile seam.  "ground_a, ground_b and path must tile seamlessly with themselves
+#     and WITH EACH OTHER" - and self-periodicity does NOT imply mutual tileability, so every
+#     ordered pair is measured across an explicit boundary.  The one pair that is a content
+#     feature rather than a seam (the trodden path's own edge against the ground) is reported
+#     with its number and excluded from the assertion, and the classification comes from
+#     `gen_season_art.cross_seam_axes` so the generator and the gate cannot disagree.
+#   * the FORM of the three trees.  "deciduous trees with orange, red and ochre crowns and dark
+#     trunks ... the trunk base at the bottom centre" - a numeric-only AC cannot see a missing
+#     crown, so: the crown must carry at least two of the three declared leaf families, the
+#     trunk band must be measurably darker than the crown, the bottom row must carry content at
+#     the canvas centre column, and the bottom row must be a TRUNK (a narrow run) rather than a
+#     crown sitting on the ground.
+# ---------------------------------------------------------------------------------------
+TICKET_E = {
+    "tile_px": 32,
+    "strip": (128, 32),
+    "slots": (("ground_a", "xy"), ("ground_b", "xy"), ("path", "xy"), ("edge", "x")),
+    "props": {
+        "tree_a": {"texture_px": (64, 96), "footprint_px": (64, 32), "lift_px": 64},
+        "tree_b": {"texture_px": (64, 128), "footprint_px": (64, 32), "lift_px": 96},
+        "tree_small": {"texture_px": (32, 64), "footprint_px": (32, 32), "lift_px": 32},
+    },
+}
+
+SEASON_LEAF_FAMILIES = {
+    "orange": ("leaf_orange", "leaf_orange_deep", "leaf_orange_light", "leaf_russet"),
+    "red": ("leaf_scarlet", "leaf_red", "leaf_red_deep", "leaf_red_light"),
+    "ochre": ("leaf_ochre", "leaf_ochre_deep", "leaf_ochre_light", "leaf_gold"),
+}
+SEASON_TRUNK_FAMILY = ("wood_deep", "wood_dark", "wood", "plank_dark", "earth")
+# The 1px outline the STYLE string MANDATES is not a material, so it is excluded from the
+# "what is this band made of" denominator.  Measured reason (first autumn pass): counting it as
+# a non-brown pixel made tree_b's trunk band read 49% "declared dark-brown" and tree_small 31%
+# when the actual browns were 46% and 27% of the band and 84% of the non-outline pixels - a
+# false failure produced by the checker, not by the art (the same class as a check that
+# measures a quantity the AC never asked about).
+SEASON_OUTLINE_FAMILY = ("outline", "ink", "metal_dark")
+# "Dark trunks" (the ticket) as a measurement: a palette colour this dark is a trunk/shadow
+# colour.  The measured share is printed, and the threshold sits far above what correct art
+# produces (all three trees measured ~100%) so it catches a LIGHT trunk without risking a
+# correct one.
+SEASON_DARK_LUMINANCE = 90.0
+SEASON_DARK_MIN_SHARE = 0.9
+# The crown families are measured by HUE, not by palette name: what the ticket asks for
+# ("orange, red and ochre crowns") is a colour the eye can see, and naming a family after the
+# colours I happened to add would let a crown of the lodge's amber ramp pass as "ochre" while
+# the ochre the ticket asked for is absent.
+#
+# The boundaries are drawn where the warm autumn ramp actually divides, and they were CORRECTED
+# once on the measurement rather than to make a red gate green.  First attempt put ochre at
+# 42-65 degrees, which is above goldenrod (#DAA520, 43 deg) and far above the common ochre
+# #CC7722 (32 deg) - so it called the art's golden-amber leaves "orange" and reported ochre:0%
+# for every tree.  Reading the actual crown pixels: the ramp has three separable regions -
+# 6-16 deg (scarlet/crimson), 26-31 deg (pumpkin orange), 35-40 deg (golden amber: amber
+# #e8a33d 35.8, leaf_orange_light #f7b452 35.6, brass #b98f3c 39.8) - which is exactly red,
+# orange and ochre.  The boundary is now 34 deg.
+#
+# NEGATIVE CONTROL, and this is why the correction is not goalpost-moving.  The first FLUX pass
+# (seeds 27428/27435/27442, kept on disk as *.rejected-r1.raw.png) measured red 65%/27%/60%,
+# orange 27%/27%/23% and ochre 4.9%/0.9%/9.3% per tree under the CORRECTED bands - so two of its
+# three crowns still fail the per-tree all-three assertion below, which is exactly the defect
+# that caused the re-roll.  (The first version of this check asserted the three families across
+# the SET rather than per tree, and that weaker form would have PASSED the rejected pass on the
+# strength of the sapling alone; it was tightened to per-tree on that measurement.)  A boundary
+# that only failed to fire on the bad pass would have been a check wired to pass.
+SEASON_CROWN_HUES = (("red", 0.0, 20.0), ("orange", 20.0, 34.0), ("ochre", 34.0, 65.0))
+SEASON_CROWN_MIN_SHARE = 0.05
+SEASON_SEAM_LIMIT = 1.05
+# The bottom row of a tree is its trunk.  A run wider than this share of the canvas is a crown
+# touching the ground, not a trunk: the ticket says the trees have "dark trunks ... the trunk
+# base at the bottom centre", and a bush with no visible trunk is the failure this catches.
+SEASON_TRUNK_MAX_ROW_SHARE = 0.5
+
+
+def _row_runs(px, y, w) -> list[int]:
+    """Lengths of the contiguous opaque runs in one row."""
+    runs, run = [], 0
+    for x in range(w):
+        if px[x, y][3]:
+            run += 1
+        elif run:
+            runs.append(run)
+            run = 0
+    if run:
+        runs.append(run)
+    return runs
+
+
+def _mean(values) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def _lum(p) -> float:
+    return 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]
+
+
+def _hue(p) -> float:
+    """HSV hue in degrees - what the eye calls the colour, independent of my palette names."""
+    import colorsys
+    r, g, b = (v / 255.0 for v in p[:3])
+    return colorsys.rgb_to_hsv(r, g, b)[0] * 360.0
+
+
+def main_season(args, season_name: str) -> int:
+    import gen_lodge_art as L
+    import gen_season_art as S
+
+    root = os.path.abspath(args.root or str(S.out_dir(season_name)))
+    served = str(S.served_dir(season_name))
+    report = Report()
+    pal_rgb = S.palette_rgb(season_name)
+    pal_hex = S.palette_hex(season_name)
+    by_name = dict(S.palette_of(season_name))
+
+    if not os.path.isdir(root):
+        print(f"no art set at {root} - run the assemble pass first", file=sys.stderr)
+        return EXIT_ERROR
+
+    print("=" * 96)
+    print(f"{season_name} v3 outdoor art set check (SOU-274)   root={root}")
+    print(f"palette: {len(pal_hex)} declared colours ({len(L.PALETTE)} lodge family + "
+          f"{len(S.SEASONS[season_name]['extra'])} {season_name})")
+    print("=" * 96)
+
+    # ---- the generator's declaration vs the TICKET table ------------------------------
+    declared_order = [n for n, _c, _s, _spec in S.SEASONS[season_name]["tiles"]]
+    ticket_order = [n for n, _ax in TICKET_E["slots"]]
+    if declared_order != ticket_order:
+        report.fail(f"the generator's slot order {declared_order} != the SOU-274 ticket table "
+                    f"{ticket_order}")
+    else:
+        report.ok(f"the generator declares the ticket's four slots in order: "
+                  f"{', '.join(declared_order)}")
+    declared_seam = {n: s for n, _c, s, _spec in S.SEASONS[season_name]["tiles"]}
+    seam_bad = [f"{n}: generator says {declared_seam.get(n)!r}, ticket says {ax!r}"
+                for n, ax in TICKET_E["slots"] if declared_seam.get(n) != ax]
+    if seam_bad:
+        report.fail("seam-axis declaration does not match the ticket: " + "; ".join(seam_bad))
+    else:
+        report.ok("the generator declares the ticket's seam axes: "
+                  + ", ".join(f"{n}={ax}" for n, ax in TICKET_E["slots"]))
+    gen_props = {a["id"]: a for a in S.SEASONS[season_name]["props"]}
+    if set(gen_props) != set(TICKET_E["props"]):
+        report.fail(f"the generator carries {sorted(gen_props)} != the ticket's "
+                    f"{sorted(TICKET_E['props'])}")
+    else:
+        report.ok(f"the generator carries the ticket's three trees: "
+                  f"{', '.join(sorted(gen_props))}")
+    for aid, want in TICKET_E["props"].items():
+        got = gen_props.get(aid)
+        if got is None:
+            continue
+        if tuple(got["texture_px"]) != want["texture_px"]:
+            report.fail(f"{aid}: generator texture_px {got['texture_px']} != ticket "
+                        f"{list(want['texture_px'])}")
+        if tuple(got["footprint_px"]) != want["footprint_px"]:
+            report.fail(f"{aid}: generator footprint_px {got['footprint_px']} != ticket "
+                        f"{list(want['footprint_px'])}")
+        if got["lift_px"] != want["lift_px"]:
+            report.fail(f"{aid}: generator lift_px {got['lift_px']} != ticket "
+                        f"{want['lift_px']}")
+    if not [f for f in report.failures if "generator" in f]:
+        report.ok("every tree's declared size, footprint and lift matches the ticket table")
+
+    # ---- the palette FAMILY (the "start from the Lodge palette" clause) ----------------
+    pal_path = os.path.join(root, "palette.json")
+    if not os.path.exists(pal_path):
+        report.fail("palette.json missing - the palette is not declared anywhere")
+    else:
+        declared = json.load(open(pal_path))
+        hexes = declared.get("hex") or []
+        if hexes != pal_hex:
+            report.fail(f"palette.json declares {len(hexes)} colours but the generator declares "
+                        f"{len(pal_hex)}")
+        else:
+            report.ok(f"palette.json declares {len(hexes)} colours, identical to the generator")
+        lodge_hex = [h for _n, h in L.PALETTE]
+        missing = [h for h in lodge_hex if h not in hexes]
+        if missing:
+            report.fail(f"the declared palette is not the lodge family plus an extension: "
+                        f"{len(missing)} of the lodge's {len(lodge_hex)} colours are absent, "
+                        f"e.g. {missing[:3]} - SOU-274 requires starting from the Lodge palette")
+        else:
+            report.ok(f"the declared palette is a SUPERSET of the lodge's {len(lodge_hex)} "
+                      f"colours: same family, plus {len(hexes) - len(lodge_hex)} "
+                      f"{season_name} colours")
+
+    # ---- tiles -----------------------------------------------------------------------
+    print("\nTILES (32x32, full-bleed; seam asserted only on the axes the slot DECLARES)")
+    print(f"{'slot':>4s} {'name':15s} {'axes':>4s} {'colours':>7s} {'transp':>7s} "
+          f"{'wrap/max x':>10s} {'y':>6s}  result")
+    for slot, (name, axes) in enumerate(TICKET_E["slots"]):
+        path = os.path.join(root, "tiles", f"{name}.png")
+        if not os.path.exists(path):
+            report.fail(f"tiles/{name}.png missing (slot {slot})")
+            continue
+        img = Image.open(path)
+        colours, off = palette_check(img, allowed=pal_rgb)
+        alpha = alpha_profile(img)
+        wrap = wrap_vs_max(img)
+        problems = []
+        if img.size != (TICKET_E["tile_px"], TICKET_E["tile_px"]):
+            problems.append(f"size {img.size} != ({TICKET_E['tile_px']}, {TICKET_E['tile_px']})")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if alpha["transparent"]:
+            problems.append(f"{alpha['transparent']} transparent pixels (a tile is full-bleed)")
+        if "x" in axes and wrap["wrap_vs_max_x"] > SEASON_SEAM_LIMIT:
+            problems.append(f"x seam: wrap step is {wrap['wrap_vs_max_x']}x the largest interior "
+                            f"step (limit {SEASON_SEAM_LIMIT})")
+        if "y" in axes and wrap["wrap_vs_max_y"] > SEASON_SEAM_LIMIT:
+            problems.append(f"y seam: wrap step is {wrap['wrap_vs_max_y']}x the largest interior "
+                            f"step (limit {SEASON_SEAM_LIMIT})")
+        print(f"{slot:>4d} {name:15s} {axes:>4s} {len(colours):>7d} {alpha['transparent']:>7d} "
+              f"{wrap['wrap_vs_max_x']:>10} {wrap['wrap_vs_max_y']:>6}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"tiles/{name}: " + "; ".join(problems))
+        else:
+            report.ok(f"tiles/{name} (slot {slot}): 32x32, {len(colours)} palette colours, "
+                      f"opaque, wrap/max x={wrap['wrap_vs_max_x']} y={wrap['wrap_vs_max_y']} "
+                      f"checked={axes}")
+
+    # ---- the strip: the file the renderer actually preloads ---------------------------
+    print(f"\nTILESET STRIP ({TICKET_E['strip'][0]}x{TICKET_E['strip'][1]}, "
+          f"{len(ticket_order)} slots) - order and content vs the ticket table")
+    strip_path = os.path.join(root, "tiles.png")
+    if not os.path.exists(strip_path):
+        report.fail("tiles.png missing - this is the file main.js preloads")
+    else:
+        strip = Image.open(strip_path).convert("RGBA")
+        if strip.size != TICKET_E["strip"]:
+            report.fail(f"tiles.png is {strip.size}, expected {TICKET_E['strip']}")
+        else:
+            report.ok(f"tiles.png is {strip.size[0]}x{strip.size[1]} = {len(ticket_order)} "
+                      f"tiles of {TICKET_E['tile_px']}px")
+        colours, off = palette_check(strip, allowed=pal_rgb)
+        if off:
+            report.fail(f"tiles.png has {len(off)} off-palette colours e.g. {hexs(off[0])}")
+        else:
+            report.ok(f"tiles.png uses {len(colours)} palette colours only")
+        mismatched = []
+        for slot, name in enumerate(ticket_order):
+            tile_path = os.path.join(root, "tiles", f"{name}.png")
+            if not os.path.exists(tile_path):
+                continue
+            want = Image.open(tile_path).convert("RGBA")
+            got = strip.crop((slot * TICKET_E["tile_px"], 0,
+                              (slot + 1) * TICKET_E["tile_px"], TICKET_E["tile_px"]))
+            if got.tobytes() != want.tobytes():
+                mismatched.append(f"slot {slot} != {name}.png")
+        if mismatched:
+            report.fail("tiles.png slot order/content does not match the declared order: "
+                        + "; ".join(mismatched))
+        else:
+            report.ok(f"every slot holds exactly the tile the ticket's order names "
+                      f"({', '.join(ticket_order)})")
+
+    # ---- the cross-tile seam (the ticket's "with themselves AND WITH EACH OTHER") ------
+    print("\nCROSS-TILE SEAM (RE-MEASURED from the tiles on disk, not read from the record)")
+    cross_path = os.path.join(root, "cross_seam.json")
+    ground = [n for n, ax in TICKET_E["slots"] if ax == "xy"]
+    if not os.path.exists(cross_path):
+        report.fail("cross_seam.json missing - the cross-tile seam was never recorded, and "
+                    "self-periodicity does not imply mutual tileability")
+    else:
+        cross = json.load(open(cross_path))
+        for a in ground:
+            for b in ground:
+                key = f"{a}|{b}"
+                rec = cross.get(key)
+                if rec is None:
+                    report.fail(f"cross_seam.json has no entry for {key}")
+                    continue
+                pa = os.path.join(root, "tiles", f"{a}.png")
+                pb = os.path.join(root, "tiles", f"{b}.png")
+                if not (os.path.exists(pa) and os.path.exists(pb)):
+                    report.fail(f"cross seam {key}: a tile file is missing")
+                    continue
+                # MEASURE the join from the bytes.  An earlier version of this check read the
+                # ratios out of cross_seam.json, which meant a mutated tile passed: the record
+                # is a claim and the PNG is the artifact (SOU-142, "measure the artifact, never
+                # the manifest").  The RED battery caught it - the "ground_b recoloured so it no
+                # longer joins ground_a" mutation did not fire.
+                m = S.cross_vs_max(Image.open(pa), Image.open(pb))
+                axes = S.cross_seam_axes(a, b)
+                kind = S.cross_seam_kind(a, b)
+                problems = []
+                if rec.get("kind") != kind or rec.get("asserted_axes") != axes:
+                    problems.append(f"recorded kind/axes {rec.get('kind')!r}/"
+                                    f"{rec.get('asserted_axes')!r} != the module's {kind!r}/"
+                                    f"{axes!r}")
+                if rec.get("ratio_x") != m["ratio_x"] or rec.get("ratio_y") != m["ratio_y"]:
+                    problems.append(f"the record has drifted from the tiles: recorded "
+                                    f"x={rec.get('ratio_x')} y={rec.get('ratio_y')}, measured "
+                                    f"x={m['ratio_x']} y={m['ratio_y']}")
+                if "x" in axes and m["ratio_x"] > SEASON_SEAM_LIMIT:
+                    problems.append(f"x join {m['ratio_x']}x the worst interior step "
+                                    f"(limit {SEASON_SEAM_LIMIT})")
+                if "y" in axes and m["ratio_y"] > SEASON_SEAM_LIMIT:
+                    problems.append(f"y join {m['ratio_y']}x the worst interior step "
+                                    f"(limit {SEASON_SEAM_LIMIT})")
+                line = (f"{a:9s} | {b:9s} x={m['ratio_x']:>5} y={m['ratio_y']:>5}  "
+                        f"{kind:10s} asserted={axes}")
+                print(f"        {line}  {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+                if problems:
+                    report.fail(f"cross seam {key}: " + "; ".join(problems))
+                elif kind == "path-edge":
+                    report.ok(f"cross seam {key}: the path's own edge against the ground "
+                              f"(x={m['ratio_x']}x) - reported, not a grid; the vertical join IS "
+                              f"asserted and measures y={m['ratio_y']}x")
+                else:
+                    report.ok(f"cross seam {key}: {kind}, both axes seamless "
+                              f"(x={m['ratio_x']}x y={m['ratio_y']}x)")
+
+    # ---- props: size, alpha, palette, and the FORM the ticket describes ---------------
+    print("\nPROPS (exact declared size; crown hue families; dark trunk, base at the bottom centre)")
+    print(f"{'asset':12s} {'shipped':>9s} {'declared':>9s} {'crown hue shares':>34s} "
+          f"{'lum t/c':>8s} {'dark':>5s} {'brown':>6s} {'base run':>9s}  result")
+    fam_rgb = {fam: {S._hex_to_rgb(by_name[n]) for n in names}
+               for fam, names in SEASON_LEAF_FAMILIES.items()}
+    trunk_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_TRUNK_FAMILY}
+    outline_rgb = {S._hex_to_rgb(by_name[n]) for n in SEASON_OUTLINE_FAMILY}
+    crown_families_seen: set[str] = set()
+    for aid, want in TICKET_E["props"].items():
+        path = os.path.join(root, "props", f"{aid}.png")
+        if not os.path.exists(path):
+            report.fail(f"props/{aid}.png missing")
+            continue
+        img = Image.open(path)
+        w, h = img.size
+        want_px = want["texture_px"]
+        px = img.load()
+        colours, off = palette_check(img, allowed=pal_rgb)
+        alpha = alpha_profile(img)
+        resid = magenta_residue(img)
+        bottom = content_bottom_row(img)
+        problems = []
+        if (w, h) != want_px:
+            problems.append(f"size {w}x{h} != declared {want_px[0]}x{want_px[1]}")
+        if off:
+            problems.append(f"{len(off)} off-palette colours e.g. {hexs(off[0])}")
+        if not alpha["has_real_alpha"]:
+            problems.append("no real alpha (the background must be transparent)")
+        if alpha["partial"]:
+            problems.append(f"{alpha['partial']} partial-alpha pixels")
+        if resid["strong_magenta"] or resid["fringe"]:
+            problems.append(f"magenta residue {resid}")
+        if bottom != h - 1:
+            problems.append(f"content stops at row {bottom} of {h} - the footprint's bottom "
+                            f"edge is where the renderer anchors, so the tree would float")
+
+        crown = [px[x, y] for y in range(0, int(h * 0.6)) for x in range(w) if px[x, y][3]]
+        trunk = [px[x, y] for y in range(int(h * 0.75), h) for x in range(w) if px[x, y][3]]
+        hues = [_hue(p) for p in crown]
+        fam_hits = {name: sum(1 for hv in hues if lo <= hv < hi)
+                    for name, lo, hi in SEASON_CROWN_HUES}
+        fam_share = {k: v / max(len(crown), 1) for k, v in fam_hits.items()}
+        present = sorted(k for k, v in fam_share.items() if v >= SEASON_CROWN_MIN_SHARE)
+        crown_families_seen.update(present)
+        crown_txt = "/".join(f"{k}:{fam_share[k]:.0%}" for k, _lo, _hi in SEASON_CROWN_HUES)
+        if set(present) != {"red", "orange", "ochre"}:
+            problems.append(f"the crown carries only {present or 'no'} hue family at >= "
+                            f"{SEASON_CROWN_MIN_SHARE:.0%} ({crown_txt}) - the ticket says each "
+                            f"tree has an orange, red AND ochre crown")
+
+        crown_l = _mean([_lum(p) for p in crown])
+        trunk_l = _mean([_lum(p) for p in trunk])
+        lum_txt = f"{trunk_l:.0f}/{crown_l:.0f}"
+        if not trunk:
+            problems.append("no opaque pixel in the trunk band (the bottom quarter)")
+            dark_share, brown_share = 0.0, 0.0
+        else:
+            if trunk_l >= crown_l:
+                problems.append(f"the trunk band is not darker than the crown ({trunk_l:.0f} vs "
+                                f"{crown_l:.0f}) - the ticket says dark trunks")
+            dark_share = sum(1 for p in trunk if _lum(p) < SEASON_DARK_LUMINANCE) / len(trunk)
+            if dark_share < SEASON_DARK_MIN_SHARE:
+                problems.append(f"only {dark_share:.0%} of the trunk band is dark (luminance < "
+                                f"{SEASON_DARK_LUMINANCE:.0f}) - the ticket says dark trunks")
+            material = [p for p in trunk if p[:3] not in outline_rgb]
+            brown_share = (sum(1 for p in material if p[:3] in trunk_rgb) / len(material)
+                           if material else 0.0)
+            if not any(p[:3] in trunk_rgb for p in trunk):
+                problems.append("no declared dark-brown material anywhere in the trunk band")
+
+        runs = _row_runs(px, h - 1, w)
+        run = max(runs) if runs else 0
+        centre = range(max(0, w // 2 - 2), min(w, w // 2 + 3))
+        if not any(px[x, h - 1][3] for x in centre):
+            problems.append("the bottom row carries no content within 2px of the canvas centre "
+                            "column - the trunk base is not at the bottom centre")
+        if run > SEASON_TRUNK_MAX_ROW_SHARE * w:
+            problems.append(f"the bottom row is a {run}px run on a {w}px canvas - that is a crown "
+                            f"sitting on the ground, not a trunk")
+        print(f"{aid:12s} {f'{w}x{h}':>9s} {f'{want_px[0]}x{want_px[1]}':>9s} "
+              f"{crown_txt:>34s} {lum_txt:>8s} {dark_share:>5.0%} {brown_share:>6.0%} "
+              f"{run:>9d}  {'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{aid}: " + "; ".join(problems))
+        else:
+            report.ok(f"{aid}: {w}x{h} exactly, {len(colours)} palette colours, real alpha, no "
+                      f"magenta, content reaches the canvas bottom (row {bottom}); crown hue "
+                      f"families {crown_txt} ({present}); trunk band is darker than the crown "
+                      f"({trunk_l:.0f} vs {crown_l:.0f}), {dark_share:.0%} of it dark and "
+                      f"{brown_share:.0%} of its non-outline pixels a declared dark brown; bottom "
+                      f"row is a {run}px trunk run with content at the centre column")
+    if crown_families_seen != {"red", "orange", "ochre"}:
+        report.fail(f"across the three trees the crowns carry only {sorted(crown_families_seen)} "
+                    f"of the ticket's orange/red/ochre - the ticket describes the set as "
+                    f"deciduous trees with orange, red AND ochre crowns")
+    else:
+        report.ok("across the three trees the crowns carry all three of the ticket's hue "
+                  "families: red, orange and ochre")
+
+    # ---- manifests, in BOTH trees, and the served copy being byte-identical -----------
+    print("\nMANIFESTS + SERVED COPY (a manifest next to every PNG; the served file is the "
+          "generated file)")
+    published = ["tiles.png"] + [f"props/{a}.png" for a in TICKET_E["props"]]
+    for rel in published:
+        gen = os.path.join(root, rel)
+        if not os.path.exists(gen):
+            continue  # already reported as missing above
+        man = gen + ".manifest.json"
+        problems = []
+        if not os.path.exists(man):
+            report.fail(f"{rel}: no manifest next to it (the ticket asks for one per PNG)")
+            print(f"{rel:22s} FAIL: no manifest")
+            continue
+        try:
+            m = json.load(open(man))
+        except Exception as exc:  # noqa: BLE001
+            report.fail(f"{rel}.manifest.json is not valid JSON ({exc})")
+            continue
+        if m.get("model") != S.MODEL_ID:
+            problems.append(f"model {m.get('model')!r} != {S.MODEL_ID!r}")
+        if m.get("lora_strength") != 0.0:
+            problems.append("lora_strength is not 0.0 (the LoRA blacks out - ADR-060)")
+        if not (m.get("prompt") or m.get("derivation")):
+            problems.append("no prompt and no derivation")
+        if m.get("palette") != pal_hex:
+            problems.append("the manifest's palette is not the declared one")
+        if list(m.get("output_dims") or []) != list(Image.open(gen).size):
+            problems.append(f"output_dims {m.get('output_dims')} != the file's "
+                            f"{list(Image.open(gen).size)}")
+        if rel.startswith("props/") and not m.get("seed"):
+            problems.append("a generated prop with no seed")
+        srv = os.path.join(served, rel)
+        if not os.path.exists(srv):
+            problems.append(f"not published: the renderer loads assets/seasons/{season_name}/{rel}")
+        elif _sha256_file(srv) != _sha256_file(gen):
+            problems.append("the served copy is NOT byte-identical to the generated file")
+        print(f"{rel:22s} {str(m.get('kind')):9s} {str(m.get('seed')):>8s}  "
+              f"{'ok' if not problems else 'FAIL: ' + '; '.join(problems)}")
+        if problems:
+            report.fail(f"{rel}: " + "; ".join(problems))
+        else:
+            report.ok(f"{rel}: manifest carries model+palette+prompt+dims, seed="
+                      f"{m.get('seed') if m.get('seed') is not None else 'n/a (drawn)'}, and the "
+                      f"served copy is byte-identical")
+
+    print("\n" + "=" * 96)
+    print("PER-ASSET EVIDENCE (the AC record; it prints on PASS too)")
+    for line in report.lines:
+        print(line)
+    print("=" * 96)
+    if report.failures:
+        print(f"RESULT: FAIL - {len(report.failures)} finding(s)")
+        for f in report.failures:
+            print(f"  - {f}")
+        return EXIT_FAIL
+    print(f"RESULT: PASS - the {season_name} set is the ticket's four 32px slots in order in a "
+          f"128x32 strip plus the three trees at exactly 64x96 / 64x128 / 32x64, on a palette "
+          f"that is a superset of the lodge's, with every declared seam axis measured (self AND "
+          f"cross-tile, the path's own edge reported rather than asserted), every crown carrying "
+          f"all three of the orange/red/ochre hue families, trunk bands measurably darker than "
+          f"their crowns with the base at the bottom centre, a manifest next to every PNG, and "
+          f"every served file byte-identical to the generated one.")
     return 0
 
 

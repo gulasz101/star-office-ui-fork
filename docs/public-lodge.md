@@ -40,7 +40,7 @@ The LAN hides all of this today. None of it may face the internet.
    - Defence in depth: the tunnel/ingress also routes only those paths.
    - The ingest face is reachable only on LAN/Netbird (internal hostname), never through the
      tunnel.
-2. **Per-agent ingest tokens.** `SOU_INGEST_TOKENS` holds `sha256(token) → agent name`.
+2. **Per-agent ingest tokens**, registered in the database (`sha256(token) → agent`, SOU-291).
    - A token may only write events for its own agent, so no spoofing someone else's room.
    - Requests go `Authorization: Bearer <token>` (stdlib in every reporter).
    - Constant-time compare, 401 on mismatch, rate limit per token.
@@ -59,49 +59,56 @@ The LAN hides all of this today. None of it may face the internet.
 5. **v1 goes away.** Public mode never loads it. Deleting it (SOU-3/SOU-4 close with it) is the
    cleanup once v3 has parity, which it effectively does now.
 
-## Tokens (P13-B)
+## Tokens and room personality (P13-B, v2.3 registry)
 
-`POST /events` learns who may write from `SOU_INGEST_TOKENS`: a mapping of
-`sha256(token) → agent name`. The server only ever stores hashes — a leaked line,
-env dump or JSON file is not a leaked token. Two configuration shapes:
+The repo knows no agent. Who may write, and how each agent's room looks, is data in the
+database (migration 004, SOU-291):
 
-```bash
-# inline pairs, comma / semicolon / newline separated
-SOU_INGEST_TOKENS="<sha256hex>:hermes,<sha256hex>:claude"
+- `ingest_tokens` holds `sha256(token) → agent`: hashes only, so a DB dump is not a
+  leaked token. Tokens can be revoked; an agent may hold several (rotation).
+- `agents.room_type` and `agents.hoodie` are the agent's **room personality**: one of the
+  renderer's room types and a character tint. `/events/agents` and `/public/agents` hand
+  them to the renderer as `room: {type, hoodie}`. Unset means the factory room and a hue
+  hashed from the name.
 
-# or a path to a JSON file (SOPS-managed, like every other homelab secret)
-SOU_INGEST_TOKENS=/run/secrets/sou-ingest-tokens.json
-# {"<sha256hex>": "hermes", "<sha256hex>": "claude"}
-```
-
-Mint a token for one agent — it prints the plaintext **once** and the line to add:
+Register an agent where the backend's `DATABASE_URL` points (laptop, Mac, or
+`kubectl exec` into the ingest pod):
 
 ```bash
-uv run python backend/tokens.py new hermes
+uv run python backend/tokens.py register my-bot --room garage --hoodie 200,0.8,0.9   # token printed once
+uv run python backend/tokens.py register my-bot --token-only | <your secret store>     # nothing on screen
+uv run python backend/tokens.py set-room my-bot --room serverroom                      # look only, no token
+uv run python backend/tokens.py list                                                   # never shows a token or hash
+uv run python backend/tokens.py revoke my-bot
 ```
 
-Hand the plaintext to that agent's reporter (SOPS, never git, never a ticket);
-paste the `sha256hex:agent` line into the mapping above.
+Room types: `garage`, `serverroom`, `factory`, `mystery`, `tokenden`, `career`, `writer`.
+Hoodie is `H,S,V`: hue 0–360, saturation and value multipliers 0–1.5 (`28,1,1` is the
+sheet's own orange). A changed look shows on the next page load.
+
+Hand the plaintext to that agent's reporter (SOPS, never git, never a ticket).
+
+**Deprecated: `SOU_INGEST_TOKENS`.** The old env map (`<sha256hex>:agent` pairs, or a path
+to a JSON file of the same) is still read as a second source. Move it into the database
+with `tokens.py import-env`, then drop the variable. `tokens.py new <agent>` still prints
+an env line offline.
 
 Request contract on `POST /events`, checked before the body (SOU-219):
 
 | Situation | Answer |
 |---|---|
-| No `Authorization` header, or not `Bearer`, or unknown token | `401` |
+| No `Authorization` header, or not `Bearer`, or unknown or revoked token | `401` |
 | Token's agent ≠ envelope `agent` (case-exact) | `403`, nothing written |
 | Token exceeds its rate limit (`SOU_INGEST_RATE_LIMIT`, default 20 req/s burst per token) | `429` + `Retry-After: 1` |
 | Everything fine | the existing ADR-035 contract: `201` / `400` |
 
-Token lookup is constant-time (`hmac.compare_digest` over every entry).
+**When the door is locked.** `SOU_MODE=ingest` always locks it: with nothing registered
+yet it still starts, answers every `POST` with `401`, and logs how many tokens it knows.
+On `dev` the door stays open (untokened reporters keep working, with a startup warning)
+unless the deprecated `SOU_INGEST_TOKENS` is set. That is only acceptable on the private box.
 
-**Unset `SOU_INGEST_TOKENS`** = today's dev/LAN behaviour: untokened reporters keep
-working and the backend prints a startup warning. That is only acceptable on the
-private box. **`SOU_MODE=ingest` (P13-C) makes tokens mandatory** — the backend
-refuses to start with no tokens on the ingest face.
-
-Tests: `backend/tests/test_ingest_tokens.py` (store, 401/403/429/ok, CLI round-trip).
-Reporter token support arrives in P13-D/E/F; until then run the reporters on LAN
-against an untokened dev instance, or set their tokens once implemented.
+Tests: `backend/tests/test_ingest_tokens.py` (door contract, DB and env sources),
+`backend/tests/test_tokens_cli.py` (every subcommand, end to end).
 
 ## Modes (P13-C)
 
@@ -110,7 +117,7 @@ against an untokened dev instance, or set their tokens once implemented.
 | Face | Its whole `app.url_map` | Notes |
 |---|---|---|
 | `public` | `GET /` (302 to `/v3/`), `GET /health`, `GET /v3`, `GET /v3/`, `GET /v3/<path:filename>`, `GET /public/feed`, `GET /public/agents` | everything else simply does not exist in the process: 404 |
-| `ingest` | `GET /health`, `POST /events`, `GET /events/recent`, `GET /events/agents` | refuses to start without `SOU_INGEST_TOKENS` |
+| `ingest` | `GET /health`, `POST /events`, `GET /events/recent`, `GET /events/agents` | always token-locked; starts with none registered and answers `401` |
 | `dev` (default, unset) | today's 42 routes, unchanged | the LAN box |
 
 - An unknown value aborts the boot (`resolve_mode` raises): a typo'd

@@ -493,6 +493,20 @@ def delete_agent(db: Session, agent_id: int) -> bool:
     return True
 
 
+def find_agent_by_name(db: Session, name: str) -> Optional[Agent]:
+    """The registry row whose name matches, ignoring case and padding.
+
+    Migration 001 puts no unique index on ``agents.name``, so reuse is a
+    lookup contract, not a database one: the first spelling registered is the
+    canonical one and later events must find it, not create a twin.
+    """
+    wanted = (name or "").strip().lower()
+    for row in list_agents(db):
+        if (row.name or "").strip().lower() == wanted:
+            return row
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Agent registry (SOU-291): ingest tokens and room personality. Token rows
 # hold sha256 hex digests only; hashing is the caller's job (ingest_auth).

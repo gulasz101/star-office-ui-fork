@@ -52,6 +52,7 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     DeclarativeBase,
+    load_only,
     Mapped,
     Session,
     mapped_column,
@@ -72,6 +73,7 @@ _RELATIVE_SQLITE = re.compile(
 
 NAME_LENGTH = 255
 AGENT_TYPE_LENGTH = 50
+ROOM_TYPE_LENGTH = 32
 EVENT_TYPE_LENGTH = 100
 
 # Active-agent window in minutes; an agent is "active" if it produced any
@@ -168,6 +170,7 @@ def create_db_engine(url: Optional[str] = None, read_only: bool = False, **engin
 # (latest activity of one agent, chain of one session).
 IDX_EVENTS_AGENT_CREATED = "idx_events_agent_created"
 IDX_SESSIONS_AGENT_STARTED = "idx_sessions_agent_started"
+IDX_TOKENS_AGENT = "idx_ingest_tokens_agent"
 
 # One portable JSON column: serialises and parses everywhere, but compiles
 # to exactly migration 001's DDL per dialect — native JSONB on Postgres,
@@ -205,6 +208,10 @@ class Agent(Base):
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")
     )
+    # Room personality (migration 004, SOU-291): the renderer reads these from the
+    # API; the repo holds no agent names. Null means "not set" (factory, hashed tint).
+    room_type: Mapped[Optional[str]] = mapped_column(sa.String(ROOM_TYPE_LENGTH), nullable=True)
+    hoodie: Mapped[Optional[dict]] = mapped_column(PayloadJSON(), nullable=True)
 
     # Mirrors the database-level ON DELETE CASCADE (migration 001) so an ORM
     # delete never leaves orphan activity behind on either backend.
@@ -212,6 +219,9 @@ class Agent(Base):
         back_populates="agent", cascade="all, delete-orphan"
     )
     sessions: Mapped[list["AgentSession"]] = relationship(
+        back_populates="agent", cascade="all, delete-orphan"
+    )
+    tokens: Mapped[list["IngestToken"]] = relationship(
         back_populates="agent", cascade="all, delete-orphan"
     )
 
@@ -244,6 +254,30 @@ class Event(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return f"<Event id={self.id} agent_id={self.agent_id} type={self.event_type!r}>"
+
+
+class IngestToken(Base):
+    """One registered ingest token (migration 004): its sha256 hex, never plaintext."""
+
+    __tablename__ = "ingest_tokens"
+    __table_args__ = (
+        sa.Index(IDX_TOKENS_AGENT, "agent_id"),
+        {"sqlite_autoincrement": True},
+    )
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
+    token_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False, unique=True)
+    agent_id: Mapped[int] = mapped_column(
+        sa.Integer,
+        sa.ForeignKey("agents.id", name="fk_ingest_tokens_agent_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime, nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(sa.DateTime, nullable=True)
+
+    agent: Mapped[Agent] = relationship(back_populates="tokens")
 
 
 class AgentSession(Base):
@@ -351,11 +385,19 @@ def session_scope() -> Iterator[Session]:
 
 
 def insert_agent(db: Session, name: str, agent_type: str) -> Agent:
-    """Register an agent. ``created_at`` is filled by the database default."""
-    agent = Agent(name=name, agent_type=agent_type)
-    db.add(agent)
-    db.flush()
-    return agent
+    """Register an agent. ``created_at`` is filled by the database default.
+
+    A Core insert of just these two columns, so the statement also runs on a
+    database still at an older revision (the migration tests seed at 001/002,
+    before 004 added the room columns).
+    """
+    agent_id = db.execute(
+        sa.insert(Agent).values(name=name, agent_type=agent_type).returning(Agent.id)
+    ).scalar_one()
+    return db.get(
+        Agent, agent_id,
+        options=[load_only(Agent.id, Agent.name, Agent.agent_type, Agent.created_at)],
+    )
 
 
 def insert_event(
@@ -449,6 +491,73 @@ def delete_agent(db: Session, agent_id: int) -> bool:
     db.delete(agent)
     db.flush()
     return True
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (SOU-291): ingest tokens and room personality. Token rows
+# hold sha256 hex digests only; hashing is the caller's job (ingest_auth).
+# ---------------------------------------------------------------------------
+
+
+def set_agent_room(
+    db: Session, agent_id: int, room_type: Optional[str], hoodie: Optional[dict]
+) -> Optional[Agent]:
+    """Set (or clear, with None) an agent's room personality."""
+    agent = db.get(Agent, agent_id)
+    if agent is None:
+        return None
+    agent.room_type = room_type
+    agent.hoodie = hoodie
+    db.flush()
+    return agent
+
+
+def insert_token(db: Session, agent_id: int, token_hash: str) -> IngestToken:
+    """Register one token digest for an agent; a duplicate digest raises IntegrityError."""
+    row = IngestToken(agent_id=agent_id, token_hash=token_hash)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def agent_for_token_hash(db: Session, token_hash: str) -> Optional[Agent]:
+    """The agent an active (not revoked) token digest belongs to, or None."""
+    query = (
+        sa.select(Agent)
+        .join(IngestToken, IngestToken.agent_id == Agent.id)
+        .where(IngestToken.token_hash == token_hash, IngestToken.revoked_at.is_(None))
+    )
+    return db.execute(query).scalars().first()
+
+
+def token_hash_exists(db: Session, token_hash: str) -> bool:
+    """True when the digest is registered at all, revoked or not."""
+    query = sa.select(IngestToken.id).where(IngestToken.token_hash == token_hash)
+    return db.execute(query).first() is not None
+
+
+def revoke_tokens(db: Session, agent_id: int) -> int:
+    """Revoke every active token of an agent; returns how many were revoked."""
+    rows = db.execute(
+        sa.select(IngestToken).where(
+            IngestToken.agent_id == agent_id, IngestToken.revoked_at.is_(None)
+        )
+    ).scalars().all()
+    now = _utcnow()
+    for row in rows:
+        row.revoked_at = now
+    db.flush()
+    return len(rows)
+
+
+def active_token_counts(db: Session) -> dict:
+    """``{agent_id: active token count}`` for agents with at least one."""
+    query = (
+        sa.select(IngestToken.agent_id, sa.func.count(IngestToken.id))
+        .where(IngestToken.revoked_at.is_(None))
+        .group_by(IngestToken.agent_id)
+    )
+    return {agent_id: count for agent_id, count in db.execute(query).all()}
 
 
 def list_events(

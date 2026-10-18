@@ -94,7 +94,7 @@ class DropV1RosterTest(unittest.TestCase):
 
     def test_v1_rows_and_empty_v1_agents_go_reporters_stay(self) -> None:
         with contextlib.redirect_stdout(io.StringIO()):
-            _upgrade(self.url, "head")
+            _upgrade(self.url, "003_drop_v1_roster")
         agents, events, stamp = self.state()
         self.assertEqual(stamp, "003_drop_v1_roster")
         self.assertEqual(agents, {"hermes-szarik", "claude-code"}, "Star and the v1-only guest are gone")
@@ -113,7 +113,7 @@ class DropV1RosterTest(unittest.TestCase):
     def test_second_run_finds_nothing(self) -> None:
         import importlib.util
         with contextlib.redirect_stdout(io.StringIO()):
-            _upgrade(self.url, "head")
+            _upgrade(self.url, "003_drop_v1_roster")
         path = os.path.join(os.path.dirname(ALEMBIC_INI), "migrations", "versions", "003_drop_v1_roster.py")
         spec = importlib.util.spec_from_file_location("m003", path)
         mod = importlib.util.module_from_spec(spec)

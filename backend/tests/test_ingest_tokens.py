@@ -196,19 +196,18 @@ class EnvBuildTest(unittest.TestCase):
             env = {"SOU_INGEST_TOKENS": value} if value is not None else {}
             self.assertIsNone(ingest_auth.build_from_env(env))
 
-    def test_requires_tokens_in_ingest_mode(self) -> None:
+    def test_ingest_mode_without_env_is_locked_and_empty(self) -> None:
+        # SOU-291: the ingest face starts with no env tokens; the door is locked
+        # (a store exists) and only database-registered tokens open it.
         for env in (
             {"SOU_MODE": "ingest"},
             {"SOU_MODE": "ingest", "SOU_INGEST_TOKENS": "  "},
         ):
             with self.subTest(env=env):
-                with self.assertRaises(RuntimeError):
-                    ingest_auth.build_from_env(env)
-
-    def test_requires_only_about_tokens(self) -> None:
-        with self.assertRaises(RuntimeError) as ctx:
-            ingest_auth.build_from_env({"SOU_MODE": "ingest"})
-        self.assertIn("SOU_INGEST_TOKENS", str(ctx.exception))
+                store = ingest_auth.build_from_env(env)
+                self.assertIsNotNone(store)
+                self.assertEqual(store.mapping(), {})
+                self.assertIsNone(store.lookup(HERMES_TOKEN))
 
     def test_rate_env_override(self) -> None:
         env = {
@@ -454,6 +453,72 @@ class RateLimitHttpTest(_HttpAuthTestCase):
         self.assertEqual(self.stored_event_count(), before + 2)
 
 
+class DatabaseRegistryTest(_HttpAuthTestCase):
+    """SOU-291: tokens registered in the database open the door; the env map
+    is a deprecated second source that keeps working beside it."""
+
+    DB_TOKEN = "sou291-db-token-for-builder"
+
+    def register(self, agent, token, revoked=False):
+        db = self.app_mod.db
+        with db.session_scope() as session:
+            row = self.app_mod.find_agent_by_name(session, agent)
+            if row is None:
+                row = db.insert_agent(session, name=agent, agent_type="guest")
+            db.insert_token(session, row.id, sha(token))
+            if revoked:
+                db.revoke_tokens(session, row.id)
+
+    def locked_empty(self):
+        # The ingest face without env tokens: a store with nothing in it.
+        return ingest_auth.TokenStore({}, rate=2.0, burst=2.0, clock=self.clock)
+
+    def test_registered_token_writes_its_room(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        self.enforce(self.locked_empty())
+        resp = self.post(valid_event(agent="builder"), token=self.DB_TOKEN)
+        self.assertEqual(resp.status_code, 201, resp.get_data(as_text=True))
+        self.assertEqual(self.written_by_test(), 1)
+
+    def test_unknown_token_is_401(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        self.enforce(self.locked_empty())
+        self.assert_json_error(self.post(valid_event(agent="builder"), token="nope"), 401)
+
+    def test_revoked_token_is_401(self) -> None:
+        self.register("builder", self.DB_TOKEN, revoked=True)
+        self.enforce(self.locked_empty())
+        self.assert_json_error(self.post(valid_event(agent="builder"), token=self.DB_TOKEN), 401)
+        self.assertEqual(self.written_by_test(), 0)
+
+    def test_registered_token_on_another_room_is_403(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        self.enforce(self.locked_empty())
+        self.assert_json_error(self.post(valid_event(agent="hermes"), token=self.DB_TOKEN), 403)
+        self.assertEqual(self.written_by_test(), 0)
+
+    def test_registered_token_is_rate_limited(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        self.enforce(self.locked_empty())  # burst 2
+        for _ in range(2):
+            self.assertEqual(self.post(valid_event(agent="builder"), token=self.DB_TOKEN).status_code, 201)
+        self.assertEqual(self.post(valid_event(agent="builder"), token=self.DB_TOKEN).status_code, 429)
+
+    def test_env_and_database_tokens_both_open_the_door(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        self.enforce(self.store)  # env map: hermes, claude
+        self.assertEqual(self.post(valid_event(agent="builder"), token=self.DB_TOKEN).status_code, 201)
+        self.assertEqual(self.post(valid_event(), token=HERMES_TOKEN).status_code, 201)
+
+    def test_token_rows_hold_only_the_digest(self) -> None:
+        self.register("builder", self.DB_TOKEN)
+        with self.app_mod.db.get_engine().connect() as c:
+            rows = [tuple(r) for r in c.execute(__import__("sqlalchemy").text("SELECT * FROM ingest_tokens"))]
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn(self.DB_TOKEN, repr(rows))
+        self.assertIn(sha(self.DB_TOKEN), repr(rows))
+
+
 class OpenBehaviourTest(_HttpAuthTestCase):
     """AC 7: unset SOU_INGEST_TOKENS -> today's dev/LAN behaviour + warning."""
 
@@ -484,7 +549,7 @@ class OpenBehaviourTest(_HttpAuthTestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr[-500:])
             self.assertIn("WARNING", proc.stderr)
-            self.assertIn("SOU_INGEST_TOKENS", proc.stderr)
+            self.assertIn("tokens.py register", proc.stderr)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
 

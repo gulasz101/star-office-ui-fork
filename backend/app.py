@@ -50,23 +50,38 @@ class FaceFlask(Flask):
 
 app = FaceFlask(__name__, static_folder=None)
 
-# Per-agent ingest tokens (SOU-219, docs/public-lodge.md §2): sha256(token) ->
-# agent. Configured -> POST /events answers 401/403/429 before touching the
-# body; unset -> today's dev/LAN behaviour with exactly one loud warning, so
-# old untokened reporters keep working on the private box. SOU_MODE=ingest
-# refuses to start without tokens (build_from_env raises; SOU-220 wired the
-# face, this line is where it fires). The public face has no /events at all,
-# so it neither warns nor needs tokens. Tests reassign app.INGEST_STORE;
-# the endpoint reads this global per request.
+# Per-agent ingest tokens (SOU-219, SOU-291, docs/public-lodge.md §2). A token
+# is valid when its sha256 is registered in the database (``tokens.py register``)
+# or, deprecated, listed in SOU_INGEST_TOKENS. INGEST_STORE decides whether the
+# door is locked at all: not None -> POST /events answers 401/403/429 before
+# touching the body; None -> the dev/LAN box stays open, with one loud warning.
+# SOU_MODE=ingest always locks it, even with nothing registered yet (every POST
+# is then a 401: fail closed). The public face has no /events at all. Tests
+# reassign app.INGEST_STORE; the endpoint reads this global per request.
 INGEST_STORE = ingest_auth.build_from_env()
 if INGEST_STORE is None and SOU_MODE == sou_mode.MODE_DEV:
     print(
-        "WARNING: SOU_INGEST_TOKENS is not set - POST /events accepts unauthenticated writes. "
-        "Fine on the dev/LAN box, never on a public or ingest face: create tokens with "
-        "`python backend/tokens.py new <agent>` and set SOU_INGEST_TOKENS (or SOU_MODE=ingest "
-        "to make this fatal). See docs/public-lodge.md.",
+        "WARNING: ingest tokens are off - POST /events accepts unauthenticated writes. "
+        "Fine on the dev/LAN box, never on a public or ingest face: register agents with "
+        "`python backend/tokens.py register <agent>` and run with SOU_MODE=ingest. "
+        "See docs/public-lodge.md.",
         file=sys.stderr,
     )
+
+
+def token_agent_for(store, token):
+    """The agent name a presented token writes for, or None (unknown/revoked).
+
+    The deprecated env map answers first; then the database registry.
+    """
+    if token is None:
+        return None
+    agent = store.lookup(token)
+    if agent is not None:
+        return agent
+    with db.session_scope() as session:
+        row = db.agent_for_token_hash(session, ingest_auth.hash_token(token))
+        return row.name if row is not None else None
 
 
 # /public/* reads (SOU-220): short enough that the Lodge still feels live
@@ -137,7 +152,8 @@ def _database_is_ready(engine) -> bool:
     import sqlalchemy as sa
 
     names = set(sa.inspect(engine).get_table_names())
-    return {"agents", "events", "sessions", "alembic_version"} <= names
+    # ingest_tokens arrived with 004 (SOU-291): an older DB is upgraded on start.
+    return {"agents", "events", "sessions", "ingest_tokens", "alembic_version"} <= names
 
 
 def _alembic_upgrade_head(url: str) -> None:
@@ -173,6 +189,12 @@ if SOU_MODE == sou_mode.MODE_PUBLIC:
     db.init(read_only=True)
 else:
     init_database()
+    if SOU_MODE == sou_mode.MODE_INGEST:
+        with db.session_scope() as _session:
+            _active = sum(db.active_token_counts(_session).values())
+        _env = len(INGEST_STORE.mapping()) if INGEST_STORE is not None else 0
+        print(f"[ingest] tokens: {_active} registered in the database, {_env} from "
+              f"SOU_INGEST_TOKENS (deprecated)", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +283,7 @@ def events_endpoint():
     is not a valid v1 event — the message names the offending field, because
     the agent reading it is a machine running a hook, not a person at a form.
 
-    With ``SOU_INGEST_TOKENS`` configured (SOU-219) the door also has a lock,
+    With tokens on (SOU-219; registered in the DB since SOU-291) the door has a lock,
     checked before the body: ``Authorization: Bearer <token>`` missing or
     unknown -> 401; the token's rate bucket empty -> 429 with ``Retry-After``;
     the token belongs to a different agent than the envelope claims -> 403 and
@@ -271,7 +293,7 @@ def events_endpoint():
     token_agent = None
     if store is not None:
         token = ingest_auth.bearer_from_header(request.headers.get("Authorization"))
-        token_agent = store.lookup(token) if token is not None else None
+        token_agent = token_agent_for(store, token)
         if token_agent is None:
             return (
                 jsonify({"ok": False, "error": "authorization: a valid Bearer ingest token is required"}),

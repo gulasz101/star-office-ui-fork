@@ -26,10 +26,14 @@ missing/unknown token, 403 on an agent mismatch, 429 when the bucket is
 empty; that HTTP contract lives in ``app.py``, this module only answers
 "who does this token belong to" and "may this token speak now".
 
+Since SOU-291 the primary store is the database (``ingest_tokens``, written by
+``tokens.py register``); this env map is the deprecated second source, kept so
+running deployments work until ``tokens.py import-env`` has moved them over.
+
 Startup contract (``build_from_env``): unset/blank ``SOU_INGEST_TOKENS``
-returns ``None`` — dev/LAN behaviour stays open and the caller prints the
-warning; ``SOU_MODE=ingest`` without tokens is a configuration error and
-raises, because the ingest face must never run unauthenticated (P13-C).
+returns ``None`` on dev (the door stays open, the caller warns); on
+``SOU_MODE=ingest`` it returns an empty store, so the door is locked and only
+database tokens open it (P13-C: the ingest face never runs unauthenticated).
 """
 
 from __future__ import annotations
@@ -190,22 +194,19 @@ def _rate_from(environ):
 
 
 def build_from_env(environ=None):
-    """The configured TokenStore, or None when tokens are not configured.
+    """The door's TokenStore, or None when the door stays open (dev).
 
-    Raises RuntimeError when ``SOU_MODE=ingest`` demands tokens that are not
-    there — that combination is a misconfigured ingest face, and the only
-    honest answer is to refuse to start. Malformed entries raise ValueError:
-    silence is not an option either, a typo'd digest would just reject every
-    real reporter.
+    ``SOU_INGEST_TOKENS`` set -> a store holding those (deprecated) env entries.
+    Unset -> None on dev, so the LAN box keeps accepting untokened reporters;
+    but ``SOU_MODE=ingest`` gets an **empty** store: the door is locked and only
+    tokens registered in the database (``tokens.py register``, SOU-291) open it.
+    Malformed entries raise ValueError: a typo'd digest would silently reject
+    every real reporter.
     """
     environ = os.environ if environ is None else environ
     value = (environ.get(_TOKEN_ENV) or "").strip()
     if not value:
         if (environ.get(_MODE_ENV) or "").strip().lower() == "ingest":
-            raise RuntimeError(
-                "SOU_MODE=ingest requires per-agent ingest tokens: set "
-                "SOU_INGEST_TOKENS (sha256(token):agent pairs or a JSON file "
-                "path); create one with `python backend/tokens.py new <agent>`"
-            )
+            return TokenStore({}, rate=_rate_from(environ))
         return None
     return parse_source(value, rate=_rate_from(environ))

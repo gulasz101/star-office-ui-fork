@@ -197,7 +197,7 @@ class _InitialSchemaContract:
         self.assert_column("agents", "created_at", type_=sa.DateTime, nullable=False)
         self.assertEqual(
             sorted(self.columns("agents")),
-            ["agent_type", "created_at", "id", "name"],
+            ["agent_type", "created_at", "hoodie", "id", "name", "room_type"],
             "agents carries columns the schema does not define",
         )
 
@@ -311,6 +311,39 @@ class _InitialSchemaContract:
             set(TABLES) <= set(sa.inspect(self.engine).get_table_names()),
             "re-upgrade after downgrade did not rebuild the schema",
         )
+
+    # -- 004 agent registry (SOU-291) -----------------------------------------
+
+    def test_ingest_tokens_table(self) -> None:
+        self.assertIn("ingest_tokens", self.insp.get_table_names())
+        self.assertEqual(
+            sorted(self.columns("ingest_tokens")),
+            ["agent_id", "created_at", "id", "revoked_at", "token_hash"],
+        )
+        self.assert_column("ingest_tokens", "token_hash", type_=sa.String, nullable=False, length=64)
+        self.assert_column("ingest_tokens", "revoked_at", type_=sa.DateTime, nullable=True)
+        uniques = [tuple(u["column_names"]) for u in self.insp.get_unique_constraints("ingest_tokens")]
+        uniques += [tuple(i["column_names"]) for i in self.insp.get_indexes("ingest_tokens") if i.get("unique")]
+        self.assertIn(("token_hash",), uniques, "token_hash must be unique")
+
+    def test_004_downgrade_and_reupgrade(self) -> None:
+        _run_alembic(self.url, "downgrade", "-1")
+        engine = self.connect(self.url)
+        try:
+            insp = sa.inspect(engine)
+            self.assertNotIn("ingest_tokens", insp.get_table_names())
+            self.assertEqual(
+                sorted(c["name"] for c in insp.get_columns("agents")),
+                ["agent_type", "created_at", "id", "name"],
+            )
+        finally:
+            engine.dispose()
+        _run_alembic(self.url, "upgrade", "head")
+        engine = self.connect(self.url)
+        try:
+            self.assertIn("ingest_tokens", sa.inspect(engine).get_table_names())
+        finally:
+            engine.dispose()
 
     # -- functional round trip ------------------------------------------------
 

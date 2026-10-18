@@ -546,13 +546,19 @@ def sanitize_allowed(event_type) -> set:
 
 
 class IngestFaceTest(unittest.TestCase):
-    """AC3: the ingest face registers the door, and tokens are mandatory."""
+    """AC3: the ingest face registers the door, and it is always locked."""
 
-    def test_untokened_boot_is_refused(self) -> None:
-        proc = _boot("ingest", {})
-        self.assertNotEqual(proc.returncode, 0,
-                            "ingest face started without tokens!")
-        self.assertIn("SOU_INGEST_TOKENS", proc.stderr)
+    def test_untokened_boot_is_locked(self) -> None:
+        # SOU-291: with nothing registered the ingest face starts, and the door
+        # is shut: no token and an unknown token are both 401 (fail closed).
+        posts = [
+            {"path": "/events", "body": valid_envelope(), "headers": None},
+            {"path": "/events", "body": valid_envelope(),
+             "headers": {"Authorization": "Bearer not-registered-anywhere"}},
+        ]
+        report = _boot_ok("ingest", {"post": posts})
+        self.assertEqual(report["probes"]["POST 0 /events"]["status"], 401)
+        self.assertEqual(report["probes"]["POST 1 /events"]["status"], 401)
 
     def test_url_map_and_token_gate(self) -> None:
         token = "sou220-face-token"

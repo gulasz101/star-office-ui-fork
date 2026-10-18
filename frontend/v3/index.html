@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#14161f">
   <title>Star Office v3</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #14161f; overflow: hidden; }
-    #game { width: 100vw; height: 100vh; }
+    html, body { margin: 0; height: 100%; background: #14161f; overflow: hidden; overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    /* the page never pans or zooms itself: every gesture belongs to the camera (SOU-299) */
+    #game { width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
     #caption { position: fixed; left: 0; right: 0; top: 18px; text-align: center; font: 14px monospace;
       color: #f4ead2; text-shadow: 0 0 6px #000, 0 1px 0 #000; letter-spacing: 1px; pointer-events: none;
       opacity: 0; transition: opacity 1.2s; }
@@ -15,6 +18,7 @@
       color: #f4ead2; font: 11px/1.45 monospace; padding: 10px 12px; pointer-events: none;
       opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; }
     #card.open { opacity: 1; transform: none; }
+    .card-close { display: none; }
     .card-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #6b4428;
       padding-bottom: 5px; margin-bottom: 6px; }
     .card-name { font-size: 14px; color: #ffcf7a; }
@@ -39,6 +43,41 @@
     .chip[data-status="idle"] .dot { background: #ffb35a; }
     .chip[data-status="asleep"] .dot { background: #6a7fb8; }
     #hud { position: fixed; left: 8px; bottom: 6px; font: 11px monospace; color: #8a8fa3; pointer-events: none; }
+    .hint-touch { display: none; }
+
+    /* camera pad (SOU-299): on every device, a tap target on touch ones */
+    #controls { position: fixed; right: 12px; bottom: 56px; display: flex; flex-direction: column; gap: 6px; }
+    #controls button { width: 34px; height: 34px; padding: 0; cursor: pointer; background: #2a1c12e6;
+      border: 2px solid #6b4428; box-shadow: 0 0 0 1px #120a06; color: #f4ead2; font: bold 16px/1 monospace; }
+    #controls button:hover { border-color: #b8864e; }
+    #controls button:active { background: #3a2616f0; border-color: #ffcf7a; transform: translateY(1px); }
+    #controls button:focus-visible { outline: 2px solid #ffcf7a; outline-offset: 1px; }
+
+    /* phones and other touch screens: a roster strip, a bottom-sheet card, touch hints */
+    @media (max-width: 720px), (pointer: coarse) {
+      .hint-keys { display: none; }
+      .hint-touch { display: inline; }
+      #hud { top: calc(6px + env(safe-area-inset-top)); bottom: auto; left: calc(8px + env(safe-area-inset-left));
+        right: 70px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #caption { top: calc(28px + env(safe-area-inset-top)); font-size: 12px; padding: 0 12px; }
+      #roster { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); transform: none;
+        bottom: calc(8px + env(safe-area-inset-bottom)); max-width: none; flex-wrap: nowrap; justify-content: flex-start;
+        overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+      #roster::-webkit-scrollbar { display: none; }
+      .chip { flex: 0 0 auto; min-height: 40px; padding: 4px 12px 4px 8px; font-size: 12px; }
+      #controls { right: calc(10px + env(safe-area-inset-right)); bottom: calc(62px + env(safe-area-inset-bottom)); gap: 8px; }
+      #controls button { width: 46px; height: 46px; font-size: 20px; }
+      #card { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); top: auto; width: auto;
+        max-width: none; bottom: calc(60px + env(safe-area-inset-bottom)); max-height: 46vh; max-height: 46dvh;
+        overflow-y: auto; pointer-events: auto; font-size: 12px; transform: translateY(12px); }
+      .card-close { display: block; position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0;
+        background: #3a2616; border: 2px solid #6b4428; color: #f4ead2; font: bold 18px/1 monospace; cursor: pointer; }
+      .card-head { padding-right: 44px; }
+      .card-events li { grid-template-columns: 58px 1fr; }
+      .card-events .card-type { display: none; }
+      .card-hint { display: none; }
+      body.card-open #controls { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -46,7 +85,13 @@
   <div id="caption"></div>
   <div id="card"></div>
   <div id="roster"></div>
-  <div id="hud">v3 · <span id="status">starting…</span> · drag/WASD pan · wheel/± zoom · click a room · F next room · Esc overview · G grid</div>
+  <div id="hud">v3 · <span id="status">starting…</span><span class="hint-keys"> · drag/WASD pan · wheel/± zoom · click a room · F next room · Esc overview · G grid</span><span class="hint-touch"> · drag · pinch · tap a room</span></div>
+  <div id="controls" role="toolbar" aria-label="camera">
+    <button type="button" data-act="in" aria-label="zoom in" title="zoom in (+)">+</button>
+    <button type="button" data-act="out" aria-label="zoom out" title="zoom out (−)">−</button>
+    <button type="button" data-act="home" aria-label="whole lodge" title="whole lodge (Esc)">⌂</button>
+    <button type="button" data-act="next" aria-label="next room" title="next room (F)">»</button>
+  </div>
   <script>
     // a touchpad pinch arrives as ctrl+wheel: keep it for the camera, not the browser's page zoom
     window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });

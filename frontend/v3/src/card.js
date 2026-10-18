@@ -38,7 +38,9 @@ function background(e) {
 }
 
 export class RoomCard {
-  constructor() {
+  // onClose: the card's close button (shown on touch screens, SOU-299) goes back to the lodge
+  constructor(onClose = () => {}) {
+    this.onClose = onClose;
     this.root = document.getElementById('card');
     this.office = null;
     this.events = [];
@@ -50,6 +52,7 @@ export class RoomCard {
     this.events = [];
     this.render();
     this.root.classList.add('open');
+    document.body.classList.add('card-open');
     clearInterval(this.timer);
     this.refresh();
     this.timer = setInterval(() => this.refresh(), REFRESH_MS);
@@ -59,6 +62,7 @@ export class RoomCard {
     this.office = null;
     clearInterval(this.timer);
     this.root.classList.remove('open');
+    document.body.classList.remove('card-open');
   }
 
   async refresh() {
@@ -80,6 +84,14 @@ export class RoomCard {
     const st = (o.character.walking && o.character.target) || o.character.state || {};
     const root = this.root;
     root.replaceChildren();
+    const close = el('button', 'card-close', '×');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'close');
+    close.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.onClose();
+    });
+    root.append(close);
     const head = el('div', 'card-head');
     head.append(el('span', 'card-name', o.agentId), el('span', 'card-room', ROOM_NAMES[o.roomType] || o.roomType));
     root.append(head);

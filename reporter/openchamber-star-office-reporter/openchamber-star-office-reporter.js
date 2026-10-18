@@ -66,6 +66,7 @@ function parseTimeoutMs(raw, fallback) {
 function configFileCandidates(env) {
   const out = [];
   if (env.SOU_REPORTER_CONFIG) out.push(env.SOU_REPORTER_CONFIG);
+  if (env.OPENCODE_CONFIG_DIR) out.push(path.join(env.OPENCODE_CONFIG_DIR, "star-office-reporter.json"));
   const xdg = env.XDG_CONFIG_HOME;
   if (xdg) {
     out.push(path.join(xdg, "star-office-reporter.json"));
@@ -93,7 +94,36 @@ function normalizeLayer(obj) {
     const n = Number.parseInt(String(obj.timeoutMs), 10);
     layer.timeoutMs = Number.isFinite(n) ? n : undefined;
   }
+  if (Array.isArray(obj.routes)) {
+    layer.routes = obj.routes
+      .filter((r) => r && typeof r.directory === "string" && r.directory.trim() && typeof r.agent === "string" && r.agent.trim())
+      .map((r) => compact({
+        directory: path.resolve(r.directory.trim()),
+        agent: r.agent.trim(),
+        token: typeof r.token === "string" && r.token.trim() ? r.token.trim() : undefined,
+      }));
+  }
   return layer;
+}
+
+/**
+ * One OpenCode engine can serve several workspaces (the in-cluster OpenChamber runs
+ * the SOU and the H2 itsaplan runners side by side). OpenCode sets a plugin up once per
+ * project directory, so the reporter picks its identity there: the route whose
+ * `directory` is the longest prefix of that directory wins, and its agent (and token,
+ * when given) replace the defaults. No match keeps the top-level agent and token.
+ */
+export function resolveRoute(config, directory) {
+  const routes = Array.isArray(config.routes) ? config.routes : [];
+  if (!routes.length || typeof directory !== "string" || !directory) return config;
+  const dir = path.resolve(directory);
+  let best = null;
+  for (const r of routes) {
+    const inside = dir === r.directory || dir.startsWith(r.directory.endsWith(path.sep) ? r.directory : r.directory + path.sep);
+    if (inside && (!best || r.directory.length > best.directory.length)) best = r;
+  }
+  if (!best) return config;
+  return { ...config, agent: best.agent, token: best.token ?? config.token, route: best.directory };
 }
 
 /**
@@ -134,6 +164,7 @@ export function loadConfig(env = process.env, opts = {}) {
     eventsUrl: `${dashboardUrl}/events`,
     agent: merged.agent || DEFAULTS.agent,
     token: merged.token || "",
+    routes: merged.routes ?? [],
     enabled: merged.enabled !== false,
     debug: merged.debug === true,
     debugLogFile: env.SOU_REPORTER_LOG || path.join(stateHome, "sou-reporter", "reporter.log"),
@@ -309,7 +340,7 @@ export function createReporter(config, deps = {}) {
   async function send(envelope) {
     try {
       if (typeof doFetch !== "function") throw new Error("no fetch implementation");
-      const headers = { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.1.0 (${config.agent})` };
+      const headers = { "content-type": "application/json", "user-agent": `${PLUGIN_ID}/1.2.0 (${config.agent})` };
       if (config.token) headers.Authorization = `Bearer ${config.token}`; // SOU-223 (P13-F)
       const res = await doFetch(config.eventsUrl, {
         method: "POST",
@@ -438,7 +469,7 @@ export function createPlugin(inject = {}) {
 }
 
 async function setupInner(ctx, inject) {
-  const config = inject.config ?? loadConfig();
+  const config = resolveRoute(inject.config ?? loadConfig(), ctx.location?.directory ?? safeCwd());
   const redactToken = makeTokenRedactor(config.token);
   const loggerSink =
     inject.logger ??

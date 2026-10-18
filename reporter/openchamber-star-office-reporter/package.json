@@ -1,6 +1,6 @@
 {
   "name": "openchamber-star-office-reporter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "OpenCode/OpenChamber plugin that reports agent activity (tool calls, edits, commands, sessions) to a Star Office UI dashboard via ADR-035 schema-v1 events. Zero dependencies, non-blocking, credentials redacted, Bearer ingest token support.",
   "type": "module",
   "main": "./openchamber-star-office-reporter.js",

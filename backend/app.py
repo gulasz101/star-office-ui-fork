@@ -189,6 +189,12 @@ if SOU_MODE == sou_mode.MODE_PUBLIC:
     db.init(read_only=True)
 else:
     init_database()
+    if SOU_MODE == sou_mode.MODE_INGEST:
+        with db.session_scope() as _session:
+            _active = sum(db.active_token_counts(_session).values())
+        _env = len(INGEST_STORE.mapping()) if INGEST_STORE is not None else 0
+        print(f"[ingest] tokens: {_active} registered in the database, {_env} from "
+              f"SOU_INGEST_TOKENS (deprecated)", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------

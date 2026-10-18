@@ -515,9 +515,15 @@ class CliTest(unittest.TestCase):
         self.assertEqual(agent, "hermes")
         # The plaintext token is exactly the one the printed digest hashes to,
         # and it appears exactly once in the output.
-        token_match = re.search(r"\b([A-Za-z0-9_-]{32,})\b", out.replace(digest, ""))
-        self.assertIsNotNone(token_match, f"no token visible in:\n{out}")
-        token = token_match.group(1)
+        # The token is the indented line right after the "one-time token" header. Reading it by
+        # position, not by a \b-anchored regex: token_urlsafe() can start with "-" or "_", and
+        # \b never matches between a space and "-", so the regex dropped the first character
+        # about one run in sixteen (the v2.2.0 tag CI).
+        lines = out.splitlines()
+        header = next((i for i, l in enumerate(lines) if "one-time token" in l), None)
+        self.assertIsNotNone(header, f"no token header in:\n{out}")
+        token = lines[header + 1].strip()
+        self.assertRegex(token, r"^[A-Za-z0-9_-]{32,}$", f"no token visible in:\n{out}")
         self.assertEqual(sha(token), digest, "printed line must hash to the printed token")
         self.assertEqual(out.count(token), 1, "plaintext token must be printed exactly once")
         self.assertNotIn(digest, token)

@@ -2,6 +2,7 @@ import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
+import { loaderProgress, loaderDone } from './loader.js';
 import { weather, Cats } from './ambience.js';
 import { RoomCard } from './card.js';
 import { Roster } from './roster.js';
@@ -39,6 +40,7 @@ class OfficeScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.on('progress', loaderProgress); // SOU-300: the loading screen's bar
     for (const t of ROOM_TYPES) this.load.tilemapTiledJSON(`room-${t}`, `maps/rooms/${t}.json`);
     this.load.image('tiles-placeholder', 'assets/placeholder/tiles.png');
     // Generated art (SOU-158 contract). Any file that's missing falls back to its placeholder,
@@ -92,6 +94,7 @@ class OfficeScene extends Phaser.Scene {
     this.card = new RoomCard(() => this.rig.overview());
     this.events.on('room-focus', (o) => (o ? this.card.show(o) : this.card.hide()));
     this.rig = new CameraRig(this, this.building);
+    this.game.events.once('postrender', loaderDone); // the first drawn frame takes the loader away
     // the on-screen camera pad (SOU-299): the same moves as + − Esc F
     const pad = document.getElementById('controls');
     if (pad) {

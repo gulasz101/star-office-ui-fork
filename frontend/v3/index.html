@@ -45,6 +45,24 @@
     #hud { position: fixed; left: 8px; bottom: 6px; font: 11px monospace; color: #8a8fa3; pointer-events: none; }
     .hint-touch { display: none; }
 
+    /* loading screen (SOU-300): on screen from the first paint, before any script runs */
+    #loader { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+      background: #14161f; transition: opacity .4s; }
+    #loader.done { opacity: 0; pointer-events: none; }
+    .loader-panel { width: min(300px, calc(100vw - 48px)); padding: 16px 18px 14px; background: #2a1c12;
+      border: 3px solid #6b4428; box-shadow: 0 0 0 2px #120a06, 0 8px 32px #0009; color: #f4ead2; font: 12px monospace; text-align: center; }
+    .loader-title { font-size: 15px; color: #ffcf7a; letter-spacing: 2px; margin-bottom: 4px; }
+    .loader-glow { width: 8px; height: 8px; margin: 0 auto 10px; background: #ffb35a; box-shadow: 0 0 12px 4px #ffb35a88;
+      animation: loader-flicker 1.6s steps(4) infinite; }
+    .loader-bar { height: 12px; background: #120a06; border: 2px solid #6b4428; padding: 2px; margin: 10px 0 8px; overflow: hidden; }
+    .loader-fill { height: 100%; width: 0; background: repeating-linear-gradient(90deg, #ffcf7a 0 8px, #e0a54e 8px 12px);
+      transition: width .2s steps(6); }
+    #loader.indeterminate .loader-fill { width: 30%; animation: loader-slide 1.2s steps(10) infinite; }
+    .loader-label { color: #c9a77c; min-height: 1.4em; }
+    @keyframes loader-slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+    @keyframes loader-flicker { 0%, 100% { opacity: 1; } 50% { opacity: .7; } 75% { opacity: .9; } }
+    @media (prefers-reduced-motion: reduce) { .loader-glow, #loader.indeterminate .loader-fill { animation: none; } }
+
     /* camera pad (SOU-299): on every device, a tap target on touch ones */
     #controls { position: fixed; right: 12px; bottom: 56px; display: flex; flex-direction: column; gap: 6px; }
     #controls button { width: 34px; height: 34px; padding: 0; cursor: pointer; background: #2a1c12e6;
@@ -81,6 +99,24 @@
   </style>
 </head>
 <body>
+  <div id="loader" class="indeterminate" role="status" aria-live="polite">
+    <div class="loader-panel">
+      <div class="loader-glow"></div>
+      <div class="loader-title">THE LODGE</div>
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+      <div class="loader-label">lighting the lodge…</div>
+    </div>
+  </div>
+  <script>
+    // SOU-300: never a silent spinner. Slow or broken loads say so.
+    (function () {
+      var say = function (t) { var l = document.querySelector('#loader .loader-label'); if (l) l.textContent = t; };
+      window.__loaderSlow = setTimeout(function () { say('still loading… check your connection'); }, 20000);
+      window.addEventListener('error', function (e) {
+        if (e.target && (e.target.tagName === 'SCRIPT')) say('could not load the lodge — reload to try again');
+      }, true);
+    })();
+  </script>
   <div id="game"></div>
   <div id="caption"></div>
   <div id="card"></div>

@@ -89,9 +89,18 @@ class OfficeScene extends Phaser.Scene {
     this.building = new Building(this, SEASON);
     for (const id of PINNED.length ? PINNED : DEMO ? ['demo-agent'] : []) this.building.addOffice(id, { arrive: false });
 
-    this.card = new RoomCard();
+    this.card = new RoomCard(() => this.rig.overview());
     this.events.on('room-focus', (o) => (o ? this.card.show(o) : this.card.hide()));
     this.rig = new CameraRig(this, this.building);
+    // the on-screen camera pad (SOU-299): the same moves as + − Esc F
+    const pad = document.getElementById('controls');
+    if (pad) {
+      const acts = { in: () => this.rig.zoomStep(1), out: () => this.rig.zoomStep(-1), home: () => this.rig.overview(), next: () => this.rig.cycle() };
+      pad.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-act]');
+        if (b && acts[b.dataset.act]) acts[b.dataset.act]();
+      });
+    }
     this.roster = new Roster((o) => this.rig.focus(o));
     const renderRoster = () => this.roster.render(this.building.offices.values(), this.rig.focused);
     this.events.on('room-focus', renderRoster);

@@ -211,17 +211,8 @@ INGEST_AGENT_TYPE = "guest"
 
 
 def find_agent_by_name(session, name: str):
-    """The registry row whose name matches, ignoring case and padding.
-
-    Migration 001 puts no unique index on ``agents.name``, so reuse is a
-    lookup contract, not a database one: the first spelling registered is the
-    canonical one and later events must find it, not create a twin.
-    """
-    wanted = (name or "").strip().lower()
-    for row in db.list_agents(session):
-        if (row.name or "").strip().lower() == wanted:
-            return row
-    return None
+    """The registry row whose name matches, ignoring case and padding (db.py)."""
+    return db.find_agent_by_name(session, name)
 
 
 def ingest_event(data, dedupe: bool = False, safe_projection: bool = True):

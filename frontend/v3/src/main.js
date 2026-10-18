@@ -2,13 +2,14 @@ import { COLORS, TILE } from './config.js';
 import { Building } from './building.js';
 import { FeedState } from './feed.js';
 import { CameraRig } from './camera.js';
-import { weather, CorridorCat } from './ambience.js';
+import { weather, Cats } from './ambience.js';
 import { RoomCard } from './card.js';
 import { Roster } from './roster.js';
 import { detectFace, agentsUrl, feedUrl, normalise } from './api.js';
 import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 import { SEASONS, TREE_FILES, pickSeason } from './seasons.js';
+import { COATS, CAT_FRAME_W, CAT_FRAME_H, FIGHT_CLOUD, coatKey, coatFile, pickCoat } from './cats.js';
 
 export const ART_SET = 'office-01';
 
@@ -24,6 +25,9 @@ const POLL_MS = 1500;
 // path, trees, night tint and weather outside the Lodge all come from this one choice.
 const SEASON = pickSeason(location.search);
 const SEASON_LABEL = SEASONS[SEASON].label;
+// SOU-278: ?cats=0 puts every cat back on the Lodge's single sheet (the pre-ticket look), and
+// ?art=0 is the no-generated-art comparison mode, so neither loads the seven coat files.
+const CAT_ART = params.get('art') !== '0' && params.get('cats') !== '0';
 const hud = (text) => {
   const el = document.getElementById('status');
   if (el) el.textContent = text;
@@ -47,6 +51,15 @@ class OfficeScene extends Phaser.Scene {
         this.load.spritesheet(`prop-${name}`, path, { frameWidth, frameHeight });
       }
       this.load.spritesheet(`sheet-${ART_SET}`, `${base}/character/${ART_SET}.png`, { frameWidth: 32, frameHeight: 48 });
+      // SOU-278: the seven coats and the fight cloud (SOU-277's art). A file that is not there yet is
+      // no problem — ambience.js draws a placeholder sheet under the same key, so the coat still
+      // exists and the real PNG takes over the day it lands.
+      if (CAT_ART) {
+        for (const coat of COATS) {
+          this.load.spritesheet(coatKey(coat), coatFile(coat), { frameWidth: CAT_FRAME_W, frameHeight: CAT_FRAME_H });
+        }
+        this.load.spritesheet(FIGHT_CLOUD.key, FIGHT_CLOUD.file, { frameWidth: FIGHT_CLOUD.frameWidth, frameHeight: FIGHT_CLOUD.frameHeight });
+      }
       // the Lodge set (SOU-198) is optional until it lands; lodge.js draws what's missing
       if (params.get('lodge') !== '0') {
         this.load.image('lodge-tiles', 'assets/lodge/tiles.png');
@@ -90,13 +103,24 @@ class OfficeScene extends Phaser.Scene {
       this.weather = weather(this, this.building, SEASON);
     });
     // owner: "more agents <=> more cats in corridor": one cat per room, at least one, at most 8
-    this.cats = [];
-    const topUpCats = () => {
-      const want = Math.max(1, Math.min(8, this.building.offices.size));
-      while (this.cats.length < want) this.cats.push(new CorridorCat(this, this.building));
-    };
+    // SOU-278: main.js hands out the coats — each new cat wears one no other cat has until all
+    // seven have been out, after which any coat may come round again.
+    const coats = [];
+    this.cats = new Cats(this, this.building, {
+      art: CAT_ART,
+      nextCoat: () => {
+        const coat = pickCoat(Math.random, coats);
+        coats.push(coat);
+        return coat;
+      },
+    });
+    const topUpCats = () => this.cats.topUp();
     topUpCats();
     this.events.on('building-grew', topUpCats);
+    // the recording hook this ticket asks for: window.__lodge.cats.force('fight') runs one
+    // interaction on the nearest pair, ignoring the roll and the cooldown (a second fight while one
+    // is already on screen is still refused — that rule has no exception)
+    window.__lodge = { cats: this.cats, scene: this };
 
     const toggleDebug = () => {
       for (const o of this.building.offices.values()) o.toggleDebug();

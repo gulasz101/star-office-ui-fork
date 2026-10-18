@@ -1,7 +1,7 @@
 # Star Office UI fork (SOU) — agent instructions
 
-`AGENTS.md` is a symlink to this file. Claude Code, the OpenChamber worker and Szarik
-all read the same text: if it is wrong for one of you, fix it here, never in a copy.
+`AGENTS.md` is a symlink to this file. Every agent working here reads the same text: if it
+is wrong for one of you, fix it here, never in a copy.
 
 ## What we are building
 
@@ -20,18 +20,24 @@ screen", not for ceremony.
 - **Every agent gets its own office.** When a new agent joins, a new office module is
   appended to the building, laid out so the whole thing grows in a visually pleasing way
   (a neighbourhood or office floor that expands, not a stack of identical boxes).
-- **Each office reflects its agent**: the desk, the props and the character come from the
-  agent's own personality, e.g. a homelab rack, a bass guitar, a boxy 90s van in a garage
-  nook, a cat in a box.
+- **Each office reflects its agent**: its room type and character tint are the agent's
+  **room personality**, registered with its token in the database (`backend/tokens.py`,
+  `docs/public-lodge.md`). The repo holds no agent names: unregistered agents get the
+  factory room.
 - **Activity is visible**: tool calls move the character to a zone (desk = editing,
   rack = shell/ops, garage = long builds and deploys, bookshelf = reading/search,
   coffee = waiting, couch = idle) with a speech bubble saying what it is doing.
 
-### Current milestone — M1 (Phase 11, see the board)
+### Where it runs
 
-One office, one agent, live: the character moves between zones and works, driven by real
-events, and you can tell from the screen what it is doing. M2 (multiple offices growing
-next to each other) comes after M1 is accepted by the owner.
+- Public, read-only: https://lodge.voitech.dev. Every agent posts to the private ingest
+  (LAN/Netbird) with its own token. Both run on the homelab k3s from `homelab-2nd`
+  `apps/star-office`.
+- **Releasing is tagging**: tag `vX.Y.Z` on master, then the tag CI publishes the image
+  and Flux image automation deploys it by itself. Announce a release only once the tag CI
+  is green.
+- Cluster and gitops changes go to Andrzej through the H2 board (skill `andrzej`); this
+  repo never pushes to `homelab-2nd`.
 
 ## Architecture
 
@@ -40,8 +46,9 @@ next to each other) comes after M1 is accepted by the owner.
 | Backend (Flask) | `backend/app.py`, `backend/db.py`, `backend/event_schema.py` | Keep. Postgres primary, SQLite for local dev. |
 | Event ingest | `POST /events`, schema `backend/schemas/event_v1.json` (ADR-035) | Keep. Extra fields allowed. |
 | Event feed | `GET /events/recent?agent=&event_type=&since=&limit=` | Keep. Newest first. |
+| Agent registry | `backend/tokens.py` (`register`, `set-room`, `list`, `revoke`), migration 004 (`ingest_tokens`, `agents.room_type` / `hoodie`), `docs/public-lodge.md` | Tokens and room personality live in the DB; `/events/agents` and `/public/agents` carry `room`. |
 | **v3 renderer** | `frontend/v3/` — Phaser **4.2.1**, served by Flask | **New, all new frontend work goes here.** |
-| Reporters | `reporter/` (OpenChamber/OpenCode), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`) | Keep, add more. |
+| Reporters | `reporter/` (OpenChamber/OpenCode, vendored from its repo; `routes` give one engine a room per workspace), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`) | Keep, add more. |
 | Art pipeline | FLUX.2-klein-4B on the M1 Max (MPS), pixelize post-process | Keep. Mac-side only. |
 
 Event types in use (non-normative, new ones are allowed without a schema change):
@@ -56,7 +63,8 @@ Event types in use (non-normative, new ones are allowed without a schema change)
 - Maps are **Tiled JSON (orthogonal)**, authored as data, loaded with Phaser's tilemap
   loader. Positions are tile coordinates; pixel maths stays inside the renderer.
 - One office = one `OfficeModule`: its own map chunk, zones, props and character, placed
-  at an origin offset in the world. Never hardcode a single office; M2 depends on this.
+  at an origin offset in the world. Never hardcode an office or an agent name: a room's
+  look comes from the API's `room` field (`frontend/v3/src/rooms.js`).
 - Zones are named rectangles or points in the Tiled object layer (`work`, `ops`, `build`,
   `read`, `wait`, `rest`, `entry`). The event → zone/activity mapping is plain data.
 - Depth: sort by y (feet position). Pixel art: `pixelArt: true`, integer zoom, no
@@ -88,10 +96,12 @@ never put secrets, tokens or keys in a ticket, comment, commit or file.**
 Roles:
 - **Claude Code** — manager and visual lead. Plans, files tickets, builds the renderer
   core, reviews every delivery by running it and looking at it.
-- **OpenChamber worker** (t460, `@openchamber`) — delegated implementation tickets:
-  reporters, data modules, tests, backend work, chores.
-- **Szarik** (Hermes on the M1 Max, `@szarik`) — Mac-side work: FLUX generation,
-  anything that needs the Mac GPU or Hermes.
+- **Szarik** (Hermes on the M1 Max, `@szarik`) — delegated implementation tickets and
+  Mac-side work: FLUX generation, anything that needs the Mac GPU or Hermes.
+- **OpenChamber worker** (in-cluster OpenChamber via the SOU runner, `@openchamber`) —
+  delegated implementation tickets when its model quota allows.
+- **Andrzej** (Hermes, homelab manager) — cluster, Flux and gitops work, through the H2
+  board, never the SOU board.
 
 Rules for everyone:
 1. **Work on a ticket or it didn't happen.** Move it to In Progress when you start;
@@ -122,7 +132,15 @@ curl -s -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json
   -d '{"version":1,"agent":"claude","event_type":"tool_call","timestamp":"2026-10-16T12:00:00Z","payload":{"tool":"Edit","status":"ok"}}'
 ```
 
-Tests: `uv run pytest backend/tests` (Python), `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form fails on Node 22/26). Smoke a running backend: `uv run python scripts/smoke_test.py --base-url http://127.0.0.1:19000` (read-only; `--write` also posts an event, scratch backends only).
+Tests (CI runs all of these on every push, `.github/workflows/docker-image.yml`):
+- `uv run pytest backend/tests` (Python, SQLite). For the Postgres legs, run
+  `scripts/dev_postgres.sh start`, then the same command with `TEST_POSTGRES_URL` set to the URL it prints.
+- `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form
+  fails on Node 22/26).
+- `cd reporter/openchamber-star-office-reporter && uv run --project ../.. npm test` (the vendored reporter).
+
+Smoke a running backend: `uv run python scripts/smoke_test.py --base-url http://127.0.0.1:19000`
+(read-only; `--write` also posts an event, scratch backends only).
 
 ## History, in brief
 
@@ -134,3 +152,6 @@ v1 renderer, then by a Python-generated isometric pipeline. Both were dropped on
 Phase 13 made it safe to publish (sanitised ingest, per-agent tokens, `SOU_MODE` faces)
 and deleted the v1 renderer and its routes (SOU-226, 2026-10-17). That work stays in git
 history and on the `sou-*` branches; the FLUX pipeline and the generated assets carry over.
+v2.0.0 went public on k3s (2026-10-18). v2.1 added random seasons, and v2.2 cats with coats
+that play and fight. v2.3 moved tokens and room personality into the database, and every
+agent now reports centrally.

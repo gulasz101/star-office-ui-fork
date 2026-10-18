@@ -294,11 +294,14 @@ jobs:
           echo "GET /events/recent -> 404, POST /events -> $code"
 
           echo "--- SOU_MIGRATE=0: this container never ran a migration ---"
-          if docker logs sou-public 2>&1 | grep -q 'alembic upgrade head'; then
+          # read the logs once: `docker logs | grep -q` under pipefail dies of SIGPIPE (141)
+          # when grep quits early on a match
+          public_logs=$(docker logs sou-public 2>&1)
+          if grep -q 'alembic upgrade head' <<<"$public_logs"; then
             echo "FAIL: the public container ran migrations; SOU_MIGRATE=0 was ignored"
             exit 1
           fi
-          docker logs sou-public 2>&1 | grep -q 'SOU_MIGRATE=0: skipping migrations'
+          grep -q 'SOU_MIGRATE=0: skipping migrations' <<<"$public_logs"
           echo "no 'alembic upgrade head' in the logs, and the skip notice is there"
           docker rm -f sou-public
 

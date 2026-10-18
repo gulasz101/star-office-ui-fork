@@ -296,7 +296,7 @@ class EventsRecentTest(unittest.TestCase):
 
 
 # The exact key set SOU-201 spells for one /events/agents entry.
-AGENTS_ENTRY_KEYS = {"agent", "first_seen", "last_seen", "count", "last_event"}
+AGENTS_ENTRY_KEYS = {"agent", "first_seen", "last_seen", "count", "last_event", "room"}  # room: SOU-293
 
 
 def floor(seconds: int = -1) -> str:

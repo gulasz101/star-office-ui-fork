@@ -461,20 +461,21 @@ def events_agents_endpoint():
         )
 
     with db.session_scope() as session:
-        names = {a.id: a.name for a in db.list_agents(session)}
+        agents = {a.id: a for a in db.list_agents(session)}
         entries = []
         for agent_id, first_seen, last_seen, count, newest_row in db.agent_activity(
             session, since
         ):
-            name = names.get(agent_id)
-            if name is None:  # pragma: no cover - FK cascade makes this unreachable
+            agent = agents.get(agent_id)
+            if agent is None:  # pragma: no cover - FK cascade makes this unreachable
                 continue
             entries.append({
-                "agent": name,
+                "agent": agent.name,
                 "first_seen": _iso_instant(first_seen),
                 "last_seen": _iso_instant(last_seen),
                 "count": count,
-                "last_event": feed_item(newest_row, name),
+                "last_event": feed_item(newest_row, agent.name),
+                "room": agent_room(agent),
             })
     return jsonify(entries)
 
@@ -521,6 +522,16 @@ def public_feed_item(row, name):
     }
 
 
+def agent_room(agent):
+    """An agent's room personality as the renderer reads it (SOU-293):
+    ``{"type": <room type|None>, "hoodie": <{h,s,v}|None>}``. Only these two
+    fields, on every face; tokens never leave the database."""
+    hoodie = agent.hoodie if isinstance(agent.hoodie, dict) else None
+    if hoodie is not None:
+        hoodie = {k: hoodie[k] for k in ("h", "s", "v") if k in hoodie} or None
+    return {"type": agent.room_type, "hoodie": hoodie}
+
+
 @app.route("/public/feed", methods=["GET"])
 def public_feed_endpoint():
     """The viewer's feed: sanitised projection, newest first (SOU-220).
@@ -557,7 +568,7 @@ def public_agents_endpoint():
 
     The public-face twin of GET /events/agents (SOU-201): one entry per
     agent with activity at or after ``since`` (default now − 24 h),
-    newest first, ``{agent, first_seen, last_seen, count, last_event}`` —
+    newest first, ``{agent, first_seen, last_seen, count, last_event, room}`` —
     and ``last_event`` is a ``public_feed_item``, not a ``feed_item``:
     no id, payload projected here at the door. Same cache and CORS
     contract as /public/feed.
@@ -572,20 +583,21 @@ def public_agents_endpoint():
         )
 
     with db.session_scope() as session:
-        names = {a.id: a.name for a in db.list_agents(session)}
+        agents = {a.id: a for a in db.list_agents(session)}
         entries = []
         for agent_id, first_seen, last_seen, count, newest_row in db.agent_activity(
             session, since
         ):
-            name = names.get(agent_id)
-            if name is None or name in PUBLIC_HIDDEN_AGENTS:
+            agent = agents.get(agent_id)
+            if agent is None or agent.name in PUBLIC_HIDDEN_AGENTS:
                 continue
             entries.append({
-                "agent": name,
+                "agent": agent.name,
                 "first_seen": _iso_instant(first_seen),
                 "last_seen": _iso_instant(last_seen),
                 "count": count,
-                "last_event": public_feed_item(newest_row, name),
+                "last_event": public_feed_item(newest_row, agent.name),
+                "room": agent_room(agent),
             })
     return jsonify(entries)
 

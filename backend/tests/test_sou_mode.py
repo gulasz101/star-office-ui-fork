@@ -297,6 +297,9 @@ print(json.dumps(out))
 FACES_DB = {}  # workdir + url, built once per run
 
 
+STYLED_TOKEN_HASH = "ab" * 32
+
+
 def _faces_db_url() -> str:
     """One throwaway SQLite file shared by the face subprocesses.
 
@@ -350,6 +353,11 @@ def _faces_db_url() -> str:
         db_mod.insert_event(session, canary.id, "background_end", {
             "task_id": "bg-canary-task-77", "kind": "shell", "label": "sleep", "status": "ok",
         })
+        # SOU-293: a registered agent with a room personality and a token
+        styled = db_mod.insert_agent(session, name="styled", agent_type="guest")
+        db_mod.set_agent_room(session, styled.id, "serverroom", {"h": 125, "s": 0.8, "v": 0.8})
+        db_mod.insert_token(session, styled.id, STYLED_TOKEN_HASH)
+        db_mod.insert_event(session, styled.id, "tool_call", {"tool": "Edit", "status": "ok"})
         session.commit()
     engine.dispose()
     return url
@@ -517,13 +525,25 @@ class PublicAgentsShapeTest(unittest.TestCase):
     def get(self, path) -> dict:
         return self.probes[f"GET {self.GETS.index(path)} {path}"]
 
+    def test_room_personality(self) -> None:
+        # SOU-293: the room comes from the agents row; unregistered -> nulls.
+        entries = {e["agent"]: e for e in self.get("/public/agents")["json"]}
+        self.assertEqual(entries["styled"]["room"],
+                         {"type": "serverroom", "hoodie": {"h": 125, "s": 0.8, "v": 0.8}})
+        self.assertEqual(entries["canary"]["room"], {"type": None, "hoodie": None})
+
+    def test_no_token_data_in_public_agents(self) -> None:
+        body = json.dumps(self.get("/public/agents")["json"])
+        self.assertNotIn(STYLED_TOKEN_HASH, body)
+        self.assertNotIn("token", body.lower())
+
     def test_entries_projected(self) -> None:
         entries = self.get("/public/agents")["json"]
         self.assertIsInstance(entries, list)
         self.assertIn("canary", {e["agent"] for e in entries})
         for e in entries:
             self.assertEqual(set(e), {"agent", "first_seen", "last_seen",
-                                      "count", "last_event"})
+                                      "count", "last_event", "room"})
             self.assertEqual(set(e["last_event"]), {"agent", "event_type",
                                                     "created_at", "payload"})
         text = json.dumps(entries)

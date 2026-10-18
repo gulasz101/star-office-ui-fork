@@ -9,7 +9,9 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { createPlugin, loadConfig } from "../openchamber-star-office-reporter.js";
+import { createPlugin, loadConfig, resolveRoute } from "../openchamber-star-office-reporter.js";
+// a HOME with no config file in it: the suite never reads the developer's own ~/.config/opencode
+const NO_HOME = "/nonexistent-sou-home";
 
 function mockCtx() {
   const hooks = { "execute.before": [], "execute.after": [] };
@@ -51,7 +53,7 @@ function harness(env = {}) {
   const events = [];
   const logs = [];
   const plugin = createPlugin({
-    config: loadConfig({ SOU_DASHBOARD_URL: "http://capture.test:19000", ...env }),
+    config: loadConfig({ HOME: NO_HOME, SOU_DASHBOARD_URL: "http://capture.test:19000", ...env }),
     fetch: async (url, init) => {
       events.push({ url, envelope: JSON.parse(init.body) });
       return { ok: true, status: 201 };
@@ -197,7 +199,7 @@ const TOK223 = "soutok-Adapter4TestToken-ABCDEFGHIJ0123456789";
 test("plugin: SOU_TOKEN reaches every POST the adapter fires", async () => {
   const seen = [];
   const plugin = createPlugin({
-    config: loadConfig({ SOU_DASHBOARD_URL: "http://capture.test:19000", SOU_TOKEN: TOK223 }),
+    config: loadConfig({ HOME: NO_HOME, SOU_DASHBOARD_URL: "http://capture.test:19000", SOU_TOKEN: TOK223 }),
     fetch: async (url, init) => {
       seen.push(init.headers);
       return { ok: true, status: 201 };
@@ -216,7 +218,7 @@ test("plugin: the SOU_DEBUG log file never carries the plaintext token", async (
   const dir = mkdtempSync(path.join(tmpdir(), "sou223-"));
   const logFile = path.join(dir, "reporter.log");
   const plugin = createPlugin({
-    config: loadConfig({
+    config: loadConfig({ HOME: NO_HOME,
       SOU_DASHBOARD_URL: "http://capture.test:19000",
       SOU_TOKEN: TOK223,
       SOU_DEBUG: "1",
@@ -234,4 +236,68 @@ test("plugin: the SOU_DEBUG log file never carries the plaintext token", async (
   assert.ok(text.length > 0, "sink failures were logged");
   assert.ok(!text.includes(TOK223), "plaintext token must not reach the debug file");
   assert.match(text, /\[redacted\]/);
+});
+
+// ---------------------------------------------------------------------------
+// Directory routes: one engine, several workspaces, one room each.
+// ---------------------------------------------------------------------------
+
+const ROUTES_FILE = JSON.stringify({
+  dashboardUrl: "http://capture.test:19000",
+  agent: "openchamber",
+  token: "tok-default-0000000000000000000000",
+  routes: [
+    { directory: "/storage/workspaces/homelab-2nd", agent: "itsaplan-h2", token: "tok-h2-000000000000000000000000000" },
+    { directory: "/storage/workspaces/star-office-ui-fork", agent: "itsaplan-sou", token: "tok-sou-00000000000000000000000000" },
+    { directory: "/storage/workspaces", agent: "workspaces-catchall" },
+    { directory: "", agent: "dropped-no-directory" },
+    { directory: "/x", agent: "" },
+  ],
+});
+const routesConfig = () => loadConfig({ HOME: NO_HOME }, { configPath: "/routes.json", readFile: () => ROUTES_FILE });
+
+test("routes: parsed from the config file, invalid entries dropped", () => {
+  const cfg = routesConfig();
+  assert.deepEqual(cfg.routes.map((r) => r.agent), ["itsaplan-h2", "itsaplan-sou", "workspaces-catchall"]);
+});
+
+test("routes: longest directory prefix wins, on path boundaries", () => {
+  const cfg = routesConfig();
+  const pick = (d) => resolveRoute(cfg, d);
+  assert.equal(pick("/storage/workspaces/homelab-2nd").agent, "itsaplan-h2");
+  assert.equal(pick("/storage/workspaces/homelab-2nd/apps/x").agent, "itsaplan-h2");
+  assert.equal(pick("/storage/workspaces/star-office-ui-fork").token, "tok-sou-00000000000000000000000000");
+  assert.equal(pick("/storage/workspaces/homelab-2nd-old").agent, "workspaces-catchall", "a sibling with the same prefix is not inside");
+  assert.equal(pick("/storage/workspaces/other").token, "tok-default-0000000000000000000000", "a route without a token keeps the default token");
+  assert.equal(pick("/home/someone/project").agent, "openchamber", "no match keeps the defaults");
+  assert.equal(resolveRoute(loadConfig({ HOME: NO_HOME }), "/anything").agent, "openchamber", "no routes at all");
+});
+
+test("routes: each OpenCode instance reports as its own agent with its own token", async () => {
+  const seen = [];
+  const plugin = createPlugin({
+    config: routesConfig(),
+    fetch: async (url, init) => {
+      seen.push({ agent: JSON.parse(init.body).agent, auth: init.headers.Authorization });
+      return { ok: true, status: 201 };
+    },
+    logger: () => {},
+  });
+  for (const directory of ["/storage/workspaces/homelab-2nd", "/storage/workspaces/star-office-ui-fork"]) {
+    const ctx = mockCtx();
+    ctx.location.directory = directory;
+    const cleanup = await plugin.setup(ctx);
+    await cleanup();
+  }
+  const h2 = seen.filter((s) => s.agent === "itsaplan-h2");
+  const sou = seen.filter((s) => s.agent === "itsaplan-sou");
+  assert.ok(h2.length >= 2 && sou.length >= 2, "session_start and session_end from each instance");
+  for (const s of h2) assert.equal(s.auth, "Bearer tok-h2-000000000000000000000000000");
+  for (const s of sou) assert.equal(s.auth, "Bearer tok-sou-00000000000000000000000000");
+});
+
+test("routes: OPENCODE_CONFIG_DIR is a config-file candidate", () => {
+  const read = [];
+  loadConfig({ HOME: NO_HOME, OPENCODE_CONFIG_DIR: "/storage/opencode-config" }, { readFile: (f) => { read.push(f); return null; } });
+  assert.ok(read.includes(path.join("/storage/opencode-config", "star-office-reporter.json")), read.join(", "));
 });

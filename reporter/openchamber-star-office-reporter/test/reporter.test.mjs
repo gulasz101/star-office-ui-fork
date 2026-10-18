@@ -4,6 +4,9 @@
 // the pure core (config, envelope, privacy, transport) exactly the way the
 // OpenCode adapter will use it.
 
+// a HOME with no config file in it: the suite never reads the developer's own ~/.config/opencode
+const NO_HOME = "/nonexistent-sou-home";
+
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -42,7 +45,7 @@ const BACKEND = path.join(REPO_ROOT, "backend", "event_schema.py");
 // ---------------------------------------------------------------------------
 
 test("loadConfig: safe defaults with no env", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   assert.equal(cfg.dashboardUrl, DEFAULTS.dashboardUrl);
   assert.equal(cfg.agent, "openchamber"); // AC4 default agent name
   assert.equal(cfg.timeoutMs, 5000); // AC4 recommended timeout
@@ -52,7 +55,7 @@ test("loadConfig: safe defaults with no env", () => {
 });
 
 test("loadConfig: env overrides (SOU_DASHBOARD_URL, SOU_AGENT_NAME)", () => {
-  const cfg = loadConfig({
+  const cfg = loadConfig({ HOME: NO_HOME,
     SOU_DASHBOARD_URL: "http://192.168.1.119:19000/",
     SOU_AGENT_NAME: "opencode",
     SOU_TIMEOUT_MS: "2500",
@@ -65,18 +68,18 @@ test("loadConfig: env overrides (SOU_DASHBOARD_URL, SOU_AGENT_NAME)", () => {
 
 test("loadConfig: enable/disable reporting", () => {
   for (const off of ["0", "false", "no", "off"]) {
-    assert.equal(loadConfig({ SOU_REPORTER_ENABLED: off }).enabled, false, off);
+    assert.equal(loadConfig({ HOME: NO_HOME, SOU_REPORTER_ENABLED: off }).enabled, false, off);
   }
   for (const on of ["1", "true", "yes", "on", ""]) {
-    assert.equal(loadConfig({ SOU_REPORTER_ENABLED: on }).enabled, true, on);
+    assert.equal(loadConfig({ HOME: NO_HOME, SOU_REPORTER_ENABLED: on }).enabled, true, on);
   }
 });
 
 test("loadConfig: bad timeout falls back, sane bounds", () => {
-  assert.equal(loadConfig({ SOU_TIMEOUT_MS: "abc" }).timeoutMs, 5000);
-  assert.equal(loadConfig({ SOU_TIMEOUT_MS: "-10" }).timeoutMs, 5000);
-  assert.equal(loadConfig({ SOU_TIMEOUT_MS: "999999" }).timeoutMs, DEFAULTS.maxTimeoutMs);
-  assert.equal(loadConfig({ SOU_TIMEOUT_MS: "800" }).timeoutMs, 800);
+  assert.equal(loadConfig({ HOME: NO_HOME, SOU_TIMEOUT_MS: "abc" }).timeoutMs, 5000);
+  assert.equal(loadConfig({ HOME: NO_HOME, SOU_TIMEOUT_MS: "-10" }).timeoutMs, 5000);
+  assert.equal(loadConfig({ HOME: NO_HOME, SOU_TIMEOUT_MS: "999999" }).timeoutMs, DEFAULTS.maxTimeoutMs);
+  assert.equal(loadConfig({ HOME: NO_HOME, SOU_TIMEOUT_MS: "800" }).timeoutMs, 800);
 });
 
 // ---------------------------------------------------------------------------
@@ -84,7 +87,7 @@ test("loadConfig: bad timeout falls back, sane bounds", () => {
 // ---------------------------------------------------------------------------
 
 test("buildEnvelope: exact schema v1 envelope shape", () => {
-  const cfg = loadConfig({ SOU_AGENT_NAME: "openchamber" });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_AGENT_NAME: "openchamber" });
   const env = buildEnvelope(cfg, "tool_call", { tool: "bash", status: "completed" }, new Date("2026-10-14T10:00:00Z"));
   assert.deepEqual(Object.keys(env).sort(), ["agent", "event_type", "payload", "timestamp", "version"]);
   assert.equal(env.version, 1);
@@ -95,7 +98,7 @@ test("buildEnvelope: exact schema v1 envelope shape", () => {
 });
 
 test("buildEnvelope: rejects empty agent and unknown event type strings", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   assert.throws(() => buildEnvelope(cfg, "", {}), /event_type/);
   assert.throws(() => buildEnvelope({ ...cfg, agent: " " }, "tool_call", {}), /agent/);
 });
@@ -103,7 +106,7 @@ test("buildEnvelope: rejects empty agent and unknown event type strings", () => 
 // The strongest schema proof available: hand real generated envelopes to the
 // dashboard's own Python validator (backend/event_schema.py, ADR-035).
 test("buildEnvelope: accepted by backend event_schema.validate_event", { skip: !existsSync(BACKEND) && "backend validator not present" }, () => {
-  const cfg = loadConfig({ SOU_AGENT_NAME: "openchamber" });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_AGENT_NAME: "openchamber" });
   const envelopes = [
     buildEnvelope(cfg, "session_start", { directory: "/tmp/x" }),
     buildEnvelope(cfg, "tool_call", { tool: "bash", status: "completed", duration_ms: 12 }),
@@ -147,7 +150,7 @@ function fileExistsSync(p) {
 // ---------------------------------------------------------------------------
 
 test("redactPayload: secret-shaped values are scrubbed from strings", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const cases = [
     ["token sk-ABCDEFGHIJKLMNOP1234 done", /sk-[A-Za-z0-9]{8,}/],
     ["export GITHUB_TOKEN=ghp_16C4e9Vj0Yq0M2r8Tt6ZaBcDeFgHiJkLmNoP", /ghp_[A-Za-z0-9]+/], // gitleaks:allow
@@ -165,7 +168,7 @@ test("redactPayload: secret-shaped values are scrubbed from strings", () => {
 });
 
 test("redactPayload: secret-named keys drop their values anywhere in the tree", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const input = {
     api_key: "super-secret-1",
     nested: { Authorization: "Bearer whatever", token: "t0k3n" },
@@ -182,7 +185,7 @@ test("redactPayload: secret-named keys drop their values anywhere in the tree", 
 });
 
 test("redactPayload: long outputs are truncated", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const huge = "x".repeat(100_000);
   const out = redactPayload({ output: huge }, cfg);
   assert.ok(out.output.length <= cfg.maxFieldChars + 40, "field must be capped");
@@ -190,7 +193,7 @@ test("redactPayload: long outputs are truncated", () => {
 });
 
 test("redactPayload: total payload stays within the backend cap (65536)", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const fat = {};
   for (let i = 0; i < 40; i++) fat[`chunk_${i}`] = "y".repeat(8000);
   const out = redactPayload(fat, cfg);
@@ -224,7 +227,7 @@ test("classifyTool: file-edit and command families", () => {
 test("createReporter: report() is fire-and-forget and never blocks the hook", async () => {
   let release;
   const hangingFetch = () => new Promise((res) => (release = res));
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const rep = createReporter(cfg, { fetch: hangingFetch, logger: () => {} });
   const t0 = process.hrtime.bigint();
   const p = rep.report("tool_call", { tool: "bash" });
@@ -239,7 +242,7 @@ test("createReporter: report() is fire-and-forget and never blocks the hook", as
 
 test("createReporter: posts v1 JSON to <dashboard>/events", async () => {
   const seen = [];
-  const cfg = loadConfig({ SOU_DASHBOARD_URL: "http://dash.test:19000/" });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_DASHBOARD_URL: "http://dash.test:19000/" });
   const rep = createReporter(cfg, {
     fetch: async (url, init) => {
       seen.push({ url, init });
@@ -261,7 +264,7 @@ test("createReporter: posts v1 JSON to <dashboard>/events", async () => {
 
 test("createReporter: dashboard failure never escapes as an error", async () => {
   const logs = [];
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   const rep = createReporter(cfg, {
     fetch: async () => {
       throw new Error("ETIMEDOUT connect");
@@ -277,7 +280,7 @@ test("createReporter: dashboard failure never escapes as an error", async () => 
 
 test("createReporter: 400 from dashboard is logged and counted", async () => {
   const logs = [];
-  const rep = createReporter(loadConfig({}), {
+  const rep = createReporter(loadConfig({ HOME: NO_HOME, HOME: NO_HOME }), {
     fetch: async () => ({ ok: false, status: 400 }),
     logger: (m) => logs.push(m),
   });
@@ -288,7 +291,7 @@ test("createReporter: 400 from dashboard is logged and counted", async () => {
 
 test("createReporter: disabled config sends nothing (enable/disable AC)", async () => {
   let calls = 0;
-  const cfg = loadConfig({ SOU_REPORTER_ENABLED: "0" });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_REPORTER_ENABLED: "0" });
   const rep = createReporter(cfg, {
     fetch: async () => {
       calls++;
@@ -303,7 +306,7 @@ test("createReporter: disabled config sends nothing (enable/disable AC)", async 
 
 test("createReporter: flush drains inflight within a bound", async () => {
   let release;
-  const rep = createReporter(loadConfig({}), {
+  const rep = createReporter(loadConfig({ HOME: NO_HOME, HOME: NO_HOME }), {
     fetch: () => new Promise((res) => (release = res)),
     logger: () => {},
   });
@@ -319,12 +322,12 @@ test("createReporter: flush drains inflight within a bound", async () => {
 // ---------------------------------------------------------------------------
 
 test("loadConfig: token unset by default", () => {
-  const cfg = loadConfig({});
+  const cfg = loadConfig({ HOME: NO_HOME, HOME: NO_HOME });
   assert.ok(!cfg.token, "no SOU_TOKEN, no config token -> no token");
 });
 
 test("loadConfig: SOU_TOKEN env picked up and trimmed", () => {
-  const cfg = loadConfig({ SOU_TOKEN: "  tok-abc123  " });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_TOKEN: "  tok-abc123  " });
   assert.equal(cfg.token, "tok-abc123");
 });
 
@@ -345,7 +348,7 @@ test("loadConfig: env SOU_TOKEN overrides config-file token", () => {
 });
 
 test("loadConfig: blank token means unset", () => {
-  assert.ok(!loadConfig({ SOU_TOKEN: "   " }).token);
+  assert.ok(!loadConfig({ HOME: NO_HOME, SOU_TOKEN: "   " }).token);
   const cfg = loadConfig(
     {},
     { configPath: "/virtual/star-office-reporter.json", readFile: () => JSON.stringify({ token: "" }) }
@@ -361,7 +364,7 @@ const TOK = "soutok-Unit4TestToken-abcdefghij0123456789";
 
 test("createReporter: sends Authorization Bearer header when a token is configured", async () => {
   const seen = [];
-  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_TOKEN: TOK });
   const rep = createReporter(cfg, {
     fetch: async (url, init) => {
       seen.push(init.headers);
@@ -376,7 +379,7 @@ test("createReporter: sends Authorization Bearer header when a token is configur
 
 test("createReporter: no Authorization header when no token is configured", async () => {
   const seen = [];
-  const rep = createReporter(loadConfig({}), {
+  const rep = createReporter(loadConfig({ HOME: NO_HOME, HOME: NO_HOME }), {
     fetch: async (url, init) => {
       seen.push(init.headers);
       return { ok: true, status: 201 };
@@ -389,7 +392,7 @@ test("createReporter: no Authorization header when no token is configured", asyn
 
 test("createReporter: failure lines handed to the logger never carry the plaintext token", async () => {
   const logs = [];
-  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_TOKEN: TOK });
   const rep = createReporter(cfg, {
     fetch: async () => {
       throw new Error(`connect failed with header Authorization: Bearer ${TOK} in diagnostic`);
@@ -404,7 +407,7 @@ test("createReporter: failure lines handed to the logger never carry the plainte
 
 test("createReporter: 401 without a token hints at SOU_TOKEN", async () => {
   const logs = [];
-  const rep = createReporter(loadConfig({}), {
+  const rep = createReporter(loadConfig({ HOME: NO_HOME, HOME: NO_HOME }), {
     fetch: async () => ({ ok: false, status: 401 }),
     logger: (m) => logs.push(m),
   });
@@ -414,7 +417,7 @@ test("createReporter: 401 without a token hints at SOU_TOKEN", async () => {
 });
 
 test("redactPayload: the configured ingest token is scrubbed from payload strings", () => {
-  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_TOKEN: TOK });
   const out = redactPayload({ output: `echo ok; token is ${TOK}`, nested: { note: `${TOK} seen in output` } }, cfg);
   const s = JSON.stringify(out);
   assert.ok(!s.includes(TOK), "plaintext token must not survive the privacy pass");
@@ -422,7 +425,7 @@ test("redactPayload: the configured ingest token is scrubbed from payload string
 });
 
 test("redactPayload: unrelated payloads are untouched when a token is set", () => {
-  const cfg = loadConfig({ SOU_TOKEN: TOK });
+  const cfg = loadConfig({ HOME: NO_HOME, SOU_TOKEN: TOK });
   const out = redactPayload({ command: "ls", status: "ok" }, cfg);
   assert.deepEqual(out, { command: "ls", status: "ok" });
 });

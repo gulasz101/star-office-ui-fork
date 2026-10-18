@@ -85,9 +85,37 @@ All configuration is optional; defaults point at a local dashboard and the
 Config-file candidates (first one found wins, `{"dashboardUrl": …}` JSON):
 
 1. `$SOU_REPORTER_CONFIG`
-2. `$XDG_CONFIG_HOME/star-office-reporter.json`
-3. `$XDG_CONFIG_HOME/opencode/star-office-reporter.json`
-4. `~/.config/opencode/star-office-reporter.json`
+2. `$OPENCODE_CONFIG_DIR/star-office-reporter.json`
+3. `$XDG_CONFIG_HOME/star-office-reporter.json`
+4. `$XDG_CONFIG_HOME/opencode/star-office-reporter.json`
+5. `~/.config/opencode/star-office-reporter.json`
+
+> OpenCode 2's background service (`opencode serve --service`) loads plugins in its own
+> process, so environment variables you set on a client command never reach the
+> reporter there. Put settings in the config file.
+
+### One engine, several rooms: `routes`
+
+OpenCode sets a plugin up once per project directory. One engine that works in
+several workspaces, such as OpenChamber serving two itsaplan runners, can give each
+workspace its own room. The route whose `directory` is the longest prefix of the
+project directory wins and replaces `agent`, and `token` when it has one. With no
+match the top-level values apply.
+
+```json
+{
+  "dashboardUrl": "http://ingest.lan:30260",
+  "agent": "openchamber",
+  "token": "<openchamber token>",
+  "routes": [
+    { "directory": "/storage/workspaces/star-office-ui-fork", "agent": "itsaplan-sou", "token": "<itsaplan-sou token>" },
+    { "directory": "/storage/workspaces/homelab-2nd", "agent": "itsaplan-h2", "token": "<itsaplan-h2 token>" }
+  ]
+}
+```
+
+Routes live only in the config file. Each token must be registered for its agent name on
+the dashboard (`tokens.py register <agent>`), or the door answers 403.
 
 ### Enable / disable examples
 

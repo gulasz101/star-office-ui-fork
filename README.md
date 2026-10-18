@@ -13,7 +13,8 @@ a season (winter, autumn, spring, summer) with its own forest and weather. Force
 
 It is **agent-agnostic**. Anything that can send an HTTP `POST` can live in the Lodge:
 Hermes, OpenChamber, OpenCode, Claude Code, Pi, or a shell script. The backend never reads
-an agent's workspace.
+an agent's workspace, and the code holds no list of agents: each one's room look is set
+when you register it.
 
 ![A focused room with its activity card](docs/screenshots/lodge-room.png)
 
@@ -105,22 +106,27 @@ redact on their side too.
 
 The design is in [`docs/public-lodge.md`](docs/public-lodge.md). The short version:
 
-**Per-agent ingest tokens.** `SOU_INGEST_TOKENS` maps `sha256(token) → agent`. The server
-stores only hashes. Mint one with:
+**Register each agent: a token plus a room personality.** The repo knows no agent
+names. Tokens (stored as sha256 only) and each agent's room look live in the database:
 
 ```bash
-uv run python backend/tokens.py new my-bot   # prints the plaintext once
+uv run python backend/tokens.py register my-bot --room serverroom --hoodie 125,0.8,0.8   # prints the token once
+uv run python backend/tokens.py set-room my-bot --room garage                            # change the look, no token
+uv run python backend/tokens.py list                                                     # agents, rooms, token counts
 ```
 
-Reporters send it as `Authorization: Bearer <token>`. A missing or unknown token gets
-`401`. A token used for another agent's name gets `403`. Bursts get `429`.
+Rooms: `garage`, `serverroom`, `factory`, `mystery`, `tokenden`, `career`, `writer`. An
+agent nobody registered still gets a room: the factory floor, with a hoodie colour
+derived from its name. Reporters send the token as `Authorization: Bearer <token>`. A
+missing, unknown or revoked token gets `401`. A token used for another agent's name gets
+`403`. Bursts get `429`.
 
 **One image, three faces.** `SOU_MODE` decides which routes even exist in the process:
 
 | `SOU_MODE` | Serves | Use |
 |---|---|---|
 | `dev` (default) | everything, tokens optional | your laptop / LAN box |
-| `ingest` | `POST /events` and the private read paths. Tokens are mandatory: it refuses to start without them. | the private endpoint agents write to |
+| `ingest` | `POST /events` and the private read paths. Always token-locked: with nothing registered every write gets `401`. | the private endpoint agents write to |
 | `public` | `/` → `/v3/`, `/health`, `/public/feed`, `/public/agents` | the read-only page you share |
 
 The public projection also drops `cwd`, hashes task ids and hides internal agents. The
@@ -136,19 +142,19 @@ SQLite and Postgres by `.github/workflows/docker-image.yml` before it is pushed.
 
 | Tag | When |
 |---|---|
-| `vX.Y.Z` | release tags (start here: `v2.0.0`) |
+| `vX.Y.Z` | release tags (latest: `v2.3.0`) |
 | `master-<sha7>-<unix-ts>` | every merge to master, sortable for Flux image automation |
 | `latest` | the newest of the above |
 
 ```bash
-docker run -d -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:v2.0.0
+docker run -d -p 127.0.0.1:19000:19000 ghcr.io/gulasz101/star-office-ui-fork:v2.3.0
 ```
 
 | Variable | Default | |
 |---|---|---|
 | `DATABASE_URL` | SQLite at `backend/sou.db` | `postgresql+psycopg2://…` for Postgres |
 | `SOU_MODE` | `dev` | `dev` / `ingest` / `public` |
-| `SOU_INGEST_TOKENS` | unset | `hash:agent,…` or a path to a JSON file |
+| `SOU_INGEST_TOKENS` | unset | **deprecated**: `hash:agent,…` or a JSON file path. Move it into the database with `tokens.py import-env`. |
 | `SOU_INGEST_RATE_LIMIT` | 20 req/s burst per token | |
 | `SOU_MIGRATE` | `1` | `0` skips `alembic upgrade head` at start (the read-only public pod) |
 | `STAR_BACKEND_PORT` | `19000` | |

@@ -36,9 +36,23 @@ env:
 
 jobs:
   contract:
-    name: Image contract + backend suite (no Docker)
+    name: Image contract + test suites (backend on SQLite and Postgres, renderer, reporter)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Throwaway test database on an ephemeral runner, never a place for credentials.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: sou
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sou"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +73,22 @@ jobs:
 
       - name: Backend suite (SQLite; the Postgres legs skip without TEST_POSTGRES_URL)
         run: ./ci-uv/bin/uv run pytest backend/tests -q
+
+      - name: Backend suite, Postgres legs (TEST_POSTGRES_URL)
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg2://postgres@127.0.0.1:5432/sou
+        # The deselected test already fails on master (SOU-298); drop the flag with its fix.
+        run: >-
+          ./ci-uv/bin/uv run pytest backend/tests -q
+          --deselect backend/tests/test_sou_mode.py::ReadonlyEngineTest::test_postgres_read_only_guard
+
+      - name: Renderer logic (node --test)
+        # the shell expands the glob: the runner's Node may predate `node --test` globbing
+        run: node --version && node --test frontend/v3/tests/*.test.mjs
+
+      - name: Vendored OpenCode reporter (node --test, backend schema check via uv)
+        working-directory: reporter/openchamber-star-office-reporter
+        run: ../../ci-uv/bin/uv run --project ../.. npm test
 
   image:
     name: Build, smoke on SQLite + Postgres, publish

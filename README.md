@@ -54,11 +54,17 @@ its desk.
 
 | Input | Does |
 |---|---|
-| drag / WASD | pan |
-| mouse wheel, `+`/`-`, pinch | zoom (touchpad two-finger scroll pans) |
-| click a room / `F` | focus a room and open its activity card / next room |
+| drag (mouse or one finger) / WASD | pan |
+| mouse wheel, `+`/`-`, pinch (touchpad or two fingers) | zoom (touchpad two-finger scroll pans) |
+| click or tap a room / `F` | focus a room and open its activity card / next room |
 | `Esc` | back to the overview |
 | `G` | tile grid overlay |
+
+The camera pad in the bottom-right corner does the same with buttons: zoom in, zoom out,
+the whole Lodge, next room. On a phone the roster becomes a scrollable strip and the room
+card a bottom sheet. A loading screen shows progress while the art downloads.
+
+![The Lodge on a phone: overview and a focused room](docs/screenshots/mobile.png)
 
 ---
 

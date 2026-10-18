@@ -150,6 +150,23 @@ class ImportEnvTest(_DbCase):
             self.assertEqual(self.cli("import-env")[0], 1)
 
 
+class EventsAgentsRoomTest(_DbCase):
+    """SOU-293 on the dev face: /events/agents carries the room set by the CLI."""
+
+    def test_room_in_events_agents(self) -> None:
+        import app
+
+        self.cli("set-room", "styled", "--room", "garage", "--hoodie", "10,0.5,0.9")
+        client = app.app.test_client()
+        for name in ("styled", "plain"):
+            ev = {"version": 1, "agent": name, "event_type": "tool_call",
+                  "timestamp": "2026-10-18T10:00:00Z", "payload": {"tool": "Edit", "status": "ok"}}
+            self.assertEqual(client.post("/events", json=ev).status_code, 201)
+        entries = {e["agent"]: e for e in client.get("/events/agents?since=2026-10-18T00:00:00Z").get_json()}
+        self.assertEqual(entries["styled"]["room"], {"type": "garage", "hoodie": {"h": 10, "s": 0.5, "v": 0.9}})
+        self.assertEqual(entries["plain"]["room"], {"type": None, "hoodie": None})
+
+
 class RoomTypesPinnedTest(unittest.TestCase):
     def test_room_types_match_the_renderer(self) -> None:
         with open(os.path.join(REPO_ROOT, "frontend", "v3", "src", "rooms.js"), encoding="utf-8") as fh:

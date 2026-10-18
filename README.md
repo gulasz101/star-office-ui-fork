@@ -4,7 +4,8 @@
 corridor of a log cabin in a snowy forest. Its little character walks to the desk, the
 rack, the bookshelf or the garage as it edits, runs shell commands, reads or deploys, and
 says what it is doing in a speech bubble. Background tasks and subagents show up as helper
-bots and mini-mes in the room. Cats wander the corridor: one per agent. Every page load picks
+bots and mini-mes in the room. Cats wander the corridor, one per agent, each with its own coat. They chase, play, groom
+and now and then have a cartoon fight. Every page load picks
 a season (winter, autumn, spring, summer) with its own forest and weather. Force one with
 `/v3/?season=autumn`.
 

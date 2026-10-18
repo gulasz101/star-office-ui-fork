@@ -6,7 +6,7 @@ import { weather, Cats } from './ambience.js';
 import { RoomCard } from './card.js';
 import { Roster } from './roster.js';
 import { detectFace, agentsUrl, feedUrl, normalise } from './api.js';
-import { ROOM_TYPES, PROP_ART, SHEET_PROPS } from './rooms.js';
+import { ROOM_TYPES, PROP_ART, SHEET_PROPS, setPersonalities, setPersonality, hasPersonality } from './rooms.js';
 import { LODGE_PROPS, lodgePropKey } from './lodge.js';
 import { SEASONS, TREE_FILES, pickSeason } from './seasons.js';
 import { COATS, CAT_FRAME_W, CAT_FRAME_H, FIGHT_CLOUD, coatKey, coatFile, pickCoat } from './cats.js';
@@ -87,7 +87,7 @@ class OfficeScene extends Phaser.Scene {
       this.anims.create({ key: `prop-anim-${name}`, frames: this.anims.generateFrameNumbers(`prop-${name}`, { start: 0, end: frames - 1 }), frameRate, repeat: -1 });
     }
     this.building = new Building(this, SEASON);
-    for (const id of PINNED.length ? PINNED : DEMO ? ['claude-code'] : []) this.building.addOffice(id, { arrive: false });
+    for (const id of PINNED.length ? PINNED : DEMO ? ['demo-agent'] : []) this.building.addOffice(id, { arrive: false });
 
     this.card = new RoomCard();
     this.events.on('room-focus', (o) => (o ? this.card.show(o) : this.card.hide()));
@@ -134,8 +134,8 @@ class OfficeScene extends Phaser.Scene {
       building: this.building,
       season: SEASON,
       offices: () => [...this.building.offices.keys()],
-      // office.agent('claude-code').do({ zone: 'build', activity: 'building', bubble: '$ docker build' })
-      // office.bg('claude-code', 'start', { id: 't1', kind: 'shell', label: 'sleep' })
+      // office.agent('demo-agent').do({ zone: 'build', activity: 'building', bubble: '$ docker build' })
+      // office.bg('demo-agent', 'start', { id: 't1', kind: 'shell', label: 'sleep' })
       bg: (id, op, task) => this.applyBackground([{ agent: id, op, task, at: Date.now() }]),
       agent: (id) => {
         const o = this.building.offices.get(id) || [...this.building.offices.values()][0];
@@ -188,6 +188,19 @@ class OfficeScene extends Phaser.Scene {
     el.style.opacity = text ? '1' : '0';
   }
 
+  // An agent first seen in the feed gets its room look before its room is built: one
+  // agents read per poll that brings newcomers (SOU-294). A failed read just means factory.
+  async learnNewcomers(rows) {
+    const fresh = rows.some((r) => r && r.agent && !hasPersonality(r.agent));
+    if (!fresh) return;
+    try {
+      const res = await fetch(agentsUrl(), { cache: 'no-store' });
+      if (res.ok) setPersonalities(await res.json());
+    } catch { /* keep going: the room falls back to the factory */ }
+    // asked once: an agent the read did not list keeps the factory, no refetch storm
+    for (const r of rows) if (r && r.agent && !hasPersonality(r.agent)) setPersonality(r.agent, null);
+  }
+
   startLive() {
     this.feed = new FeedState();
     window.office.feed = this.feed;
@@ -209,6 +222,7 @@ class OfficeScene extends Phaser.Scene {
             if (seed.ok) {
               const agents = await seed.json();
               if (Array.isArray(agents)) {
+                setPersonalities(agents); // SOU-294: room looks come with the entries
                 this.apply(this.feed.ingest(agents.map((r) => r && normalise(r.last_event)), { initial: true }));
               }
             }
@@ -220,7 +234,9 @@ class OfficeScene extends Phaser.Scene {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         // ingest is idempotent per event id, so rows the seed already applied
         // here change nothing; initial stays true until this poll succeeds
-        this.apply(this.feed.ingest((await res.json()).map(normalise), { initial: first }));
+        const rows = (await res.json()).map(normalise);
+        await this.learnNewcomers(rows);
+        this.apply(this.feed.ingest(rows, { initial: first }));
         this.applyBackground(this.feed.takeBackground());
         first = false;
         const n = this.building.offices.size;

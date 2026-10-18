@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { swapHoodie, rgbToHsv } from '../src/palette.js';
-import { hoodieFor } from '../src/rooms.js';
+import { hoodieFor, setPersonality, clearPersonalities } from '../src/rooms.js';
 
 const px = (...rgbs) => new Uint8ClampedArray(rgbs.flatMap(([r, g, b]) => [r, g, b, 255]));
 const HOODIE = [[240, 135, 43], [179, 93, 22], [255, 196, 106]];
@@ -28,10 +28,12 @@ test('transparent pixels and a null target are left alone', () => {
   assert.deepEqual([...swapHoodie(px(...HOODIE), null)], [...px(...HOODIE)]);
 });
 
-test('hoodie colours per agent: claude keeps orange, the others differ and are stable', () => {
-  assert.equal(hoodieFor('claude-code'), null);
-  const hs = ['hermes-default', 'hermes-szarik', 'hermes-andrzej', 'hermes-careerpa', 'hermes-florian', 'openchamber']
-    .map((a) => hoodieFor(a).h);
-  assert.equal(new Set(hs).size, hs.length, 'all distinct');
-  assert.deepEqual(hoodieFor('someone-new'), hoodieFor('someone-new'));
+test('hoodie colours come from the registered personality, else a stable spare (SOU-294)', () => {
+  clearPersonalities();
+  setPersonality('alpha', { type: 'garage', hoodie: { h: 125, s: 0.8, v: 0.8 } });
+  assert.deepEqual(hoodieFor('alpha'), { h: 125, s: 0.8, v: 0.8 });
+  assert.deepEqual(hoodieFor('ALPHA '), { h: 125, s: 0.8, v: 0.8 }, 'names match like the backend: case, padding');
+  setPersonality('beta', { type: 'garage', hoodie: { h: 'x' } }); // malformed -> spare
+  assert.ok(Number.isFinite(hoodieFor('beta').h));
+  assert.deepEqual(hoodieFor('someone-new'), hoodieFor('someone-new'), 'spares are stable');
 });

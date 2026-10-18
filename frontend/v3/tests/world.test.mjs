@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 import { buildGrid, findPath } from '../src/grid.js';
 import { World, slotForIndex, ROOM_W, ROOM_H, FRONT_Y, SPAWN_Y, DOOR_COLS } from '../src/world.js';
-import { ROOM_TYPES, roomTypeFor, FALLBACK_ROOM } from '../src/rooms.js';
+import { ROOM_TYPES } from '../src/rooms.js';
 
 const ZONES = ['work', 'ops', 'build', 'read', 'wait', 'rest', 'entry'];
 const load = (type) => JSON.parse(readFileSync(new URL(`../maps/rooms/${type}.json`, import.meta.url)));
@@ -36,18 +36,7 @@ test('slots grow around the centre: 0, +1, -1, +2, -2', () => {
   assert.deepEqual([0, 1, 2, 3, 4, 5].map(slotForIndex), [0, 1, -1, 2, -2, 3]);
 });
 
-test('room types: named agents get their room, unknown agents the factory', () => {
-  assert.equal(roomTypeFor('claude-code'), 'garage');
-  assert.equal(roomTypeFor('hermes-andrzej'), 'serverroom');
-  assert.equal(roomTypeFor('hermes-default'), 'mystery');
-  assert.equal(roomTypeFor('hermes-szarik'), 'tokenden');
-  assert.equal(roomTypeFor('hermes-careerpa'), 'career');
-  assert.equal(roomTypeFor('hermes-florian'), 'writer');
-  assert.equal(roomTypeFor('openchamber'), 'factory');
-  assert.equal(roomTypeFor('opencode-t460'), 'factory');
-  assert.equal(roomTypeFor('someone-new'), FALLBACK_ROOM);
-  for (const t of new Set(['x', 'claude-code', 'hermes-andrzej'].map(roomTypeFor))) assert.ok(ROOM_TYPES.includes(t));
-});
+// room types per agent: tests/rooms.test.mjs (SOU-294, from the API)
 
 function lodge(n) {
   const w = new World();

@@ -8,24 +8,35 @@ export const ROOM_NAMES = {
   tokenden: 'token den', career: 'career office', writer: "writer's loft",
 };
 
-// First match wins. Hermes profiles report as `hermes-<profile>`.
-const RULES = [
-  [/^claude(-code)?$/, 'garage'],
-  [/^hermes-andrzej$/, 'serverroom'],
-  [/^hermes-default$/, 'mystery'],
-  [/^hermes-szarik$/, 'tokenden'],
-  [/^hermes-(careerpa|zdzislaw)$/, 'career'],
-  [/^hermes-florian$/, 'writer'],
-  [/^(openchamber|opencode)/, 'factory'],
-];
-
 // Unknown agents are "dummy workers" and share the universal factory look.
 export const FALLBACK_ROOM = 'factory';
 
+// Room personality per agent (SOU-294) comes from the API, never from this repo: each
+// /events/agents or /public/agents entry carries `room: {type, hoodie}`, set when the
+// agent was registered (backend/tokens.py). Keyed by lowercased name, like the backend.
+const personalities = new Map();
+const keyOf = (agent) => String(agent || '').trim().toLowerCase();
+
+const validHoodie = (h) =>
+  h && typeof h === 'object' && ['h', 's', 'v'].every((k) => Number.isFinite(h[k])) ? { h: h.h, s: h.s, v: h.v } : null;
+
+export function setPersonality(agent, room) {
+  if (!keyOf(agent)) return;
+  const type = room && ROOM_TYPES.includes(room.type) ? room.type : null;
+  personalities.set(keyOf(agent), { type, hoodie: validHoodie(room && room.hoodie) });
+}
+
+// every entry of an agents read; entries without a name are skipped
+export function setPersonalities(entries) {
+  for (const e of Array.isArray(entries) ? entries : []) if (e && e.agent) setPersonality(e.agent, e.room);
+}
+
+export const hasPersonality = (agent) => personalities.has(keyOf(agent));
+export const clearPersonalities = () => personalities.clear();
+
 export function roomTypeFor(agent) {
-  const name = String(agent || '').trim().toLowerCase();
-  for (const [re, type] of RULES) if (re.test(name)) return type;
-  return FALLBACK_ROOM;
+  const p = personalities.get(keyOf(agent));
+  return (p && p.type) || FALLBACK_ROOM;
 }
 
 // Prop art: map object name -> served file. Names missing here (or files that fail to load)
@@ -58,22 +69,12 @@ export const SHEET_PROPS = {
   inserter: ['assets/factory/props/inserter.png', 32, 48, 2, 3],
 };
 
-// Hoodie colour per agent (SOU-202): null keeps the generated orange.
-const HOODIES = [
-  [/^claude(-code)?$/, null],
-  [/^hermes-default$/, { h: 52, s: 0.95, v: 1.05 }], // Bill Cipher yellow
-  [/^hermes-szarik$/, { h: 2, s: 1, v: 0.95 }],
-  [/^hermes-andrzej$/, { h: 125, s: 0.8, v: 0.8 }], // homelab green
-  [/^hermes-(careerpa|zdzislaw)$/, { h: 222, s: 0.85, v: 0.62 }], // navy blazer energy
-  [/^hermes-florian$/, { h: 280, s: 0.7, v: 0.85 }],
-  [/^(openchamber|opencode)/, { h: 178, s: 0.8, v: 0.8 }],
-];
-const SPARE_HOODIES = [{ h: 320, s: 0.7, v: 0.9 }, { h: 95, s: 0.8, v: 0.85 }, { h: 200, s: 0.8, v: 0.9 }];
-
+// Hoodie colour per agent (SOU-202): the registered one, else a hue hashed from the name,
+// so unregistered agents are stable and rarely look alike (saturation/value kept tame).
 export function hoodieFor(agent) {
-  const name = String(agent || '').trim().toLowerCase();
-  for (const [re, c] of HOODIES) if (re.test(name)) return c;
+  const p = personalities.get(keyOf(agent));
+  if (p && p.hoodie) return p.hoodie;
   let hash = 0;
-  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return SPARE_HOODIES[hash % SPARE_HOODIES.length];
+  for (const ch of keyOf(agent)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return { h: hash % 360, s: 0.8, v: 0.9 };
 }

@@ -1,0 +1,374 @@
+{
+  "pack": "cats-v1",
+  "set": "cats",
+  "issue": "SOU-277",
+  "consumer": "SOU-278 (CorridorCat: a random coat per cat, chase / play / groom / fight)",
+  "generated_from": "assets/generated/v3/cats",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "lora": "not used (collapses to black in diffusers - ADR-060)",
+  "view": "side view (profile), facing right",
+  "palette": "assets/generated/v3/cats/palette.json (the LODGE's 61 colours, imported - one palette family with the room the cats walk through)",
+  "set_scale": 0.052632,
+  "set_scale_note": "every pose of every coat is fitted at ONE scale, measured from the shipped lodge cat, so the cat does not change size as it sits down",
+  "coat_keys": [
+    "tabby_orange",
+    "black",
+    "white",
+    "grey",
+    "calico",
+    "tuxedo",
+    "siamese"
+  ],
+  "random_coat_pool": "pick without replacement from `coat_keys` (7 coats before a repeat)",
+  "sheets": [
+    {
+      "key": "tabby_orange",
+      "label": "orange tabby",
+      "served_path": "assets/cats/tabby_orange.png",
+      "texture_key_suggestion": "cat-tabby_orange",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "shipped in SOU-198 (the lodge cat), re-derived",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "black",
+      "label": "black",
+      "served_path": "assets/cats/black.png",
+      "texture_key_suggestion": "cat-black",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "white",
+      "label": "white",
+      "served_path": "assets/cats/white.png",
+      "texture_key_suggestion": "cat-white",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "grey",
+      "label": "grey",
+      "served_path": "assets/cats/grey.png",
+      "texture_key_suggestion": "cat-grey",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "calico",
+      "label": "calico",
+      "served_path": "assets/cats/calico.png",
+      "texture_key_suggestion": "cat-calico",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "tuxedo",
+      "label": "tuxedo",
+      "served_path": "assets/cats/tuxedo.png",
+      "texture_key_suggestion": "cat-tuxedo",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    },
+    {
+      "key": "siamese",
+      "label": "siamese (colour point)",
+      "served_path": "assets/cats/siamese.png",
+      "texture_key_suggestion": "cat-siamese",
+      "sheet_px": [
+        256,
+        32
+      ],
+      "frame_px": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "frame_order": [
+        "walk 0",
+        "walk 1",
+        "walk 2",
+        "walk 3",
+        "sit",
+        "sleep",
+        "crouch",
+        "hiss"
+      ],
+      "facing": "frames face right; the renderer mirrors the sheet for left",
+      "coat_source": "reference edit of tabby_orange",
+      "texture_px_actual": [
+        256,
+        32
+      ]
+    }
+  ],
+  "fight_cloud": {
+    "key": "fight_cloud",
+    "served_path": "assets/cats/fight_cloud.png",
+    "texture_key_suggestion": "cat-fight-cloud",
+    "sheet_px": [
+      192,
+      32
+    ],
+    "frame_px": [
+      48,
+      32
+    ],
+    "frames": 4,
+    "play": "at the midpoint between two fighting cats, both hidden",
+    "texture_px_actual": [
+      192,
+      32
+    ]
+  },
+  "frame_contract": {
+    "0-3": "walk cycle, right",
+    "4": "sitting",
+    "5": "curled up asleep",
+    "6": "crouched, tail up (pounce)",
+    "7": "arched back, fur up (hiss / fight)",
+    "source": "SOU-277 ticket table - the same order in all seven coats"
+  },
+  "files": [
+    {
+      "served_path": "assets/cats/palette.json",
+      "source": "assets/generated/v3/cats/palette.json",
+      "sha256": "e54bb9ff7680b44fb810021624be03c0f7529c86966d4846c72563f2cea9dd77",
+      "bytes": 5364
+    },
+    {
+      "served_path": "assets/cats/tabby_orange.png",
+      "source": "assets/generated/v3/cats/props/tabby_orange.png",
+      "sha256": "050061ed15556b6c46f22ee6fc8598e7b53faa496cceaf2ea924dc8943e4378c",
+      "bytes": 4273
+    },
+    {
+      "served_path": "assets/cats/tabby_orange.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/tabby_orange.png.manifest.json",
+      "sha256": "ef0fbc3bfcf9d4bf22e5d3401ff800fbd32d1379235126ddc187691dbe09b61a",
+      "bytes": 23855
+    },
+    {
+      "served_path": "assets/cats/black.png",
+      "source": "assets/generated/v3/cats/props/black.png",
+      "sha256": "ed20eea2e1fd001d5b01cca3136ac85a645d66890b51b2029369f2180a22972f",
+      "bytes": 1895
+    },
+    {
+      "served_path": "assets/cats/black.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/black.png.manifest.json",
+      "sha256": "cf96479229f4c347315aa216be9b31c95b68a2f3c9de4f52bdca84793a5df647",
+      "bytes": 25024
+    },
+    {
+      "served_path": "assets/cats/white.png",
+      "source": "assets/generated/v3/cats/props/white.png",
+      "sha256": "6144388e7be21b38e1ce802499e23169e77d8690f832fe1f32b9ee100cb98cdc",
+      "bytes": 2247
+    },
+    {
+      "served_path": "assets/cats/white.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/white.png.manifest.json",
+      "sha256": "4b335dfcaa40145c2e5c0450bf75a98c0b72cae5b33debeaaa33589a4b329a6b",
+      "bytes": 25013
+    },
+    {
+      "served_path": "assets/cats/grey.png",
+      "source": "assets/generated/v3/cats/props/grey.png",
+      "sha256": "7a12105059147d992c38b6ac0c2f5f193e04de1f82032719137781c45d7dd79e",
+      "bytes": 3858
+    },
+    {
+      "served_path": "assets/cats/grey.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/grey.png.manifest.json",
+      "sha256": "d4c0a0f2f9757a57e1f43aba313eb5cd2ae5f0f4742d4209c1fb78173b06caec",
+      "bytes": 24838
+    },
+    {
+      "served_path": "assets/cats/calico.png",
+      "source": "assets/generated/v3/cats/props/calico.png",
+      "sha256": "bba3e4896f130b432b350503cf1b9d152d88f9f2bbba5af3c22e9f7eee639310",
+      "bytes": 3840
+    },
+    {
+      "served_path": "assets/cats/calico.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/calico.png.manifest.json",
+      "sha256": "45da05b2d2204c78bec1d45bc2efa424b3cffd5ed9d1f32421ec5ea1bb0ab226",
+      "bytes": 25173
+    },
+    {
+      "served_path": "assets/cats/tuxedo.png",
+      "source": "assets/generated/v3/cats/props/tuxedo.png",
+      "sha256": "f81532ac00f1355a675048bad7857d9ed892498e5961d90729787188c91a208a",
+      "bytes": 2388
+    },
+    {
+      "served_path": "assets/cats/tuxedo.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/tuxedo.png.manifest.json",
+      "sha256": "0b9c8a724486daafbfd33c1b012b6a15dfea8a23cf8fe2bb0cfbad857e74914a",
+      "bytes": 25154
+    },
+    {
+      "served_path": "assets/cats/siamese.png",
+      "source": "assets/generated/v3/cats/props/siamese.png",
+      "sha256": "2d0cf5e70b798db0e06f2d229a6b09cdc7c935f72b9da5c40427edbe1bd740a8",
+      "bytes": 2746
+    },
+    {
+      "served_path": "assets/cats/siamese.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/siamese.png.manifest.json",
+      "sha256": "1b2b90998aeda4061db7cc1f1173c1a2b54af6d7e6fa5aa097feb07675ebdd5b",
+      "bytes": 27307
+    },
+    {
+      "served_path": "assets/cats/fight_cloud.png",
+      "source": "assets/generated/v3/cats/props/fight_cloud.png",
+      "sha256": "624f27bc2f4a1d686f75aedea2fa30fef238f5494c85ca6ca8aa8384305d9225",
+      "bytes": 1578
+    },
+    {
+      "served_path": "assets/cats/fight_cloud.png.manifest.json",
+      "source": "assets/generated/v3/cats/props/fight_cloud.png.manifest.json",
+      "sha256": "0a41b82385be48b938f20a73700e626f9034415340949dadf1d3722deda7f883",
+      "bytes": 7257
+    }
+  ],
+  "created_at": "2026-10-17T21:16:30.325551+00:00"
+}

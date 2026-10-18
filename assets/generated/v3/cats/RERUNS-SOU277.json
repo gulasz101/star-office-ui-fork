@@ -1,0 +1,26 @@
+{
+  "why": "The first pass of these raws was rejected at review, BEFORE the strip was accepted. The rejected generation is kept on disk with a named suffix so the record shows what was thrown away and why; each re-roll used a seed shift so it is a different sample, not a retry of the same noise.",
+  "rejected": {
+    "siamese_*": {
+      "suffix": ".r1-striped.raw.png",
+      "reason": "came back as a LYNX POINT: tan tabby stripes down the back and sides, not the colour-point the ticket asks for ('siamese (colour-point)'). Cause: the reference pose is an orange tabby, and 'keep the pattern, change the colour' keeps the stripes. Fixed by stating the stripe REMOVAL in the edit clause."
+    },
+    "tuxedo_sit": {
+      "suffix": ".r1-greenstreak.raw.png",
+      "reason": "a ~10px pine-green streak down the black fur (measured: #2f5c38 x10 in frame 4 only) - a generation artifact, re-rolled."
+    },
+    "fight_cloud": {
+      "suffix": ".r1-nopaws.raw.png",
+      "reason": "a clean dust cloud but with NO paws poking out (measured + read at 8x); the ticket asks for paws and stars. Prompt made explicit about paws/stars breaking the outline."
+    },
+    "fight_cloud (2nd roll)": {
+      "suffix": ".r2-starless.raw.png",
+      "reason": "SHIPPED (as the base for the declared star glyphs): paw-like protrusions and dust spikes read as paws, no readable stars."
+    },
+    "fight_cloud (3rd roll)": {
+      "suffix": ".r3-nostars.raw.png",
+      "reason": "rejected: WORSE than the 2nd - no paws breaking the outline and only a 2px gold speck, no star. Measured: zero #ffea99 plus-shapes in all 4 frames. Conclusion: klein-4B at 4 steps cannot reliably draw a 5px four-pointed star at this scale, so the stars are DRAWN from the declared palette at declared positions instead of rolled for."
+    }
+  },
+  "seed_shift": 1000
+}

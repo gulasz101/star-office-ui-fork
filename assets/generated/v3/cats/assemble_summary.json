@@ -1,0 +1,15 @@
+{
+  "set_scale": 0.052632,
+  "reference_content_px": 26,
+  "coats": [
+    "black",
+    "calico",
+    "grey",
+    "siamese",
+    "tabby_orange",
+    "tuxedo",
+    "white"
+  ],
+  "fight_cloud": true,
+  "created_at": "2026-10-17T21:16:30.136111+00:00"
+}

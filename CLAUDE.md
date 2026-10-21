@@ -48,7 +48,7 @@ screen", not for ceremony.
 | Event feed | `GET /events/recent?agent=&event_type=&since=&limit=` | Keep. Newest first. |
 | Agent registry | `backend/tokens.py` (`register`, `set-room`, `list`, `revoke`), migration 004 (`ingest_tokens`, `agents.room_type` / `hoodie`), `docs/public-lodge.md` | Tokens and room personality live in the DB; `/events/agents` and `/public/agents` carry `room`. |
 | **v3 renderer** | `frontend/v3/` — Phaser **4.2.1**, served by Flask | **New, all new frontend work goes here.** |
-| Reporters | `reporter/` (OpenChamber/OpenCode, vendored from its repo; `routes` give one engine a room per workspace), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`) | Keep, add more. |
+| Reporters | `reporter/` (OpenChamber/OpenCode, vendored from its repo; `routes` give one engine a room per workspace), Hermes plugin `gulasz101/hermes-star-office-reporter`, Claude Code plugin `gulasz101/claude-code-star-office-reporter` (supersedes `reporter/claude-code`), Pi extension `gulasz101/pi-star-office-reporter` (hooks `pi.on()`, so headless `pi -p` runs report too) | Keep, add more. |
 | Art pipeline | FLUX.2-klein-4B on the M1 Max (MPS), pixelize post-process | Keep. Mac-side only. |
 
 Event types in use (non-normative, new ones are allowed without a schema change):

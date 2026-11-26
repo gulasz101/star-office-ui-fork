@@ -1,0 +1,31 @@
+# The gate on every pull request: scripts/check.sh (container contract, backend tests on
+# SQLite, renderer tests, reporter tests). The ruleset on master requires this job
+# ("check") to pass, and the code factory merges a pull request only when it is green.
+# docker-image.yml still builds, smokes and publishes the image.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv (same pin as docker-image.yml, no third-party action)
+        run: |
+          python3 -m pip install --quiet --target "$RUNNER_TEMP/ci-uv" 'uv==0.13.1'
+          echo "$RUNNER_TEMP/ci-uv/bin" >> "$GITHUB_PATH"
+      - name: scripts/check.sh
+        run: sh scripts/check.sh

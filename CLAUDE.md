@@ -112,9 +112,13 @@ Rules for everyone:
    "Tests pass" while the screen looks wrong is a failed ticket.
 3. **Rulings, not stalls.** If something is ambiguous, decide, then comment
    `Ruling: <what> - <why> - <cost if wrong>`.
-4. **Branches:** one branch per ticket, named `sou-<number>-<slug>`, branched from
-   `master` unless the ticket names another base. Atomic commits, push the branch, put
-   the SHAs on the ticket. Only Claude Code merges to `master`.
+4. **Branches and merges:** `master` takes changes only through a pull request, and CI
+   job `check` (`scripts/check.sh`) must pass (GitHub ruleset). One branch per ticket,
+   branched from `master`. Work orders of the homelab code factory (Paperclip project
+   "Star Office UI", homelab-2nd ADR-138) run on their own `gul-<n>-<slug>` branch and
+   worktree; the factory's GitHub App merges them when the gate passes, except changes
+   to the paths in `.github/never-paths.json`, which only the owner merges. Run
+   `scripts/check.sh` before you push.
 5. **Stay in scope.** Follow-ups go to Backlog as new tickets, they don't get folded in.
 6. Don't edit files another in-flight ticket owns (check the board first).
 
@@ -132,7 +136,7 @@ curl -s -X POST http://127.0.0.1:19000/events -H 'Content-Type: application/json
   -d '{"version":1,"agent":"claude","event_type":"tool_call","timestamp":"2026-10-16T12:00:00Z","payload":{"tool":"Edit","status":"ok"}}'
 ```
 
-Tests (CI runs all of these on every push, `.github/workflows/docker-image.yml`):
+Tests (`scripts/check.sh` runs all of these except the Postgres legs; CI runs them on every push, `.github/workflows/check.yml` and `.github/workflows/docker-image.yml`):
 - `uv run pytest backend/tests` (Python, SQLite). For the Postgres legs, run
   `scripts/dev_postgres.sh start`, then the same command with `TEST_POSTGRES_URL` set to the URL it prints.
 - `node --test "frontend/v3/tests/*.test.mjs"` (JS; quote the glob — the bare directory form

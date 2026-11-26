@@ -7,6 +7,11 @@
 set -eu
 cd "$(dirname "$0")/.." || exit 1
 
+# Same Python as the image (Dockerfile: python:3.13-slim). Without a pin uv takes the
+# runner's newest Python, and pillow 10.4.0 has no wheel for 3.14 (CI red since 2026-11-22).
+UV_PYTHON="${UV_PYTHON:-3.13}"
+export UV_PYTHON
+
 fail=0
 step() {
   name=$1; shift

@@ -33,6 +33,9 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/gulasz101/star-office-ui-fork
+  # Same Python as the image (python:3.13-slim). Unpinned, uv took the runner's 3.14,
+  # where pillow 10.4.0 has no wheel, and the contract job has failed since 2026-11-22.
+  UV_PYTHON: "3.13"
 
 jobs:
   contract:

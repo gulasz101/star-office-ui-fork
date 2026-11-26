@@ -1,0 +1,21 @@
+{
+  "comment": "Paths a code factory work order may never touch, whatever any gate says (homelab-2nd agents/factory/CONTRACT.md point 5, GUL-2238). The engine reads this file from the pull request's base commit. Only the owner merges a change to these paths. Dockerfile and entrypoint.sh define the image that runs in production; backend/migrations change the live Postgres schema on the next release; tokens.py, ingest_auth.py and sou_mode.py hold the ingest-token checks and the public read-only mode.",
+  "globs": [
+    ".github/**",
+    "**/AGENTS.md",
+    "**/CLAUDE.md",
+    "LICENSE",
+    "scripts/check.sh",
+    "Dockerfile",
+    "entrypoint.sh",
+    ".dockerignore",
+    "backend/migrations/**",
+    "backend/tokens.py",
+    "backend/ingest_auth.py",
+    "backend/sou_mode.py",
+    "join-keys.json",
+    "**/.env*"
+  ],
+  "newFilesUnder": [],
+  "contentRules": {}
+}
